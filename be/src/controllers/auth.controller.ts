@@ -222,3 +222,38 @@ export const deactivateAccount = asyncHandler(
     });
   }
 );
+
+/**
+ * @desc    Verify email address
+ * @route   GET /api/v1/auth/verify-email/:token
+ * @access  Public
+ */
+export const verifyEmail = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const { token } = req.params;
+    await AuthService.verifyEmail(token);
+
+    res.status(200).json({
+      success: true,
+      status: 'success',
+      message: 'Email đã được xác minh thành công! Bạn có thể đăng nhập ngay.',
+    });
+  }
+);
+
+/**
+ * @desc    Resend email verification link
+ * @route   POST /api/v1/auth/resend-verification
+ * @access  Private
+ */
+export const resendVerificationEmail = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const result = await AuthService.resendVerificationEmail(req.user!.id);
+
+    res.status(200).json({
+      success: true,
+      status: 'success',
+      message: result.message,
+    });
+  }
+);

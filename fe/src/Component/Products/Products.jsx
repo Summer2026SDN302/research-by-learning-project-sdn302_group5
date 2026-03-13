@@ -1,41 +1,32 @@
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { FiMapPin } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { ROUTES } from "../../constants";
+import productService, { resolveImageUrl } from "../../services/product.service";
 import "./Products.css";
-
-const products = [
-  {
-    id: 1,
-    name: "Thanh long ruột đỏ",
-    location: "HTX Hòa Bình, Long An",
-    progress: 75,
-    harvest: "Tháng 10/2025",
-    tag: "GLOBALGAP",
-    image: "/PD1.jpg"
-  },
-  {
-    id: 2,
-    name: "Cam Vinh",
-    location: "Xã Minh Hợp, Quỳ Hợp, Nghệ An",
-    progress: 40,
-    harvest: "Tháng 12/2025",
-    tag: "VIETGAP",
-    image: "/PD2.jpg"
-  },
-  {
-    id: 3,
-    name: "Bưởi da xanh",
-    location: "Nhà vườn Sông Tiền, Bến Tre",
-    progress: 92,
-    harvest: "Tháng 09/2025",
-    tag: "HỮU CƠ",
-    image: "/PD3.jpg"
-  }
-];
 
 function Products() {
   const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    productService.getAll({ limit: 3 })
+      .then(res => {
+        const list = res?.data?.products || res?.data || [];
+        setProducts(list.slice(0, 3).map(p => ({
+          id: p._id || p.id,
+          name: p.name,
+          location: p.location || "Việt Nam",
+          progress: p.progress || 0,
+          harvest: p.expectedDate ? `Tháng ${new Date(p.expectedDate).getMonth() + 1}/${new Date(p.expectedDate).getFullYear()}` : "Quanh năm",
+          tag: (p.certifications && p.certifications[0]) || p.badge || "Nông sản",
+          image: resolveImageUrl(p.image) || "/images/products/default.jpg",
+        })));
+      })
+      .catch(() => {});
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -94,6 +85,7 @@ function Products() {
 
           {/* PRODUCTS */}
           <Row>
+            {products.length === 0 && <Col className="text-center py-5" style={{ color: '#888' }}>Đang tải sản phẩm...</Col>}
             {products.map((product, index) => (
               <Col md={4} key={product.id} className="mb-4">
                 <motion.div
@@ -136,7 +128,7 @@ function Products() {
                       <Card.Title>{product.name}</Card.Title>
 
                       <p className="product-location">
-                        📍 {product.location}
+                        <FiMapPin size={13} style={{ marginRight: 3, verticalAlign: 'middle' }} />{product.location}
                       </p>
 
                       {/* PROGRESS */}

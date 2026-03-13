@@ -38,3 +38,17 @@ export const ROLES = {
   FARMER: 'farmer',
   ENTERPRISE: 'enterprise',
 } as const;
+
+// ===== WEATHER THRESHOLDS =====
+export const WEATHER_THRESHOLDS = {
+  EXTREME_HEAT_TEMP: 38,      // °C
+  EXTREME_COLD_TEMP: 5,       // °C
+  HEAVY_RAIN_MM: 100,         // mm/day
+  STRONG_WIND_KMH: 60,        // km/h
+  DROUGHT_MM: 5,              // mm in DROUGHT_DAYS
+  DROUGHT_DAYS: 14,           // consecutive days
+} as const;
+
+// ===== WEATHER CRON SCHEDULE =====
+export const WEATHER_CRON_SCHEDULE = '0 */6 * * *';  // Every 6 hours
+

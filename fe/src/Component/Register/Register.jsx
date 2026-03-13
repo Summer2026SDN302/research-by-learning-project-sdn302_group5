@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiUser, FiBriefcase, FiAlertTriangle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Navbar from '../Navbar/Navbar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { ROUTES, TOAST_DURATION } from '../../constants';
 import { pageVariants, buttonVariants } from '../../constants/animations';
+import { getDistricts, getWards } from '../../data/vn-locations';
 import './Register.css';
 
 // Animation variants
@@ -50,17 +52,33 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(null); // 'terms' | 'privacy'
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
+    province: '',
+    district: '',
+    ward: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false
   });
 
+  const districtOptions = useMemo(() => getDistricts(formData.province), [formData.province]);
+  const wardOptions = useMemo(() => getWards(formData.district), [formData.district]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // Reset dependent fields when parent changes
+    if (name === 'province') {
+      setFormData(prev => ({ ...prev, province: value, district: '', ward: '' }));
+      return;
+    }
+    if (name === 'district') {
+      setFormData(prev => ({ ...prev, district: value, ward: '' }));
+      return;
+    }
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
@@ -94,6 +112,9 @@ const Register = () => {
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
+        province: formData.province,
+        district: formData.district,
+        ward: formData.ward,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
         role: selectedRole,
@@ -101,7 +122,7 @@ const Register = () => {
       });
 
       if (response.success) {
-        toast.success(`🎉 Chào mừng ${formData.fullName}! Tài khoản của bạn đã được tạo thành công.`, TOAST_DURATION.LONG);
+        toast.success(`Chào mừng ${formData.fullName}! Tài khoản của bạn đã được tạo thành công.`, TOAST_DURATION.LONG);
         
         setTimeout(() => {
           navigate(selectedRole === 'farmer' ? ROUTES.FARMER : ROUTES.ENTERPRISE);
@@ -176,7 +197,7 @@ const Register = () => {
                 <div className="role-card-bg farmer-bg">
                   <div className="role-card-content">
                     <div className="role-title">
-                      <span className="role-icon">🌱</span>
+                      <span className="role-icon"><FiUser size={26} /></span>
                       <p>Tôi là Nông dân</p>
                     </div>
                     <p className="role-desc">Tìm kiếm thị trường và quản lý sản xuất hiệu quả.</p>
@@ -201,7 +222,7 @@ const Register = () => {
                 <div className="role-card-bg enterprise-bg">
                   <div className="role-card-content">
                     <div className="role-title">
-                      <span className="role-icon">🏢</span>
+                      <span className="role-icon"><FiBriefcase size={26} /></span>
                       <p>Tôi là Doanh nghiệp</p>
                     </div>
                     <p className="role-desc">Kết nối nguồn cung nông sản chất lượng và bền vững.</p>
@@ -240,7 +261,7 @@ const Register = () => {
                   fontSize: '14px'
                 }}
               >
-                ⚠️ {error}
+                <FiAlertTriangle size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />{error}
               </motion.div>
             )}
 
@@ -301,6 +322,91 @@ const Register = () => {
                   />
                 </motion.div>
               </div>
+
+              {/* Province / District / Ward */}
+              <div className="form-row">
+                <motion.div
+                  className="form-group"
+                  variants={formGroupVariants}
+                  initial="initial"
+                  animate="animate"
+                  transition={{ delay: 0.62 }}
+                >
+                  <label>Tỉnh/Thành phố</label>
+                  <motion.input
+                    type="text"
+                    name="province"
+                    placeholder="VD: Hà Nội, Lâm Đồng..."
+                    value={formData.province}
+                    onChange={handleInputChange}
+                    whileFocus={{ scale: 1.01, borderColor: "#13ec37" }}
+                  />
+                </motion.div>
+                <motion.div
+                  className="form-group"
+                  variants={formGroupVariants}
+                  initial="initial"
+                  animate="animate"
+                  transition={{ delay: 0.64 }}
+                >
+                  <label>Quận/Huyện</label>
+                  {districtOptions.length > 0 ? (
+                    <select
+                      name="district"
+                      value={formData.district}
+                      onChange={handleInputChange}
+                      className="register-select"
+                    >
+                      <option value="">-- Chọn Quận/Huyện --</option>
+                      {districtOptions.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <motion.input
+                      type="text"
+                      name="district"
+                      placeholder="VD: Cầu Giấy, Đà Lạt..."
+                      value={formData.district}
+                      onChange={handleInputChange}
+                      whileFocus={{ scale: 1.01, borderColor: "#13ec37" }}
+                    />
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Ward — always shown, dropdown when data available */}
+              <motion.div
+                className="form-group full-width"
+                variants={formGroupVariants}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.66 }}
+              >
+                <label>Xã/Phường/Thị trấn <span style={{ color: '#999', fontWeight: 400, fontSize: 12 }}>(tùy chọn)</span></label>
+                {wardOptions.length > 0 ? (
+                  <select
+                    name="ward"
+                    value={formData.ward}
+                    onChange={handleInputChange}
+                    className="register-select"
+                  >
+                    <option value="">-- Chọn Xã/Phường/Thị trấn --</option>
+                    {wardOptions.map(w => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <motion.input
+                    type="text"
+                    name="ward"
+                    placeholder="VD: Phường Dịch Vọng, Xã Xuân Thọ..."
+                    value={formData.ward}
+                    onChange={handleInputChange}
+                    whileFocus={{ scale: 1.01, borderColor: "#13ec37" }}
+                  />
+                )}
+              </motion.div>
 
               {/* Password and Confirm Password */}
               <div className="form-row">
@@ -390,7 +496,7 @@ const Register = () => {
                 onChange={handleInputChange}
               />
               <label htmlFor="terms">
-                Tôi đồng ý với <motion.a href="#terms" whileHover={{ color: "#13ec37" }}>Điều khoản sử dụng</motion.a> và <motion.a href="#privacy" whileHover={{ color: "#13ec37" }}>Chính sách bảo mật</motion.a> của PreOnic.
+                Tôi đồng ý với <motion.button type="button" className="register-link-btn" onClick={() => setShowModal('terms')} whileHover={{ color: "#13ec37" }}>Điều khoản sử dụng</motion.button> và <motion.button type="button" className="register-link-btn" onClick={() => setShowModal('privacy')} whileHover={{ color: "#13ec37" }}>Chính sách bảo mật</motion.button> của PreOnic.
               </label>
             </motion.div>
 
@@ -440,6 +546,57 @@ const Register = () => {
           © 2024 PreOnic. Nền tảng kết nối nông nghiệp bền vững.
         </motion.footer>
       </main>
+
+      {showModal && (
+        <div className="terms-modal-overlay" onClick={() => setShowModal(null)}>
+          <div className="terms-modal" onClick={e => e.stopPropagation()}>
+            <div className="terms-modal-header">
+              <h3>{showModal === 'terms' ? 'Điều khoản Sử dụng PreOnic' : 'Chính sách Bảo mật PreOnic'}</h3>
+              <button className="terms-modal-close" onClick={() => setShowModal(null)}>✕</button>
+            </div>
+            <div className="terms-modal-body">
+              {showModal === 'terms' ? (
+                <>
+                  <h4>1. Chấp nhận điều khoản</h4>
+                  <p>Bằng việc đăng ký tài khoản trên PreOnic, bạn đồng ý tuân thủ toàn bộ các điều khoản sử dụng này. PreOnic có quyền cập nhật điều khoản bất cứ lúc nào và sẽ thông báo cho người dùng qua email đã đăng ký.</p>
+                  <h4>2. Điều kiện sử dụng tài khoản</h4>
+                  <p>Bạn phải từ 18 tuổi trở lên và có đủ năng lực pháp lý để sử dụng dịch vụ. Thông tin đăng ký phải trung thực và chính xác. Mỗi cá nhân/tổ chức chỉ được phép sở hữu một tài khoản. Bạn chịu trách nhiệm bảo mật tên đăng nhập và mật khẩu của mình.</p>
+                  <h4>3. Hành vi bị cấm</h4>
+                  <p>Nghiêm cấm: đăng tải thông tin sai lệch về nông sản; sử dụng nền tảng để lừa đảo, gian lận thương mại; phá hoại hệ thống hoặc cố tình tấn công bảo mật; thu thập thông tin người dùng khác trái phép; vi phạm quyền sở hữu trí tuệ của PreOnic hoặc bên thứ ba.</p>
+                  <h4>4. Trách nhiệm của người dùng</h4>
+                  <p>Người dùng tự chịu trách nhiệm về tính chính xác của thông tin sản phẩm, hợp đồng và giao dịch. PreOnic chỉ đóng vai trò nền tảng trung gian — không chịu trách nhiệm về chất lượng nông sản thực tế ngoài phạm vi hệ thống Escrow đã cam kết.</p>
+                  <h4>5. Quyền sở hữu trí tuệ</h4>
+                  <p>Toàn bộ nội dung, giao diện, logo, dữ liệu và mã nguồn của PreOnic đều thuộc quyền sở hữu của Công ty TNHH PreOnic Việt Nam. Nghiêm cấm sao chép, phân phối hoặc sử dụng vì mục đích thương mại khi chưa được phép bằng văn bản.</p>
+                  <h4>6. Chấm dứt tài khoản</h4>
+                  <p>PreOnic có quyền tạm khóa hoặc xóa vĩnh viễn tài khoản của người dùng vi phạm điều khoản, mà không cần thông báo trước trong các trường hợp khẩn cấp. Bạn có thể tự xóa tài khoản bất kỳ lúc nào qua phần Cài đặt tài khoản.</p>
+                  <h4>7. Giới hạn trách nhiệm</h4>
+                  <p>PreOnic không chịu trách nhiệm về thiệt hại gián tiếp, mất doanh thu hoặc dữ liệu phát sinh từ việc sử dụng hoặc không thể sử dụng dịch vụ. Trách nhiệm tối đa của PreOnic không vượt quá tổng phí dịch vụ bạn đã thanh toán trong 12 tháng gần nhất.</p>
+                </>
+              ) : (
+                <>
+                  <h4>1. Thông tin chúng tôi thu thập</h4>
+                  <p>PreOnic thu thập: (i) Thông tin cá nhân bạn cung cấp khi đăng ký (họ tên, email, số điện thoại, địa chỉ); (ii) Thông tin hoạt động trên nền tảng (giao dịch, hợp đồng, sản phẩm đăng bán); (iii) Dữ liệu kỹ thuật (địa chỉ IP, loại thiết bị, trình duyệt) để cải thiện dịch vụ.</p>
+                  <h4>2. Mục đích sử dụng thông tin</h4>
+                  <p>Thông tin của bạn được dùng để: xác minh danh tính và tài khoản; thực hiện và bảo vệ các giao dịch qua Escrow; gửi thông báo liên quan đến hợp đồng và tài khoản; cải thiện trải nghiệm người dùng; tuân thủ nghĩa vụ pháp lý.</p>
+                  <h4>3. Chia sẻ thông tin</h4>
+                  <p>PreOnic <strong>không bán</strong> thông tin cá nhân của bạn. Thông tin chỉ được chia sẻ với: đối tác giao dịch trực tiếp (tên, liên hệ) khi hợp đồng được ký kết; đơn vị thanh toán (PayOS) khi xử lý giao dịch; cơ quan nhà nước khi có yêu cầu hợp pháp.</p>
+                  <h4>4. Bảo mật dữ liệu</h4>
+                  <p>Dữ liệu của bạn được bảo vệ bằng mã hóa SSL 256-bit trong quá trình truyền tải. Mật khẩu được băm (hashed) bằng thuật toán bcrypt — PreOnic không bao giờ lưu mật khẩu dạng plaintext. Hệ thống được kiểm tra bảo mật định kỳ.</p>
+                  <h4>5. Cookie và theo dõi</h4>
+                  <p>PreOnic sử dụng cookie phiên làm việc để duy trì trạng thái đăng nhập và cookie phân tích (ẩn danh) để cải thiện hiệu năng hệ thống. Bạn có thể tắt cookie trong cài đặt trình duyệt, tuy nhiên một số tính năng có thể bị ảnh hưởng.</p>
+                  <h4>6. Quyền của bạn</h4>
+                  <p>Bạn có quyền: truy cập và xuất dữ liệu cá nhân; yêu cầu chỉnh sửa thông tin không chính xác; yêu cầu xóa tài khoản và dữ liệu (trừ dữ liệu hợp đồng phải lưu theo quy định pháp luật); khiếu nại về cách xử lý dữ liệu tới PreOnic hoặc cơ quan bảo vệ dữ liệu.</p>
+                  <h4>7. Liên hệ về bảo mật</h4>
+                  <p>Nếu phát hiện sự cố bảo mật hoặc có câu hỏi về chính sách này, vui lòng liên hệ: <strong>privacy@preonic.vn</strong> hoặc qua hotline hỗ trợ trên trang web.</p>
+                </>
+              )}
+            </div>
+            <div className="terms-modal-footer">
+              <button className="cf-btn primary" onClick={() => setShowModal(null)}>Tôi đã hiểu</button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -1,0 +1,406 @@
+================================================================================
+  PREONIC — TỔNG QUAN DỰ ÁN
+  Tạo: 08/03/2026 | Phiên bản hiện tại: v1.0-beta (~90% hoàn thiện)
+================================================================================
+
+
+================================================================================
+  1. GIỚI THIỆU DỰ ÁN
+================================================================================
+
+Tên:        PreOnic (Công ty TNHH PreOnic Việt Nam)
+Slogan:     Nền tảng kết nối nông nghiệp bền vững hàng đầu Việt Nam
+
+Mô tả:      PreOnic là nền tảng số hóa chuỗi cung ứng nông sản, kết nối
+            trực tiếp giữa Nông dân (Farmer) và Doanh nghiệp (Enterprise)
+            trong mô hình bao tiêu nông sản. Nền tảng hỗ trợ toàn bộ vòng
+            đời hợp đồng: từ tìm kiếm nguồn cung, ký kết hợp đồng điện tử,
+            thanh toán escrow an toàn đến theo dõi giao hàng.
+
+Mô hình:    - Nông dân đăng bán nông sản, xem hợp đồng, nhận thanh toán
+            - Doanh nghiệp tìm nguồn cung, ký hợp đồng bao tiêu, quản lý kho
+            - PreOnic thu phí hoa hồng 3% trên giá trị mỗi hợp đồng
+            - Escrow: PreOnic giữ tiền cọc, giải ngân theo milestone
+
+Tech Stack:
+  Frontend:  React 19 + React Router v7 + React Bootstrap 5.3
+             Framer Motion (animation) | recharts 3.7 (biểu đồ)
+             Axios (HTTP) | Context API (state)
+  Backend:   Node.js + Express.js + TypeScript
+             MongoDB + Mongoose (database)
+             JWT (access token 7d + refresh token 30d + httpOnly cookie)
+             nodemailer (email) | multer/base64 (upload) | node-cron (cron)
+  Tools:     OpenWeatherMap API | PayOS (cổng thanh toán — chưa tích hợp)
+             Google OAuth (đã cấu hình .env — chưa implement)
+
+Cấu trúc thư mục:
+  e:\K7\exe\PreOnic\
+  ├── be/          Backend Node.js + TypeScript (port 5000)
+  └── fe/          Frontend React (port 3000)
+
+
+================================================================================
+  2. TỔNG QUAN CÁC CHỨC NĂNG CHÍNH
+================================================================================
+
+  A. XÁC THỰC & TÀI KHOẢN
+     ─────────────────────
+     - Đăng ký (farmer / enterprise), đăng nhập bằng email hoặc SĐT
+     - JWT: access token (bearer) + refresh token (httpOnly cookie)
+     - Auto-refresh token khi hết hạn (axios interceptor)
+     - Brute-force protection: khóa 15 phút sau 5 lần sai mật khẩu
+     - Quên mật khẩu / Đặt lại mật khẩu (token, BE đã có, email chưa gửi)
+     - Xem & sửa hồ sơ cá nhân (/profile)
+     - Soft-delete tài khoản (isActive = false)
+
+  B. TRANG CHỦ & ĐIỀU HƯỚNG CÔNG KHAI
+     ────────────────────────────────
+     - Trang chủ (/) gồm: Hero, CompanyIntro, ProductsByRegion, Process,
+       Campaigns, AgricultureBanner, Stats, Benefits, Solutions, Contact, Footer
+     - /products   — Danh sách tất cả sản phẩm (lọc, tìm kiếm, sắp xếp)
+     - /products/:id — Chi tiết sản phẩm (countdown, progress bar, modal cam kết)
+     - /solutions  — Trang giải pháp (static)
+     - /contact    — Trang liên hệ
+
+  C. DASHBOARD NÔNG DÂN (/farmer)
+     ─────────────────────────────
+     - Tổng quan mùa vụ: thống kê cây trồng, hợp đồng, escrow balance (API)
+     - Quản lý hợp đồng bao tiêu (dữ liệu từ DB)
+     - Theo dõi đơn hàng
+     - Tài chính: thu nhập, lịch sử giao dịch từ Escrow
+     - Danh bạ đối tác (doanh nghiệp đã hợp tác)
+     - Thị trường: giá nông sản, tin tức (hiện đang hardcode)
+     - Tab Thời tiết: thời tiết hiện tại + dự báo 5 ngày (API)
+     - Đăng bán nông sản mới (form 4 bước + upload ảnh/chứng chỉ)
+     - Xác nhận milestone escrow, tạo tranh chấp
+
+  D. DASHBOARD DOANH NGHIỆP (/enterprise)
+     ──────────────────────────────────────
+     - Tổng quan: stats hợp đồng, nhà cung cấp, số dư (API)
+     - Quản lý hợp đồng bao tiêu
+     - Danh sách sản phẩm cần thu mua
+     - Theo dõi đơn hàng
+     - Danh bạ nhà cung cấp (nông dân đã hợp tác)
+     - Quản lý kho bãi
+     - Phân tích thị trường (BarChart + LineChart — recharts, API)
+     - Tab Thời tiết: thời tiết hiện tại + dự báo 5 ngày (API)
+     - Nạp tiền escrow, xác nhận milestone, tạo tranh chấp
+
+  E. QUY TRÌNH TẠO HỢP ĐỒNG (/contract-flow)
+     ──────────────────────────────────────────
+     - Luồng 5 bước: Đề xuất → Xem xét → PreOnic xác nhận → Ký → Hoàn tất
+     - Tự tính tổng giá trị + phí hoa hồng 3%
+     - Auto-fill từ URL ?product=<id>
+     - Lưu hợp đồng vào MongoDB, trả về số hợp đồng PRE-YYYY-XXXX thực tế
+     - Toggle bảo hiểm mùa vụ
+
+  F. HỆ THỐNG ESCROW
+     ─────────────────
+     - Tạo escrow khi ký hợp đồng
+     - Doanh nghiệp nạp tiền cọc (ghi DB, chưa có cổng thanh toán thực)
+     - Xác nhận milestone từ cả hai phía → tự động giải ngân theo %
+     - Tạo tranh chấp (dispute) với lý do
+
+  G. NHẮN TIN (/messaging)
+     ──────────────────────
+     - Danh sách hội thoại (sidebar), khung chat (right panel)
+     - REST API đầy đủ (conversations + messages)
+     - Polling 5 giây tự động, optimistic send
+     - Không real-time (không có WebSocket)
+
+  H. THÔNG BÁO (NotificationBell)
+     ───────────────────────────
+     - Badge số thông báo chưa đọc trên header cả hai dashboard
+     - Dropdown 10 thông báo gần nhất, mark as read
+     - Cron job cảnh báo thời tiết mỗi 6 giờ
+
+  I. UPLOAD FILE
+     ────────────
+     - Upload ảnh sản phẩm (tối thiểu 3 ảnh) + chứng chỉ (PDF/JPG)
+     - Encode base64 → gửi lên BE → lưu vào /uploads/ trên disk
+     - Preview ảnh trước khi gửi
+
+  J. THỜI TIẾT
+     ──────────
+     - Lấy dữ liệu từ OpenWeatherMap API
+     - Thời tiết hiện tại, dự báo 5 ngày, cảnh báo thời tiết
+     - Cron job chạy tự động mỗi 6 giờ
+
+
+================================================================================
+  3. NHỮNG CHỨC NĂNG ĐÃ HOÀN THIỆN
+================================================================================
+
+  [XÁC THỰC]
+  ✅ Đăng ký / đăng nhập / đăng xuất — BE + FE kết nối đầy đủ
+  ✅ JWT (access token bearer + refresh token httpOnly cookie)
+  ✅ Auto-refresh token khi 401 (axios interceptor FE)
+  ✅ Brute-force protection (khóa 5 lần / mở sau 15 phút)
+  ✅ Xem hồ sơ (/profile) — getMe() + updateProfile()
+  ✅ Đổi mật khẩu — PUT /auth/update-password
+  ✅ Soft-delete tài khoản — DELETE /auth/deactivate
+  ✅ ProtectedRoute component (redirect + role check + flicker-free)
+
+  [FORGOT / RESET PASSWORD]
+  ✅ BE: Route POST /forgot-password + token hết hạn + lưu DB
+  ✅ BE: Route POST /reset-password — đặt lại mật khẩu bằng token
+  ✅ BE: sendEmail() với nodemailer — HTML template, SMTP config từ env
+  ✅ FE: Modal quên mật khẩu trong Auth.jsx — form, loading, success state
+  ✅ FE: Trang /reset-password — ResetPassword.jsx kết nối authService
+
+  [TRANG CHỦ & ĐIỀU HƯỚNG]
+  ✅ Tất cả section trang chủ (Hero, Products, Process, Stats, Footer...)
+  ✅ Navbar responsive với auth state (tên user, dashboard link, logout)
+  ✅ /solutions (static) + /contact
+
+  [TRANG SẢN PHẨM]
+  ✅ /products — AllProducts: filter, search, sort, animation
+  ✅ /products/:id — ProductDetail: countdown timer, progress bar, cam kết modal
+  ✅ productService.getAll() + .getById() sẵn sàng ở FE (có toUiProduct normalizer)
+  ✅ Product CRUD BE: GET / GET/:id / POST / PUT/:id / DELETE/:id
+
+  [DASHBOARD — API CONNECTIONS]
+  ✅ FarmerDashboard: farmerService.getDashboard/getCrops/getContracts/getOrders/getFinances
+  ✅ EnterpriseDashboard: enterpriseService.getDashboard/getContracts/getSuppliers/getWarehouse/getAnalytics
+  ✅ BE routes đầy đủ: /api/v1/farmer/* + /api/v1/enterprise/*
+  ✅ Analytics tab — recharts BarChart (giá hiện tại) + LineChart (xu hướng 6 tháng)
+  ✅ Xóa toàn bộ hardcoded fallback arrays — thay bằng empty state UI
+  ✅ Enterprise SanPhamContent — kết nối productService.getAll() API
+  ✅ Enterprise deliveryStatus — derive từ contract.status (không dùng field ảo)
+  ✅ Search bar header hoạt động (cả Farmer + Enterprise dashboard)
+  ✅ File size validation 5MB trước khi encode base64
+
+  [HỢP ĐỒNG]
+  ✅ ContractFlow 5 bước — lưu hợp đồng thực vào MongoDB (bước 4)
+  ✅ contractService.create() → BE POST /api/v1/contracts
+  ✅ Số hợp đồng PRE-YYYY-XXXX tự sinh từ DB (không còn random)
+  ✅ Toggle bảo hiểm mùa vụ trong bước 1
+
+  [ESCROW]
+  ✅ BE API đầy đủ: tạo / danh sách / số dư / deposit / confirm / dispute
+  ✅ FE: FarmerDashboard — xác nhận milestone, modal tranh chấp
+  ✅ FE: EnterpriseDashboard — nạp tiền, xác nhận milestone, tranh chấp
+  ✅ Tự động giải ngân theo % milestone khi cả hai bên xác nhận
+
+  [NHẮN TIN]
+  ✅ BE REST API: conversations + messages (get/send/mark-read)
+  ✅ FE: Messaging.jsx kết nối messagingService (không còn mock data)
+  ✅ Polling 5 giây (POLLING_INTERVAL_MS = 5000, clearInterval on unmount)
+  ✅ Optimistic send (hiển thị ngay trước khi API trả về)
+  ✅ Empty state + loading state đầy đủ
+
+  [THÔNG BÁO]
+  ✅ BE: notification service + controller + cron weather alert
+  ✅ FE: NotificationBell component — badge, dropdown, markRead, markAllRead
+  ✅ Dùng trong cả FarmerDashboard + EnterpriseDashboard header
+
+  [THỜI TIẾT]
+  ✅ BE: routes + cron job mỗi 6h + OpenWeatherMap integration
+  ✅ FE: Weather tab trong cả hai dashboard (thời tiết hiện tại + dự báo + cảnh báo)
+
+  [UPLOAD FILE]
+  ✅ BE: POST /api/v1/upload — base64 → disk, tên file uuid (chống path traversal)
+  ✅ FE: DangBanContent — upload ảnh (3+ ảnh, preview, xóa) + chứng chỉ
+  ✅ productService.create() với file đính kèm, loading state, không còn alert()
+
+  [KHÁC]
+  ✅ Toast Notification System (ToastContext, queue, auto-close, 4 loại)
+  ✅ Framer Motion animations toàn bộ FE
+  ✅ nodemailer cài đặt, EMAIL_*/GOOGLE_*/PAYOS_* đã cấu hình trong .env
+  ✅ Production build sạch (react-scripts build — Compiled successfully)
+
+
+================================================================================
+  4. NHỮNG TÍNH NĂNG ĐANG TRONG QUÁ TRÌNH HOÀN THIỆN
+================================================================================
+
+  ✅ #1 — FORGOT PASSWORD: gửi email thực — ĐÃ HOÀN THÀNH
+  ───────────────────────────────────────────────────────────
+  Đã implement: nodemailer với HTML template, SMTP config từ env vars
+  (SMTP_HOST/USER/PASS hoặc EMAIL_HOST/USER/PASSWORD), error handling
+  với token rollback, dev-mode fallback khi không có SMTP.
+
+  ✅ #2 — HARDCODED FALLBACKS trong Dashboard — ĐÃ HOÀN THÀNH
+  ──────────────────────────────────────────────────────────────
+  Đã xóa: Tất cả 11 mảng hardcoded (5 Farmer + 6 Enterprise).
+  Thay bằng: Empty state UI ("Chưa có hợp đồng nào", "Chưa có đơn hàng"...).
+  Escrow balance default: 0 thay vì 2.5 tỷ giả.
+
+  ✅ #3 — ENTERPRISE ORDERS: deliveryStatus sai — ĐÃ HOÀN THÀNH
+  ──────────────────────────────────────────────────────────────────
+  Đã sửa: Derive deliveryStatus từ contract.status bằng IIFE mapping
+  (completed→delivered, active→shipping, confirmed→confirmed, etc.).
+
+  ✅ #4 — FILE SIZE VALIDATION FE — ĐÃ HOÀN THÀNH
+  ──────────────────────────────────────────────────
+  Đã thêm: Kiểm tra file.size > FILE_SIZE_LIMIT (5MB) trước encode base64.
+  Toast error nếu file quá lớn. Áp dụng cho cả photo và cert upload.
+
+  ✅ #5 — SEARCH BAR HEADER — ĐÃ HOÀN THÀNH
+  ─────────────────────────────────────────────
+  Đã thêm: useState + onChange cho header search cả FarmerDashboard
+  và EnterpriseDashboard. Search query truyền xuống các tab content.
+
+  ✅ #6 — SEED DATABASE — ĐÃ CÓ SẴN
+  ────────────────────────────────────
+  Script: be/src/seed/products.seed.ts (12 sản phẩm mẫu, 3 miền).
+  Chạy: cd be && npm run seed
+
+  [CHƯA ƯU TIÊN]
+  ~ TaiChinhContent: totalExpense luôn = 0 (BE không trả expense field)
+    Trend % "+18.5%", "+5.2%", "+22.1%" là chuỗi hardcode tuyệt đối
+  ~ Thị trường nông sản (ThiTruongContent): marketPrices + news 100% hardcode
+    Cần API giá nông sản bên ngoài (không có trong scope MVP hiện tại)
+  ~ EnterpriseDashboard: subtitle "7,02 Tỷ VND" tổng hợp đồng bị hardcode
+
+
+================================================================================
+  5. NHỮNG TÍNH NĂNG CHƯA LÀM / ĐANG Ở BƯỚC LÊN KẾ HOẠCH
+================================================================================
+
+  [CÓ CƠ SỞ HẠ TẦNG, CHƯA IMPLEMENT]
+
+  Google OAuth (Đăng nhập bằng Google)
+    → GOOGLE_CLIENT_ID/SECRET/CALLBACK_URL đã cấu hình trong .env
+    → Chưa có passport.js hay route callback xử lý OAuth flow
+    → Cần cài @types/passport, passport-google-oauth20
+
+  PayOS — Cổng thanh toán thực
+    → PAYOS_CLIENT_ID/API_KEY/CHECKSUM_KEY đã có trong .env
+    → Package @payos/nodejs chưa được cài (npm install @payos/nodejs)
+    → Escrow deposit hiện chỉ ghi số vào DB, không chuyển tiền thực
+    → Cần implement deposit route gọi PayOS API tạo payment link
+
+  Email Verification khi đăng ký
+    → nodemailer đã cài đặt, EMAIL_* đã có trong .env
+    → User model đã có field isVerified (mặc định false)
+    → Chưa có flow: gửi email xác thực → click link → bật isVerified = true
+    → Cần thêm: sendVerificationEmail() khi register + GET /verify-email/:token
+
+  [NGOÀI PHẠM VI MVP — CẦN NGHIÊN CỨU THÊM]
+
+  ❌ WebSocket / Socket.io — Real-time messaging (hiện đang poll 5s)
+  ❌ AI phân tích sâu bệnh cây trồng
+  ❌ IoT tưới tiêu thông minh (tích hợp cảm biến)
+  ❌ Blockchain hợp đồng điện tử (smart contract)
+  ❌ Logistics tích hợp (theo dõi vận chuyển, đơn vị vận tải)
+  ❌ Admin panel / quản lý nội bộ PreOnic (duyệt hợp đồng, báo cáo)
+  ❌ Push notification (FCM / browser Notification API)
+  ❌ Mobile app (React Native / Flutter)
+  ❌ Báo cáo & export (PDF hợp đồng, Excel lịch sử giao dịch)
+  ❌ Hệ thống đánh giá / rating sau khi hợp đồng hoàn tất
+  ❌ SEO & sitemap cho trang công khai
+
+
+================================================================================
+  6. NHỮNG PHẦN CÒN SỬ DỤNG DỮ LIỆU HIỂN THỊ ẢO (MOCK / HARDCODE)
+================================================================================
+
+  [SẢN PHẨM — products.js]
+  Tệp:    fe/src/data/products.js (helper functions vẫn dùng)
+  Đã chuyển sang API:
+    ✅ AllProducts.jsx       — productService.getAll()
+    ✅ ProductDetail.jsx     — productService.getById()
+    ✅ EnterpriseDashboard   — productService.getAll() (SanPhamContent)
+  Còn dùng static:
+    - ProductsByRegion.jsx  — section trang chủ (static là hợp lý)
+    - ContractFlow.jsx      — auto-fill tên sản phẩm từ ?product=<id>
+  Seed script: be/src/seed/products.seed.ts (cd be && npm run seed)
+
+  [DASHBOARD — hardcoded fallback arrays] — ĐÃ XÓA TOÀN BỘ
+  Tất cả 11 mảng hardcoded đã được thay bằng empty state UI.
+  FarmerDashboard.jsx: 5 mảng xóa ✅
+  EnterpriseDashboard.jsx: 6 mảng xóa ✅
+
+  [THỊ TRƯỜNG NÔNG SẢN — 100% hardcode]
+  File:     FarmerDashboard.jsx, ThiTruongContent component
+  Nội dung: marketPrices[] — bảng giá nông sản hiện tại (lúa, cà phê, tiêu...)
+            newsList[]     — tin tức thị trường
+  Trạng thái: Không có API giá nông sản nào, toàn bộ là dữ liệu tĩnh viết tay
+
+  [TÀI CHÍNH — giá trị hardcode]
+  File:     FarmerDashboard.jsx, TaiChinhContent component
+  Nội dung: Trend percentages "+18.5%", "+5.2%", "+22.1%" — chuỗi cố định
+            totalExpense = 0 (BE không trả về dữ liệu chi phí)
+  EnterpriseDashboard:
+            Subtitle "7,02 Tỷ VND" — tổng giá trị hợp đồng bị hardcode cứng
+
+  [TRANG CHỦ — static content]
+  Các section trang chủ dùng nội dung tĩnh (không có vấn đề — đây là thiết kế):
+  - FarmerHome (/farmer-home): testimonials, hướng dẫn canh tác
+  - EnterpriseHome (/enterprise-home): testimonials, thống kê hiển thị
+  - Solutions (/solutions), Contact (/contact): toàn bộ static
+
+
+================================================================================
+  7. NHỮNG BUG LỚN CÒN TỒN TẠI, ẢNH HƯỞNG ĐẾN TOÀN HỆ THỐNG
+================================================================================
+
+  ✅ BUG #1 — FORGOT PASSWORD — ĐÃ SỬA
+  ──────────────────────────────────────
+  Đã implement nodemailer với HTML template branded PreOnic.
+  Token không còn lộ trong response JSON khi SMTP đã cấu hình.
+
+  ✅ BUG #2 — ENTERPRISE ORDERS: STATUS — ĐÃ SỬA
+  ────────────────────────────────────────────────
+  deliveryStatus giờ derive từ contract.status bằng IIFE mapping.
+  Bộ lọc trạng thái hoạt động đúng.
+
+  ✅ BUG #3 — DASHBOARD DATA GIẢ — ĐÃ SỬA
+  ─────────────────────────────────────────
+  Xóa toàn bộ 11 mảng hardcoded. Thay bằng empty state messages.
+  Escrow balance default 0 thay vì số giả.
+
+  ✅ BUG #4 — FILE SIZE VALIDATION — ĐÃ SỬA
+  ──────────────────────────────────────────
+  Kiểm tra file.size > FILE_SIZE_LIMIT (5MB) trước encode base64.
+  Toast error thông báo rõ ràng nếu file quá lớn.
+
+  ✅ BUG #5 — SEARCH BAR HEADER — ĐÃ SỬA
+  ────────────────────────────────────────
+  Thêm useState + onChange cho header search cả hai dashboard.
+  Search query truyền xuống content tabs.
+
+  BUG #6 — MESSAGING KHÔNG REAL-TIME (Mức độ: THẤP — Thiết kế)
+  ──────────────────────────────────────────────────────────────
+  Mô tả:    Hệ thống nhắn tin dùng polling 5 giây thay vì WebSocket.
+  Ảnh hưởng: Tin nhắn mới xuất hiện chậm tối đa 5 giây sau khi gửi.
+             Tạo tải không cần thiết lên server (request mỗi 5s × số người dùng).
+  Sửa (dài hạn): Tích hợp socket.io-client (FE) + socket.io (BE).
+  Hiện tại:  Chấp nhận polling — đủ dùng cho MVP.
+
+
+================================================================================
+  PHỤ LỤC — THÔNG TIN KỸ THUẬT
+================================================================================
+
+  API BASE URL:    http://localhost:5000/api/v1
+  FE URL:          http://localhost:3000
+  DB:              MongoDB (MONGODB_URI trong be/.env)
+
+  BE Routes đang active (be/src/app.ts):
+    /api/v1/auth          — Xác thực
+    /api/v1/farmer        — Dashboard nông dân
+    /api/v1/enterprise    — Dashboard doanh nghiệp
+    /api/v1/products      — Sản phẩm
+    /api/v1/contracts     — Hợp đồng
+    /api/v1/escrow        — Escrow
+    /api/v1/weather       — Thời tiết
+    /api/v1/notifications — Thông báo
+    /api/v1/messaging     — Nhắn tin
+    /api/v1/upload        — Upload file
+    /health               — Health check
+
+  BE Models (MongoDB):
+    User, Contract, Escrow, Dispute, Message, Notification,
+    Product, WeatherAlert (Conversation — inline hoặc model riêng)
+
+  Credentials đã cấu hình trong be/.env:
+    EMAIL_*   — Gmail SMTP (smtp.gmail.com:587, App Password)
+    GOOGLE_*  — Google OAuth 2.0 (chưa dùng)
+    PAYOS_*   — PayOS payment gateway (chưa dùng)
+    OPENWEATHER_API_KEY — OpenWeatherMap (đang dùng)
+
+================================================================================
+  KẾT THÚC FILE  [08/03/2026]
+================================================================================

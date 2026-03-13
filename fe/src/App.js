@@ -12,7 +12,6 @@ import ProtectedRoute from "./Component/ProtectedRoute/ProtectedRoute";
 import Navbar from "./Component/Navbar/Navbar";
 import Hero from "./Component/Hero/Hero";
 import CompanyIntro from "./Component/CompanyIntro/CompanyIntro";
-import ProductsByRegion from "./Component/ProductsByRegion/ProductsByRegion";
 import Process from "./Component/Process/Process";
 import Campaigns from "./Component/Campaigns/Campaigns";
 import AgricultureBanner from "./Component/AgricultureBanner/AgricultureBanner";
@@ -39,6 +38,10 @@ import EnterpriseHome from "./Component/EnterpriseHome/EnterpriseHome";
 // FEATURES
 import Messaging from "./Component/Messaging/Messaging";
 import ContractFlow from "./Component/ContractFlow/ContractFlow";
+import Profile from "./Component/Profile/Profile";
+import ResetPassword from "./Component/ResetPassword/ResetPassword";
+import VerifyEmail from "./Component/VerifyEmail/VerifyEmail";
+import PaymentResult from "./Component/PaymentResult/PaymentResult";
 
 function HomePage() {
   return (
@@ -46,7 +49,6 @@ function HomePage() {
       <Navbar />
       <Hero />
       <CompanyIntro />
-      <ProductsByRegion />
       <Process />
       <Campaigns />
       <AgricultureBanner />
@@ -68,6 +70,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Products */}
             <Route path="/products" element={<AllProducts />} />
@@ -84,6 +88,11 @@ function App() {
             {/* Authenticated features (both roles) */}
             <Route path="/messaging" element={<ProtectedRoute allowedRoles={['farmer', 'enterprise']}><Messaging /></ProtectedRoute>} />
             <Route path="/contract-flow" element={<ProtectedRoute allowedRoles={['farmer', 'enterprise']}><ContractFlow /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute allowedRoles={['farmer', 'enterprise']}><Profile /></ProtectedRoute>} />
+
+            {/* Payment return pages */}
+            <Route path="/payment/success" element={<ProtectedRoute allowedRoles={['farmer', 'enterprise']}><PaymentResult type="success" /></ProtectedRoute>} />
+            <Route path="/payment/cancel" element={<ProtectedRoute allowedRoles={['farmer', 'enterprise']}><PaymentResult type="cancel" /></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>

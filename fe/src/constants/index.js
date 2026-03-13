@@ -18,8 +18,11 @@ export const ROUTES = {
   ENTERPRISE_HOME: '/enterprise-home',
   MESSAGING: '/messaging',
   CONTRACT_FLOW: '/contract-flow',
+  PROFILE: '/profile',
   CROP_HEALTH: '/crop-health',
   GUIDE_AI: '/guide-ai',
+  RESET_PASSWORD: '/reset-password',
+  VERIFY_EMAIL: '/verify-email',
 };
 
 // ===== NAV ITEMS =====
@@ -32,7 +35,6 @@ export const NAV_ITEMS = [
 
 // ===== BRAND =====
 export const BRAND_NAME = 'PreOnic';
-export const BRAND_ICON = '🌱';
 
 // ===== TOAST DURATIONS (ms) =====
 export const TOAST_DURATION = {
@@ -62,11 +64,11 @@ export const COMPANY = {
 
 // ===== REGIONS =====
 export const REGIONS = {
-  NORTH: { key: 'north', label: 'Miền Bắc', icon: '🏔️', color: '#3b82f6', 
+  NORTH: { key: 'north', label: 'Miền Bắc', icon: null, color: '#3b82f6', 
     highlight: 'Đất đai màu mỡ, khí hậu 4 mùa — lý tưởng cho rau củ, chè, và lúa gạo chất lượng cao' },
-  CENTRAL: { key: 'central', label: 'Miền Trung', icon: '🏖️', color: '#f59e0b',
+  CENTRAL: { key: 'central', label: 'Miền Trung', icon: null, color: '#f59e0b',
     highlight: 'Nắng gió đặc trưng tạo nên hương vị riêng cho ớt, tiêu, quế, và hải sản khô' },
-  SOUTH: { key: 'south', label: 'Miền Nam', icon: '🌴', color: '#10b981',
+  SOUTH: { key: 'south', label: 'Miền Nam', icon: null, color: '#10b981',
     highlight: 'Đồng bằng phì nhiêu, trái cây nhiệt đới quanh năm — xoài, thanh long, bưởi, cà phê' },
 };
 
@@ -79,3 +81,6 @@ export const CONTRACT_STATUS = {
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
 };
+
+// ===== FILE UPLOAD =====
+export const FILE_SIZE_LIMIT = 5 * 1024 * 1024; // 5 MB

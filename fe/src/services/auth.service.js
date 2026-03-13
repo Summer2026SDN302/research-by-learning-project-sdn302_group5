@@ -118,6 +118,33 @@ const authService = {
   },
 
   /**
+   * Verify email address with token
+   * @param {string} token - Verification token from URL
+   * @returns {Promise}
+   */
+  verifyEmail: async (token) => {
+    try {
+      const response = await api.get(`/auth/verify-email/${token}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { success: false, message: 'Xác minh email thất bại' };
+    }
+  },
+
+  /**
+   * Resend email verification link
+   * @returns {Promise}
+   */
+  resendVerification: async () => {
+    try {
+      const response = await api.post('/auth/resend-verification');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { success: false, message: 'Gửi lại email thất bại' };
+    }
+  },
+
+  /**
    * Update password (when logged in)
    * @param {Object} data - { currentPassword, newPassword, confirmPassword }
    * @returns {Promise}

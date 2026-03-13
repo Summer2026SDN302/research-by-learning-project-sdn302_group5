@@ -10,6 +10,8 @@ import {
   getMe,
   updateProfile,
   deactivateAccount,
+  verifyEmail,
+  resendVerificationEmail,
 } from '../controllers/auth.controller';
 import { protect } from '../middlewares/auth.middleware';
 import {
@@ -88,6 +90,20 @@ router.put('/update-password', protect, validateUpdatePassword, updatePassword);
  * @access  Private
  */
 router.put('/update-profile', protect, updateProfile);
+
+/**
+ * @route   GET /api/v1/auth/verify-email/:token
+ * @desc    Verify email address with token from verification link
+ * @access  Public
+ */
+router.get('/verify-email/:token', verifyEmail);
+
+/**
+ * @route   POST /api/v1/auth/resend-verification
+ * @desc    Resend email verification link
+ * @access  Private
+ */
+router.post('/resend-verification', protect, resendVerificationEmail);
 
 /**
  * @route   DELETE /api/v1/auth/deactivate

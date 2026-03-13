@@ -1,5 +1,13 @@
 import { Router } from 'express';
 import { protect, restrictTo } from '../middlewares/auth.middleware';
+import {
+  getDashboard,
+  getContracts,
+  getSuppliers,
+  getWarehouse,
+  getAnalytics,
+  getOrders,
+} from '../controllers/enterprise.controller';
 
 const router = Router();
 
@@ -9,47 +17,44 @@ router.use(restrictTo('enterprise'));
 
 /**
  * @route   GET /api/v1/enterprise/dashboard
- * @desc    Get enterprise dashboard data
+ * @desc    Get enterprise dashboard data (stats, recent contracts)
  * @access  Private (Enterprise only)
  */
-router.get('/dashboard', (req, res) => {
-  res.json({ message: 'Enterprise dashboard - Coming soon' });
-});
+router.get('/dashboard', getDashboard);
 
 /**
  * @route   GET /api/v1/enterprise/suppliers
- * @desc    Get list of suppliers (farmers)
+ * @desc    Get list of suppliers (farmers worked with)
  * @access  Private (Enterprise only)
  */
-router.get('/suppliers', (req, res) => {
-  res.json({ message: 'Enterprise suppliers - Coming soon' });
-});
+router.get('/suppliers', getSuppliers);
 
 /**
  * @route   GET /api/v1/enterprise/contracts
- * @desc    Get enterprise contracts
+ * @desc    Get enterprise contracts (optional ?status= filter)
  * @access  Private (Enterprise only)
  */
-router.get('/contracts', (req, res) => {
-  res.json({ message: 'Enterprise contracts - Coming soon' });
-});
+router.get('/contracts', getContracts);
 
 /**
  * @route   GET /api/v1/enterprise/warehouse
- * @desc    Get warehouse/inventory data
+ * @desc    Get warehouse/inventory data (aggregated from completed contracts)
  * @access  Private (Enterprise only)
  */
-router.get('/warehouse', (req, res) => {
-  res.json({ message: 'Enterprise warehouse - Coming soon' });
-});
+router.get('/warehouse', getWarehouse);
 
 /**
  * @route   GET /api/v1/enterprise/analytics
- * @desc    Get market analytics
+ * @desc    Get enterprise analytics (monthly trends, product distribution)
  * @access  Private (Enterprise only)
  */
-router.get('/analytics', (req, res) => {
-  res.json({ message: 'Enterprise analytics - Coming soon' });
-});
+router.get('/analytics', getAnalytics);
+
+/**
+ * @route   GET /api/v1/enterprise/orders
+ * @desc    Get enterprise orders (derived from contracts + escrow milestones)
+ * @access  Private (Enterprise only)
+ */
+router.get('/orders', getOrders);
 
 export default router;

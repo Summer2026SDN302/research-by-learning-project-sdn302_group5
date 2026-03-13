@@ -23,6 +23,9 @@ export interface RegisterBody {
   fullName: string;        // From FE: formData.fullName
   email: string;           // From FE: formData.email
   phone: string;           // From FE: formData.phone
+  province?: string;       // From FE: formData.province
+  district?: string;       // From FE: formData.district
+  ward?: string;           // From FE: formData.ward
   password: string;        // From FE: formData.password
   confirmPassword: string; // From FE: formData.confirmPassword
   role: 'farmer' | 'enterprise'; // From FE: selectedRole
@@ -99,3 +102,68 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+// ===== CONTRACT TYPES =====
+
+export type ContractStatus = 'draft' | 'pending' | 'approved' | 'active' | 'completed' | 'cancelled' | 'disputed';
+
+export type EscrowStatus = 'awaiting_deposit' | 'funded' | 'partially_released' | 'fully_released' | 'refunded' | 'disputed';
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'disputed';
+
+export type DisputeStatus = 'open' | 'under_review' | 'resolved_farmer' | 'resolved_enterprise' | 'closed';
+
+// ===== WEATHER & INSURANCE TYPES =====
+
+export type WeatherAlertType = 'extreme_heat' | 'extreme_cold' | 'heavy_rain' | 'strong_wind' | 'drought';
+
+export type WeatherAlertSeverity = 'warning' | 'critical';
+
+export type InsuranceCoveredEvent = 'natural_disaster' | 'disease' | 'both';
+
+export type NotificationType = 'weather_alert' | 'contract' | 'escrow' | 'system' | 'insurance';
+
+// Insurance subdocument shape (both farmer and enterprise fill their own)
+export interface InsuranceInfo {
+  insuranceCompany: string;
+  policyNumber: string;
+  insuredValue: number;         // VND
+  coveredEvents: InsuranceCoveredEvent;
+  validFrom: Date;
+  validTo: Date;
+  attachmentUrl?: string;
+}
+
+// Weather data snapshot from OpenWeatherMap
+export interface WeatherData {
+  temp: number;           // °C
+  humidity: number;       // %
+  windSpeed: number;      // km/h
+  rain1h?: number;        // mm in last 1h
+  rain24h?: number;       // mm in last 24h
+  description: string;
+  icon: string;
+}
+
+// Weather thresholds
+export interface WeatherThresholds {
+  extremeHeatTemp: number;      // > 38°C
+  extremeColdTemp: number;      // < 5°C
+  heavyRainMm: number;          // > 100mm/day
+  strongWindKmh: number;        // > 60 km/h
+  droughtMm: number;            // < 5mm in 14 days
+  droughtDays: number;          // 14 days
+}
+
+// Location info embedded in User/Contract
+export interface LocationInfo {
+  province?: string;
+  district?: string;
+  ward?: string;
+  address?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+

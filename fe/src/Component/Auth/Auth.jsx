@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiAlertTriangle } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { ROUTES, TOAST_DURATION } from "../../constants";
+import authService from "../../services/auth.service";
 import "./Auth.css";
 
 // Animation variants
@@ -91,6 +93,13 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Forgot password modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
@@ -107,6 +116,27 @@ const Auth = () => {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    try {
+      await authService.forgotPassword({ email: forgotEmail.trim() });
+      setForgotSuccess(true);
+      toast.success("Hướng dẫn đặt lại mật khẩu đã được gửi!", TOAST_DURATION.DEFAULT);
+    } catch (err) {
+      toast.error(err?.message || "Không tìm thấy tài khoản với email này.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+    setForgotEmail("");
+    setForgotSuccess(false);
   };
 
   const handleSubmit = async (e) => {
@@ -131,7 +161,7 @@ const Auth = () => {
             if (user.role === 'farmer') {
               navigate(ROUTES.FARMER);
             } else if (user.role === 'enterprise') {
-              navigate(ROUTES.ENTERPRISE);
+              navigate(ROUTES.PRODUCTS);
             } else {
               navigate(ROUTES.HOME);
             }
@@ -271,7 +301,7 @@ const Auth = () => {
                     fontSize: '14px'
                   }}
                 >
-                  ⚠️ {error}
+                  <FiAlertTriangle size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />{error}
                 </motion.div>
               )}
 
@@ -352,6 +382,7 @@ const Auth = () => {
                       <motion.a 
                         href="#" 
                         className="forgot-password"
+                        onClick={(e) => { e.preventDefault(); setShowForgotModal(true); }}
                         whileHover={{ color: "#13ec37", x: 3 }}
                       >
                         Quên mật khẩu?
@@ -565,6 +596,65 @@ const Auth = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <motion.div
+            className="forgot-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeForgotModal}
+          >
+            <motion.div
+              className="forgot-modal"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="forgot-modal-header">
+                <h3>Quên mật khẩu</h3>
+                <button className="modal-close-btn" onClick={closeForgotModal}>×</button>
+              </div>
+
+              {forgotSuccess ? (
+                <div className="forgot-success">
+                  <div className="forgot-success-icon">✓</div>
+                  <h4>Đã gửi hướng dẫn!</h4>
+                  <p>Kiểm tra email <strong>{forgotEmail}</strong> để nhận link đặt lại mật khẩu.</p>
+                  <p className="forgot-note">Nếu bạn không thấy email, hãy kiểm tra thư mục Spam.</p>
+                  <button className="btn-forgot-submit" onClick={closeForgotModal}>Đóng</button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="forgot-form">
+                  <p className="forgot-desc">Nhập email đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</p>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div className="forgot-modal-footer">
+                    <button type="button" className="btn-forgot-cancel" onClick={closeForgotModal}>Hủy</button>
+                    <button type="submit" className="btn-forgot-submit" disabled={forgotLoading || !forgotEmail.trim()}>
+                      {forgotLoading ? "Đang gửi..." : "Gửi hướng dẫn"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

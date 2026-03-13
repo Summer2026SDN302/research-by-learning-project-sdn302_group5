@@ -1,5 +1,6 @@
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { motion } from "framer-motion";
+import { FiFeather } from "react-icons/fi";
 import "./AgricultureBanner.css";
 
 function AgricultureBanner() {
@@ -92,7 +93,7 @@ function AgricultureBanner() {
                   whileTap={{ scale: 0.97 }}
                 >
                   <Button className="banner-cta">
-                    🌾 Khám phá nền tảng PreOnic ngay hôm nay
+                    Khám phá nền tảng PreOnic ngay hôm nay
                   </Button>
                 </motion.div>
               </motion.div>
@@ -134,8 +135,8 @@ function AgricultureBanner() {
                       repeat: Infinity,
                       ease: "easeInOut"
                     }}
-                  >
-                    🌱
+>
+                    <FiFeather size={32} color="#13ec37" />
                   </motion.div>
 
                   {/* Background Card */}

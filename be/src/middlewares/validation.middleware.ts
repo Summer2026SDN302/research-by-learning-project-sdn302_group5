@@ -152,3 +152,187 @@ export const validateUpdatePassword = [
 
   handleValidationErrors,
 ];
+
+// ============================================================
+// Contract Validators
+// ============================================================
+
+/**
+ * Validate Create Contract
+ * Matches FE ContractFlow.jsx form fields
+ */
+export const validateCreateContract = [
+  body('farmerId')
+    .optional()
+    .isMongoId()
+    .withMessage('farmerId không hợp lệ'),
+
+  body('enterpriseId')
+    .optional()
+    .isMongoId()
+    .withMessage('enterpriseId không hợp lệ'),
+
+  body('productName')
+    .trim()
+    .notEmpty()
+    .withMessage('Vui lòng nhập tên sản phẩm'),
+
+  body('quantity')
+    .notEmpty()
+    .withMessage('Vui lòng nhập số lượng')
+    .isFloat({ min: 0.01 })
+    .withMessage('Số lượng phải lớn hơn 0'),
+
+  body('unit')
+    .notEmpty()
+    .withMessage('Vui lòng chọn đơn vị')
+    .isIn(['tan', 'kg', 'thung'])
+    .withMessage('Đơn vị phải là tan, kg, hoặc thùng'),
+
+  body('pricePerUnit')
+    .notEmpty()
+    .withMessage('Vui lòng nhập giá')
+    .isFloat({ min: 0 })
+    .withMessage('Giá phải lớn hơn hoặc bằng 0'),
+
+  body('paymentTerms')
+    .optional()
+    .isIn(['50_50', '30_70', '100_delivery', '100_upfront'])
+    .withMessage('Phương thức thanh toán không hợp lệ'),
+
+  body('deliveryDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Ngày giao hàng không hợp lệ'),
+
+  body('deliveryLocation')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Địa điểm giao hàng tối đa 200 ký tự'),
+
+  body('qualityRequirements')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Yêu cầu chất lượng tối đa 1000 ký tự'),
+
+  body('terms')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Điều khoản tối đa 2000 ký tự'),
+
+  handleValidationErrors,
+];
+
+// ============================================================
+// Escrow Validators
+// ============================================================
+
+/**
+ * Validate Deposit to Escrow
+ */
+export const validateDeposit = [
+  body('amount')
+    .notEmpty()
+    .withMessage('Vui lòng nhập số tiền ký quỹ')
+    .isFloat({ min: 1 })
+    .withMessage('Số tiền ký quỹ phải lớn hơn 0'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validate Confirm Milestone
+ */
+export const validateConfirmMilestone = [
+  body('milestoneIndex')
+    .notEmpty()
+    .withMessage('Vui lòng chọn bước cần xác nhận')
+    .isInt({ min: 0, max: 4 })
+    .withMessage('Bước xác nhận không hợp lệ (0-4)'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validate Raise Dispute
+ */
+export const validateRaiseDispute = [
+  body('milestoneIndex')
+    .notEmpty()
+    .withMessage('Vui lòng chọn bước tranh chấp')
+    .isInt({ min: 0, max: 4 })
+    .withMessage('Bước tranh chấp không hợp lệ (0-4)'),
+
+  body('reason')
+    .trim()
+    .notEmpty()
+    .withMessage('Vui lòng nhập lý do tranh chấp')
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Lý do tranh chấp phải từ 10-1000 ký tự'),
+
+  handleValidationErrors,
+];
+
+// ============================================================
+// Product Validators
+// ============================================================
+
+/**
+ * Validate Create Product
+ */
+export const validateCreateProduct = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Vui lòng nhập tên sản phẩm')
+    .isLength({ min: 2, max: 200 })
+    .withMessage('Tên sản phẩm phải từ 2-200 ký tự'),
+
+  body('location')
+    .trim()
+    .notEmpty()
+    .withMessage('Vui lòng nhập địa điểm'),
+
+  body('farm')
+    .trim()
+    .notEmpty()
+    .withMessage('Vui lòng nhập tên nông trại'),
+
+  body('category')
+    .notEmpty()
+    .withMessage('Vui lòng chọn danh mục')
+    .isIn(['fruit', 'vegetable', 'rice', 'coffee', 'tea', 'spice', 'grain', 'other'])
+    .withMessage('Danh mục không hợp lệ'),
+
+  body('region')
+    .notEmpty()
+    .withMessage('Vui lòng chọn vùng miền')
+    .isIn(['north', 'central', 'south'])
+    .withMessage('Vùng miền phải là north, central, hoặc south'),
+
+  body('priceMin')
+    .notEmpty()
+    .withMessage('Vui lòng nhập giá tối thiểu')
+    .isFloat({ min: 0 })
+    .withMessage('Giá tối thiểu phải >= 0'),
+
+  body('priceMax')
+    .notEmpty()
+    .withMessage('Vui lòng nhập giá tối đa')
+    .isFloat({ min: 0 })
+    .withMessage('Giá tối đa phải >= 0'),
+
+  body('unit')
+    .optional()
+    .trim(),
+
+  body('type')
+    .optional()
+    .isIn(['fresh', 'dried', 'processed'])
+    .withMessage('Loại sản phẩm không hợp lệ'),
+
+  handleValidationErrors,
+];

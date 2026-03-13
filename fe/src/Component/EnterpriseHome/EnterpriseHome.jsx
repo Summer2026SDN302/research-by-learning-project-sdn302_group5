@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES, COMPANY } from "../../constants";
+import enterpriseService from "../../services/enterprise.service";
 import Navbar from "../Navbar/Navbar";
 import Footer from "../Footer/Footer";
 import "./EnterpriseHome.css";
@@ -21,15 +23,6 @@ function StarRating({ rating }) {
   );
 }
 
-const producerReviews = [
-  { name: "HTX Hòa Thắng", avatar: "HT", rating: 4.8, products: "Thanh long, Xoài", location: "Bình Thuận", review: "Nông sản luôn đạt chuẩn GlobalGAP, giao hàng đúng hẹn. Rất đáng tin cậy cho hợp đồng dài hạn.", contracts: 45 },
-  { name: "Farm H'Hen Niê", avatar: "HN", rating: 4.9, products: "Cà phê Robusta", location: "Đắk Lắk", review: "Cà phê chất lượng cao nhất Tây Nguyên, quy trình sản xuất minh bạch, truy xuất rõ ràng.", contracts: 62 },
-  { name: "HTX Lúa Vàng", avatar: "LV", rating: 4.7, products: "Gạo ST25", location: "Sóc Trăng", review: "Gạo ST25 chính gốc, hệ thống kho bãi tốt, năng lực sản xuất lớn.", contracts: 38 },
-  { name: "Nhà vườn Sông Tiền", avatar: "ST", rating: 4.7, products: "Bưởi Da Xanh", location: "Bến Tre", review: "Bưởi hữu cơ chất lượng, HTX hỗ trợ logistics tốt, tiêu chuẩn xuất khẩu.", contracts: 35 },
-  { name: "HTX Chè Tân Cương", avatar: "TC", rating: 4.8, products: "Chè Thái Nguyên", location: "Thái Nguyên", review: "Đệ nhất danh trà, sao suốt truyền thống, hương vị đặc trưng khó tìm.", contracts: 40 },
-  { name: "HTX Cà Phê Sơn La", avatar: "SL", rating: 4.9, products: "Arabica Specialty", location: "Sơn La", review: "Cà phê specialty SCA 84+, quy trình chế biến ướt honey process chuyên nghiệp.", contracts: 18 },
-];
-
 const platformFeatures = [
   { cls: "search", title: "Tìm kiếm Nguồn cung", desc: "Lọc và tìm kiếm nông sản theo vùng miền, chứng nhận, giá cả phù hợp nhu cầu." },
   { cls: "contract", title: "Hợp đồng Điện tử", desc: "Ký kết hợp đồng trực tuyến, bảo mật blockchain, có giá trị pháp lý." },
@@ -39,9 +32,27 @@ const platformFeatures = [
   { cls: "messaging", title: "Nhắn tin Trực tiếp", desc: "Liên hệ nhà cung cấp ngay trên nền tảng, đàm phán nhanh chóng." },
 ];
 
+const formatValue = (v) => {
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + " Tỷ";
+  if (v >= 1e6) return (v / 1e6).toFixed(0) + "tr";
+  return v.toLocaleString("vi-VN");
+};
+
 function EnterpriseHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      enterpriseService.getDashboard().catch(() => null),
+      enterpriseService.getSuppliers().catch(() => null),
+    ]).then(([dashRes, suppRes]) => {
+      if (dashRes?.data?.stats) setStats(dashRes.data.stats);
+      if (suppRes?.data?.suppliers) setSuppliers(suppRes.data.suppliers);
+    });
+  }, []);
 
   return (
     <>
@@ -57,10 +68,10 @@ function EnterpriseHome() {
 
               <div className="eh-quick-stats">
                 {[
-                  { label: "Hợp đồng", value: "124", cls: "contracts" },
-                  { label: "Nhà cung cấp", value: "86", cls: "suppliers" },
-                  { label: "Giá trị HĐ", value: "4.8 Tỷ", cls: "value" },
-                  { label: "Ổn định CC", value: "92%", cls: "stability" },
+                  { label: "Hợp đồng", value: stats ? String(stats.totalContracts || 0) : "--", cls: "contracts" },
+                  { label: "Nhà cung cấp", value: stats ? String(stats.totalSuppliers || 0) : "--", cls: "suppliers" },
+                  { label: "Giá trị HĐ", value: stats ? formatValue(stats.totalContractValue || 0) : "--", cls: "value" },
+                  { label: "Ổn định CC", value: stats ? Math.round((stats.reputationScore || 0) * 20) + "%" : "--", cls: "stability" },
                 ].map((s, i) => (
                   <div key={i} className={`eh-qs-item ${s.cls}`}>
                     <span className="eh-qs-val">{s.value}</span>
@@ -117,23 +128,24 @@ function EnterpriseHome() {
               <p>Được đánh giá bởi cộng đồng doanh nghiệp trên nền tảng {COMPANY.NAME}</p>
             </div>
             <Row className="g-4">
-              {producerReviews.map((r, i) => (
+              {suppliers.length === 0 && <Col className="text-center py-4" style={{ color: '#888' }}>Chưa có nhà cung cấp nào</Col>}
+              {suppliers.slice(0, 6).map((r, i) => (
                 <Col key={i} md={6} lg={4}>
                   <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
                     <Card className="producer-review-card">
                       <Card.Body>
                         <div className="pr-header">
-                          <div className="pr-avatar">{r.avatar}</div>
+                          <div className="pr-avatar">{(r.fullName || "NN").slice(0, 2).toUpperCase()}</div>
                           <div>
-                            <h4>{r.name}</h4>
-                            <p className="pr-meta"><span className="loc-dot" /> {r.location} &middot; {r.products}</p>
+                            <h4>{r.fullName || "Nhà cung cấp"}</h4>
+                            <p className="pr-meta"><span className="loc-dot" /> {r.email}</p>
                           </div>
                         </div>
                         <div className="pr-rating-row">
-                          <StarRating rating={r.rating} />
-                          <span className="pr-contracts">{r.contracts} hợp đồng</span>
+                          <StarRating rating={r.reputationScore || 0} />
+                          <span className="pr-contracts">{r.contractCount || 0} hợp đồng</span>
                         </div>
-                        <p className="pr-text">"{r.review}"</p>
+                        <p className="pr-text">Tổng giá trị: {formatValue(r.totalValue || 0)} VND</p>
                         <div className="pr-actions">
                           <button className="btn-outline-blue">Xem hồ sơ</button>
                           <button className="btn-solid-green" onClick={() => navigate(ROUTES.MESSAGING)}>Liên hệ</button>

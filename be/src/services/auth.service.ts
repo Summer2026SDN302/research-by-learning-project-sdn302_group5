@@ -49,7 +49,7 @@ export class AuthService {
    * and selectedRole ('farmer' | 'enterprise')
    */
   static async register(body: RegisterBody): Promise<{ user: IUser; tokens: AuthTokens }> {
-    const { fullName, email, phone, password, confirmPassword, role, agreeTerms } = body;
+    const { fullName, email, phone, password, confirmPassword, role, agreeTerms, province, district, ward } = body;
 
     if (password !== confirmPassword) {
       throw new AppError('Mật khẩu xác nhận không khớp', 400);
@@ -82,6 +82,9 @@ export class AuthService {
       lastName,
       fullName: fullName.trim(),
       phone,
+      ...(province && { province }),
+      ...(district && { district }),
+      ...(ward && { ward }),
     });
 
     // Generate tokens
@@ -90,6 +93,13 @@ export class AuthService {
     // Save refresh token
     user.refreshToken = tokens.refreshToken;
     await user.save({ validateBeforeSave: false });
+
+    // Send email verification (non-blocking — don't fail registration if email fails)
+    const verificationToken = user.createEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+    AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken).catch(
+      (err) => console.error('[Auth] Failed to send verification email after register:', err)
+    );
 
     // Remove sensitive data
     user.password = undefined as any;
@@ -216,7 +226,7 @@ export class AuthService {
    */
   static async forgotPassword(
     body: ForgotPasswordBody
-  ): Promise<{ resetToken: string; message: string }> {
+  ): Promise<{ resetToken?: string; message: string }> {
     const { email } = body;
 
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -232,14 +242,59 @@ export class AuthService {
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    // In production, send email with reset link:
-    // const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    // await sendEmail({ to: user.email, subject: 'Reset Password', html: ... });
+    // Send password reset email via nodemailer
+    const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const smtpHost = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
+
+    if (smtpHost && smtpUser && smtpPass) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: smtpUser, pass: smtpPass },
+        });
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || `"PreOnic" <${smtpUser}>`,
+          to: user.email,
+          subject: '[PreOnic] Đặt lại mật khẩu của bạn',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #16a34a; color: white; padding: 20px; text-align: center;">
+                <h1 style="margin: 0;">PreOnic</h1>
+                <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
+              </div>
+              <div style="padding: 30px; background: #f9f9f9;">
+                <h2 style="color: #333;">Đặt lại mật khẩu</h2>
+                <p style="color: #555;">Xin chào <strong>${user.fullName}</strong>,</p>
+                <p style="color: #555;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản PreOnic. Link có hiệu lực trong <strong>10 phút</strong>.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetURL}" style="background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Đặt lại mật khẩu</a>
+                </div>
+                <p style="color: #555; font-size: 13px;">Hoặc dán link: <span style="word-break: break-all; color: #16a34a;">${resetURL}</span></p>
+                <p style="color: #555;">Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="color: #999; font-size: 12px;">Email tự động từ hệ thống PreOnic. Vui lòng không trả lời.</p>
+              </div>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+        throw new AppError('Không thể gửi email. Vui lòng thử lại sau.', 500);
+      }
+    }
 
     return {
-      resetToken,
-      message:
-        'Token đặt lại mật khẩu đã được tạo. Token có hiệu lực trong 10 phút.',
+      resetToken: smtpHost ? undefined : resetToken,
+      message: smtpHost
+        ? 'Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.'
+        : 'Token đặt lại mật khẩu đã được tạo. Token có hiệu lực trong 10 phút.',
     };
   }
 
@@ -384,6 +439,119 @@ export class AuthService {
 
     if (!user) {
       throw new AppError('Không tìm thấy người dùng', 404);
+    }
+  }
+
+  /**
+   * VERIFY EMAIL - Confirm email address with token from link
+   */
+  static async verifyEmail(token: string): Promise<IUser> {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select('+emailVerificationToken +emailVerificationExpires');
+
+    if (!user) {
+      throw new AppError('Link xác minh không hợp lệ hoặc đã hết hạn.', 400);
+    }
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return user;
+  }
+
+  /**
+   * RESEND VERIFICATION EMAIL - Generate new token and send email
+   */
+  static async resendVerificationEmail(
+    userId: string
+  ): Promise<{ message: string }> {
+    const user = await User.findById(userId).select('+emailVerificationToken +emailVerificationExpires');
+    if (!user) {
+      throw new AppError('Không tìm thấy người dùng', 404);
+    }
+
+    if (user.isVerified) {
+      throw new AppError('Tài khoản đã được xác minh email rồi.', 400);
+    }
+
+    const verificationToken = user.createEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    await AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken);
+
+    return { message: 'Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư.' };
+  }
+
+  /**
+   * Send verification email — uses nodemailer if configured, otherwise logs token
+   */
+  private static async sendVerificationEmail(
+    email: string,
+    fullName: string,
+    token: string
+  ): Promise<void> {
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+
+    if (smtpHost && smtpUser && smtpPass) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: smtpUser, pass: smtpPass },
+        });
+
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"PreOnic" <noreply@preonic.vn>',
+          to: email,
+          subject: '[PreOnic] Xác minh địa chỉ email của bạn',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #16a34a; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                <h1 style="margin: 0;">PreOnic</h1>
+                <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
+              </div>
+              <div style="padding: 32px; background: #f9f9f9;">
+                <h2 style="color: #333;">Xin chào ${fullName}!</h2>
+                <p style="color: #555; line-height: 1.6;">
+                  Cảm ơn bạn đã đăng ký tài khoản PreOnic. Vui lòng nhấn nút bên dưới để xác minh địa chỉ email của bạn.
+                </p>
+                <div style="text-align: center; margin: 28px 0;">
+                  <a href="${verifyUrl}"
+                    style="background: #16a34a; color: white; padding: 14px 32px; border-radius: 8px;
+                           text-decoration: none; font-weight: bold; font-size: 16px;">
+                    Xác minh email
+                  </a>
+                </div>
+                <p style="color: #777; font-size: 13px;">
+                  Nếu nút không hoạt động, hãy copy đường link này vào trình duyệt:<br/>
+                  <a href="${verifyUrl}" style="color: #16a34a;">${verifyUrl}</a>
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                  Link có hiệu lực trong 24 giờ. Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.
+                </p>
+              </div>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.error('[Auth] Email send failed:', emailErr);
+        // Non-critical: log token so dev can test without SMTP
+        console.log(`[Email MOCK] Verification URL: ${verifyUrl}`);
+      }
+    } else {
+      // Dev mode: log to console so registration still works without SMTP config
+      console.log(`[Email MOCK] Verification URL for ${email}: ${verifyUrl}`);
     }
   }
 }

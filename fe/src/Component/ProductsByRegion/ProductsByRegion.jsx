@@ -1,18 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Badge } from "react-bootstrap";
+import { FiTrendingUp, FiMapPin, FiStar } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { REGIONS, ROUTES } from "../../constants";
-import { getProductsByRegion, formatPriceRange } from "../../data/products";
+import { formatPriceRange } from "../../data/products";
+import productService, { resolveImageUrl } from "../../services/product.service";
 import "./ProductsByRegion.css";
 
 const regions = [REGIONS.NORTH, REGIONS.CENTRAL, REGIONS.SOUTH];
 
 function ProductsByRegion() {
   const [activeRegion, setActiveRegion] = useState(REGIONS.SOUTH.key);
+  const [products, setProducts] = useState([]);
   const navigate = useNavigate();
 
-  const products = getProductsByRegion(activeRegion);
+  useEffect(() => {
+    productService.getByRegion(activeRegion)
+      .then(res => {
+        const list = res?.data?.products || res?.data || [];
+        setProducts(list.map(p => ({
+          id: p._id || p.id,
+          name: p.name,
+          location: p.location || "Việt Nam",
+          image: resolveImageUrl(p.image) || "/images/products/default.jpg",
+          badge: (p.certifications && p.certifications[0]) || p.badge || "Nông sản",
+          priceMin: p.priceMin || 0,
+          priceMax: p.priceMax || p.priceMin || 0,
+          unit: p.unit || "kg",
+          progress: p.progress || 0,
+          rating: p.rating || 0,
+          reviewCount: p.reviewCount || 0,
+        })));
+      })
+      .catch(() => setProducts([]));
+  }, [activeRegion]);
+
   const currentRegion = regions.find((r) => r.key === activeRegion);
 
   return (
@@ -25,7 +48,7 @@ function ProductsByRegion() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <span className="section-badge">🌾 Nông sản Việt Nam</span>
+          <span className="section-badge">Nông sản Việt Nam</span>
           <h2 className="section-title">Sản Phẩm Theo Vùng Miền</h2>
           <p className="section-desc">
             Khám phá nông sản đặc trưng của từng vùng miền trên khắp đất nước
@@ -79,6 +102,7 @@ function ProductsByRegion() {
             transition={{ duration: 0.3 }}
           >
             <Row className="g-4">
+              {products.length === 0 && <Col className="text-center py-5" style={{ color: '#888' }}>Chưa có sản phẩm trong vùng này</Col>}
               {products.slice(0, 4).map((product, index) => (
                 <Col key={product.id} xs={12} sm={6} lg={3}>
                   <motion.div
@@ -96,11 +120,11 @@ function ProductsByRegion() {
                           {product.badge}
                         </Badge>
                         {product.progress >= 80 && (
-                          <span className="hot-badge">🔥 Sắp hết</span>
+                          <span className="hot-badge"><FiTrendingUp size={11} style={{ marginRight: 3 }} />Sắp hết</span>
                         )}
                       </div>
                       <Card.Body>
-                        <div className="product-location">📍 {product.location}</div>
+                        <div className="product-location"><FiMapPin size={12} style={{ marginRight: 3, verticalAlign: 'middle' }} />{product.location}</div>
                         <Card.Title className="product-name">{product.name}</Card.Title>
                         <div className="product-price">{formatPriceRange(product.priceMin, product.priceMax)}/{product.unit}</div>
                         <div className="product-progress-row">
@@ -116,7 +140,7 @@ function ProductsByRegion() {
                           <span className="progress-text">{product.progress}%</span>
                         </div>
                         <div className="product-rating">
-                          ⭐ {product.rating} ({product.reviewCount})
+                          <FiStar size={12} style={{ marginRight: 2, verticalAlign: 'middle' }} />{product.rating} ({product.reviewCount})
                         </div>
                       </Card.Body>
                     </Card>

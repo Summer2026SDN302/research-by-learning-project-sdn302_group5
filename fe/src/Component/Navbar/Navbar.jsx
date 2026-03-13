@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navbar, Nav, Container, Button } from "react-bootstrap";
+import { FiFeather } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,7 +24,7 @@ const NavbarComponent = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.info("Bạn đã đăng xuất thành công. Hẹn gặp lại! 👋", TOAST_DURATION.SHORT);
+      toast.info("Bạn đã đăng xuất thành công. Hẹn gặp lại!", TOAST_DURATION.SHORT);
       navigate(ROUTES.HOME);
     } catch {
       toast.error("Có lỗi khi đăng xuất. Vui lòng thử lại!");
@@ -64,7 +65,7 @@ const NavbarComponent = () => {
               style={{ cursor: "pointer" }}
             >
               <div className="logo-container">
-                <div className="logo-icon">🌱</div>
+                <div className="logo-icon"><FiFeather size={18} /></div>
                 <span className="logo-text">PreOnic</span>
               </div>
             </Navbar.Brand>

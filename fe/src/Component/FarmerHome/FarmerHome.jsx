@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES, COMPANY } from "../../constants";
+import farmerService from "../../services/farmer.service";
 import Navbar from "../Navbar/Navbar";
 import Footer from "../Footer/Footer";
 import "./FarmerHome.css";
@@ -46,11 +47,24 @@ function StarRating({ rating }) {
   );
 }
 
+const formatValue = (v) => {
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + " Tỷ";
+  if (v >= 1e6) return (v / 1e6).toFixed(0) + "tr";
+  return v.toLocaleString("vi-VN");
+};
+
 /* ── Main component ── */
 function FarmerHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeGuide, setActiveGuide] = useState(null);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    farmerService.getDashboard()
+      .then(res => { if (res?.data?.stats) setStats(res.data.stats); })
+      .catch(() => {});
+  }, []);
 
   const guideIcons = ["organic", "ai", "irrigation", "soil", "harvest", "cert"];
   const healthIcons = ["microscope", "weather", "fertilizer", "alert"];
@@ -69,10 +83,10 @@ function FarmerHome() {
               
               <div className="fh-quick-stats">
                 {[
-                  { label: "Hợp đồng", value: "12", cls: "contracts" },
-                  { label: "Sản lượng", value: "48 Tấn", cls: "yield" },
-                  { label: "Doanh thu", value: "285tr", cls: "revenue" },
-                  { label: "Đánh giá", value: "4.8/5", cls: "rating" },
+                  { label: "Hợp đồng", value: stats ? String(stats.totalContracts || 0) : "--", cls: "contracts" },
+                  { label: "Sản lượng", value: stats ? (stats.totalQuantity ? stats.totalQuantity + " Tấn" : "0 Tấn") : "--", cls: "yield" },
+                  { label: "Doanh thu", value: stats ? formatValue(stats.totalContractValue || 0) : "--", cls: "revenue" },
+                  { label: "Đánh giá", value: stats ? ((stats.reputationScore || 0).toFixed(1) + "/5") : "--", cls: "rating" },
                 ].map((s, i) => (
                   <div key={i} className={`fh-qs-item ${s.cls}`}>
                     <span className="fh-qs-val">{s.value}</span>

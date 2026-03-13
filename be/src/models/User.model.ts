@@ -13,6 +13,8 @@ export interface IUser extends Document {
   avatar?: string;
   isActive: boolean;
   isVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   refreshToken?: string;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -20,10 +22,22 @@ export interface IUser extends Document {
   lastLogin?: Date;
   loginAttempts: number;
   lockUntil?: Date;
+  province?: string;
+  district?: string;
+  ward?: string;
+  address?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  virtualBalance: number;
+  reputationScore: number;
+  totalRatings: number;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   createPasswordResetToken(): string;
+  createEmailVerificationToken(): string;
   isLocked(): boolean;
   changedPasswordAfter(jwtTimestamp: number): boolean;
 }
@@ -81,6 +95,14 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
     refreshToken: {
       type: String,
       select: false,
@@ -106,6 +128,41 @@ const UserSchema = new Schema<IUser>(
     },
     lockUntil: {
       type: Date,
+    },
+    province: {
+      type: String,
+      trim: true,
+    },
+    district: {
+      type: String,
+      trim: true,
+    },
+    ward: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    virtualBalance: {
+      type: Number,
+      default: 10000000,
+      min: 0,
+    },
+    reputationScore: {
+      type: Number,
+      default: 5.0,
+      min: 0,
+      max: 5,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
     },
   },
   {
@@ -170,6 +227,20 @@ UserSchema.methods.createPasswordResetToken = function (): string {
   return resetToken;
 };
 
+// Create email verification token (valid for 24 hours)
+UserSchema.methods.createEmailVerificationToken = function (): string {
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  return verificationToken;
+};
+
 // Check if account is locked due to too many failed login attempts
 UserSchema.methods.isLocked = function (): boolean {
   if (this.lockUntil && this.lockUntil > new Date()) {
@@ -216,9 +287,9 @@ UserSchema.methods.resetLoginAttempts = async function (): Promise<void> {
 };
 
 // Indexes for performance
-UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ passwordResetToken: 1 });
+UserSchema.index({ emailVerificationToken: 1 });
 UserSchema.index({ isActive: 1 });
 
 export default mongoose.model<IUser>('User', UserSchema);

@@ -1,41 +1,32 @@
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { motion } from "framer-motion";
+import { FiMapPin } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../constants";
+import productService, { resolveImageUrl } from "../../services/product.service";
 import "./Campaigns.css";
-
-const campaigns = [
-  {
-    id: 1,
-    name: "Thanh long ruột đỏ",
-    location: "HTX Hòa Bình, Long An",
-    image: "/images/products/thanh-long.jpg",
-    progress: 75,
-    harvest: "Dự kiến thu hoạch: Tháng 10/2025",
-    tag: "GLOBALGAP"
-  },
-  {
-    id: 2,
-    name: "Cam Vinh",
-    location: "Xã Minh Hợp, Quỳ Hợp, Nghệ An",
-    image: "/images/products/xoai-cat.jpg",
-    progress: 40,
-    harvest: "Dự kiến thu hoạch: Tháng 12/2025",
-    tag: "VIETGAP"
-  },
-  {
-    id: 3,
-    name: "Bưởi da xanh",
-    location: "Nhà vườn Sông Tiền, Bến Tre",
-    image: "/images/products/ot-chuong.jpg",
-    progress: 92,
-    harvest: "Dự kiến thu hoạch: Tháng 09/2025",
-    tag: "HỮU CƠ"
-  }
-];
 
 function Campaigns() {
   const navigate = useNavigate();
+  const [campaigns, setCampaigns] = useState([]);
+
+  useEffect(() => {
+    productService.getAll({ limit: 3, sort: '-createdAt' })
+      .then(res => {
+        const list = res?.data?.products || res?.data || [];
+        setCampaigns(list.slice(0, 3).map(p => ({
+          id: p._id || p.id,
+          name: p.name,
+          location: p.location || "Việt Nam",
+          image: resolveImageUrl(p.image) || "/images/products/default.jpg",
+          progress: p.progress || 0,
+          harvest: p.expectedDate ? `Dự kiến thu hoạch: Tháng ${new Date(p.expectedDate).getMonth() + 1}/${new Date(p.expectedDate).getFullYear()}` : "Dự kiến thu hoạch: Quanh năm",
+          tag: (p.certifications && p.certifications[0]) || p.badge || "Nông sản",
+        })));
+      })
+      .catch(() => {});
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -87,6 +78,7 @@ function Campaigns() {
 
           {/* CAMPAIGNS CARDS */}
           <Row>
+            {campaigns.length === 0 && <Col className="text-center py-5" style={{ color: '#888' }}>Đang tải mùa vụ...</Col>}
             {campaigns.map((campaign, index) => (
               <Col md={4} key={campaign.id} className="mb-4">
                 <motion.div
@@ -104,7 +96,7 @@ function Campaigns() {
                     </div>
                     <Card.Body>
                       <Card.Title className="campaign-name">{campaign.name}</Card.Title>
-                      <p className="campaign-location">📍 {campaign.location}</p>
+                      <p className="campaign-location"><FiMapPin size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />{campaign.location}</p>
                       
                       <div className="campaign-progress-section">
                         <div className="progress-header">
