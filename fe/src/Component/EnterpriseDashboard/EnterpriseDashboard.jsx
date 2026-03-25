@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
-import { ROUTES, COMPANY } from "../../constants";
+import { FiSearch, FiMapPin, FiStar, FiFeather } from "react-icons/fi";
+import {
+  ROUTES,
+  COMPANY,
+  ENTERPRISE_DASHBOARD_NAV_ITEMS,
+  SEARCH_PLACEHOLDERS,
+  DATE_FORMATS,
+  getContractStatusMeta,
+} from "../../constants";
 import {
   LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -17,25 +25,16 @@ import weatherService from "../../services/weather.service";
 import { formatMoney, formatDate } from "../../hooks/useApiData";
 import NotificationBell from "../NotificationBell/NotificationBell";
 import WalletPayment from "../WalletPayment/WalletPayment";
+import BilateralRating from "../BilateralRating/BilateralRating";
 import "./EnterpriseDashboard.css";
 
+// Tệp này điều phối toàn bộ dashboard doanh nghiệp: điều hướng tab, thống kê, đơn hàng và các thao tác tài chính.
 export default function EnterpriseDashboard() {
   const location = useLocation();
   const [activeNav, setActiveNav] = useState(location.state?.activeNav || "tongguan");
   const [headerSearch, setHeaderSearch] = useState("");
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
-  const navItems = [
-    { key: "tongguan", label: "Tổng quan", cls: "nav-overview" },
-    { key: "hopdong", label: "Hợp đồng", cls: "nav-contract" },
-    { key: "sanpham", label: "Danh sách sản phẩm", cls: "nav-product" },
-    { key: "donhang", label: "Theo dõi đơn hàng", cls: "nav-order" },
-    { key: "escrow", label: "Thanh toán trung gian", cls: "nav-escrow" },
-    { key: "vi", label: "Ví & Thanh toán", cls: "nav-wallet" },
-    { key: "lichsu", label: "Lịch sử giao dịch", cls: "nav-warehouse" },
-    { key: "thoitiet", label: "Thời tiết & Bảo hiểm", cls: "nav-weather" },
-  ];
 
   const handleLogout = async () => {
     await logout();
@@ -52,7 +51,7 @@ export default function EnterpriseDashboard() {
         </div>
 
         <nav className="ed-nav">
-          {navItems.map(item => (
+          {ENTERPRISE_DASHBOARD_NAV_ITEMS.map(item => (
             <button key={item.key} className={`${item.cls} ${activeNav === item.key ? "active" : ""}`} onClick={() => setActiveNav(item.key)}>
               <span className={`nav-icon ${item.cls}-icon`} />
               <span>{item.label}</span>
@@ -75,7 +74,7 @@ export default function EnterpriseDashboard() {
         <header className="ed-header">
           <div className="header-search">
             <span className="search-input-icon" />
-            <input type="text" placeholder="Tìm kiếm nông dân, nông sản, hoặc hợp đồng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
+            <input type="text" placeholder={SEARCH_PLACEHOLDERS.ENTERPRISE_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="header-actions">
             <NotificationBell />
@@ -93,11 +92,12 @@ export default function EnterpriseDashboard() {
         <div className="ed-content">
           {activeNav === "tongguan" && <TongQuanContent onNavigate={setActiveNav} />}
           {activeNav === "hopdong" && <HopDongContent searchQuery={headerSearch} onNavigate={setActiveNav} />}
-          {activeNav === "sanpham" && <SanPhamContent />}
+          {activeNav === "sanpham" && <SanPhamContent navigate={navigate} />}
           {activeNav === "donhang" && <DonHangContent searchQuery={headerSearch} />}
           {activeNav === "escrow" && <EscrowContent />}
           {activeNav === "vi" && <WalletPayment role="enterprise" />}
           {activeNav === "lichsu" && <LichSuGiaoDichContent />}
+          {activeNav === "danhgia" && <BilateralRating currentRole="enterprise" />}
           {activeNav === "thoitiet" && <WeatherInsuranceContent />}
         </div>
       </main>
@@ -106,8 +106,9 @@ export default function EnterpriseDashboard() {
 }
 
 /* =========================================
-   TỔNG QUAN — Overview
-   ========================================= */
+  KHỐI TỔNG QUAN
+  Dùng để hiển thị KPI, biểu đồ và trạng thái hợp đồng ở mức điều hành.
+  ========================================= */
 function TongQuanContent({ onNavigate }) {
   const [apiStats, setApiStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -153,8 +154,8 @@ function TongQuanContent({ onNavigate }) {
   const repOffset = C - (C * reputationPct / 100);
   const repColor  = reputationPct >= 80 ? "#16a34a" : reputationPct >= 50 ? "#f59e0b" : "#ef4444";
 
-  const statusLabel = s => ({ pending: "Chờ duyệt", active: "Đang chạy", completed: "Hoàn thành", cancelled: "Đã hủy" }[s] || s);
-  const statusColor = s => ({ pending: "#f59e0b", active: "#1d4ed8", completed: "#16a34a", cancelled: "#ef4444" }[s] || "#9ca3af");
+  const statusLabel = (status) => getContractStatusMeta(status).label;
+  const statusColor = (status) => getContractStatusMeta(status).color;
 
   return (
     <>
@@ -165,7 +166,7 @@ function TongQuanContent({ onNavigate }) {
           <p className="tq-subtitle">Theo dõi hoạt động thu mua và quản lý hợp đồng</p>
         </div>
         <span className="tq-date-badge">
-          {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {new Date().toLocaleDateString("vi-VN", DATE_FORMATS.FULL_DATE)}
         </span>
       </div>
 
@@ -876,14 +877,16 @@ function HopDongContent({ searchQuery = "", onNavigate }) {
    ========================================= */
 const REGION_MAP = { north: "north", central: "central", south: "south", "Miền Bắc": "north", "Miền Trung": "central", "Miền Nam": "south" };
 
-function SanPhamContent() {
+function SanPhamContent({ navigate }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRegion, setFilterRegion] = useState("all");
+  const [sortBy, setSortBy] = useState("popular");
   const [apiProducts, setApiProducts] = useState(null);
 
   useEffect(() => {
     productService.getAll({ limit: 100 }).then(res => {
-      const items = (res?.data || []).map(p => ({
+      // Fix: API returns res.data.products (array), not res.data (object)
+      const items = (res?.data?.products || []).map(p => ({
         id: p._id || p.id,
         name: p.name || p.productName || "Nông sản",
         location: p.location || p.origin || "Việt Nam",
@@ -910,51 +913,122 @@ function SanPhamContent() {
     return matchSearch && matchRegion;
   });
 
+  const handleViewDetail = (productId) => {
+    navigate(`/products/${productId}`);
+  };
+
+  const handleCreateContract = (productId) => {
+    navigate(`${ROUTES.CONTRACT_FLOW}?product=${productId}`);
+  };
+
+  const regionOptions = [
+    { key: "all", label: "Tất cả miền" },
+    { key: "north", label: "Miền Bắc" },
+    { key: "central", label: "Miền Trung" },
+    { key: "south", label: "Miền Nam" },
+  ];
+
   return (
     <>
-      <div className="breadcrumb"><span>Trang chủ</span><span className="arrow">&gt;</span><span>Danh sách sản phẩm</span></div>
-
-      <div className="page-header">
-        <div><h1 className="page-title">Danh Sách Sản Phẩm</h1><p className="page-subtitle">Duyệt và tìm kiếm nguồn nông sản chất lượng để thu mua</p></div>
+      {/* HEADER */}
+      <div className="sp-header">
+        <div className="sp-header-content">
+          <h1 className="sp-title">Danh Sách Sản Phẩm Bao Tiêu</h1>
+          <p className="sp-subtitle">Khám phá nông sản chất lượng cao từ khắp nơi. Cơ hội tốt nhất để tìm kiếm nguồn cung uy tín</p>
+        </div>
       </div>
 
-      <div className="filters-bar">
-        <div className="search-box"><span className="search-input-icon" /><input type="text" placeholder="Tìm kiếm sản phẩm, vùng miền..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
-        <select className="filter-select" value={filterRegion} onChange={e => setFilterRegion(e.target.value)}>
-          <option value="all">Tất cả vùng</option>
-          <option value="north">Miền Bắc</option>
-          <option value="central">Miền Trung</option>
-          <option value="south">Miền Nam</option>
+      {/* REGION TABS */}
+      <div className="sp-regions">
+        {regionOptions.map(r => (
+          <button
+            key={r.key}
+            className={`sp-region-btn ${filterRegion === r.key ? "active" : ""}`}
+            onClick={() => setFilterRegion(r.key)}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* FILTERS & SEARCH */}
+      <div className="sp-controls">
+        <div className="sp-search-wrapper">
+          <FiSearch size={16} className="sp-search-icon" />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm sản phẩm, vị trí..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)}
+            className="sp-search-input"
+          />
+        </div>
+        <select className="sp-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="popular">Phổ biến nhất</option>
+          <option value="rating">Đánh giá cao</option>
+          <option value="price-asc">Giá thấp → cao</option>
+          <option value="price-desc">Giá cao → thấp</option>
         </select>
       </div>
 
-      <div className="product-catalog-grid">
+      {/* RESULT COUNT */}
+      {apiProducts !== null && (
+        <div className="sp-result-info">
+          <span className="sp-count">Tìm thấy <strong>{filtered.length}</strong> sản phẩm</span>
+        </div>
+      )}
+
+      {/* PRODUCT GRID */}
+      <div className="sp-grid">
         {apiProducts === null ? (
-          <div className="empty-state-message" style={{ gridColumn: "1/-1", textAlign: "center", padding: "40px 0", color: "#888" }}>Đang tải sản phẩm...</div>
+          <div className="sp-loading-state">
+            <div className="sp-spinner" />
+            <p>Đang tải sản phẩm...</p>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="empty-state-message" style={{ gridColumn: "1/-1", textAlign: "center", padding: "40px 0", color: "#888" }}>Không tìm thấy sản phẩm phù hợp</div>
-        ) : filtered.map(product => (
-          <div key={product.id} className="product-catalog-card">
-            <div className="pcc-img"><img src={product.image} alt={product.name} /><span className="pcc-badge">{product.badge}</span></div>
-            <div className="pcc-body">
-              <div className="pcc-location"><span className="loc-dot" /> {product.location} -- {product.farm}</div>
-              <h3 className="pcc-name">{product.name}</h3>
-              <div className="pcc-price">{formatPriceRange(product.priceMin, product.priceMax)}/{product.unit}</div>
-              <div className="pcc-meta">
-                <span className="pcc-rating">{product.rating} ({product.reviewCount})</span>
-                <span className="pcc-stock">Còn {product.remaining.toLocaleString()} {product.unit}</span>
+          <div className="sp-empty-state">
+            <FiFeather size={48} />
+            <p>Không tìm thấy sản phẩm phù hợp</p>
+            <span className="sp-empty-hint">Hãy thử thay đổi bộ lọc hoặc tìm kiếm khác</span>
+          </div>
+        ) : (
+          filtered.map(product => (
+            <div key={product.id} className="sp-card">
+              <div className="sp-card-img">
+                <img src={product.image} alt={product.name} />
+                {product.badge && <span className="sp-badge">{product.badge}</span>}
+                <div className="sp-progress-tag" style={{ width: `${product.progress}%` }}>
+                  <span>{product.progress}%</span>
+                </div>
               </div>
-              <div className="pcc-progress">
-                <div className="pcc-progress-bar"><div className="pcc-progress-fill" style={{ width: `${product.progress}%` }}></div></div>
-                <span>{product.progress}% đã cam kết</span>
-              </div>
-              <div className="pcc-actions">
-                <button className="btn-outline">Xem chi tiết</button>
-                <button className="btn-primary">Tạo hợp đồng</button>
+              <div className="sp-card-body">
+                <div className="sp-location">
+                  <FiMapPin size={12} />
+                  {product.location}{product.farm && ` – ${product.farm}`}
+                </div>
+                <h3 className="sp-product-name">{product.name}</h3>
+                <div className="sp-pricing-row">
+                  <div className="sp-price">
+                    {formatPriceRange(product.priceMin, product.priceMax)}
+                    <span className="sp-unit">/{product.unit}</span>
+                  </div>
+                  <div className="sp-rating">
+                    <FiStar size={13} fill="#fbbf24" />
+                    <span>{product.rating}</span>
+                  </div>
+                </div>
+                <div className="sp-stock-bar">
+                  <div className="sp-stock-fill" style={{ width: Math.min(100, (product.remaining / 1000) * 100) }}></div>
+                </div>
+                <div className="sp-stock-info">Còn {product.remaining.toLocaleString()} {product.unit}</div>
+                <div className="sp-actions">
+                  <button className="sp-btn-secondary" onClick={() => handleViewDetail(product.id)}>Xem chi tiết</button>
+                  <button className="sp-btn-primary" onClick={() => handleCreateContract(product.id)}>Tạo hợp đồng</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </>
   );
@@ -973,6 +1047,9 @@ function DonHangContent({ searchQuery = "" }) {
   const [returnModal, setReturnModal] = useState(null); // { order }
   const [returnReason, setReturnReason] = useState("");
   const [returnLoading, setReturnLoading] = useState(false);
+  // QC checklist
+  const [qcChecked, setQcChecked] = useState([false, false, false, false]);
+  const [qcVerifiedByOrder, setQcVerifiedByOrder] = useState({});
   const toast = useToast();
 
   const loadOrders = useCallback(async () => {
@@ -991,14 +1068,32 @@ function DonHangContent({ searchQuery = "" }) {
         orderDate: formatDate(o.createdAt),
         escrowStatus: o.escrowStatus || "none",
         currentMilestone: o.currentMilestone || null,
+        currentMilestoneStep: o.currentMilestoneStep || null,
+        currentMilestoneRequiredBy: o.currentMilestoneRequiredBy || null,
         completedSteps: o.completedSteps || 0,
         totalSteps: o.totalSteps || 5,
+        enterpriseCanConfirm: Boolean(o.enterpriseCanConfirm),
+        enterpriseConfirmStep: o.enterpriseConfirmStep || null,
+        disputeStep: o.disputeStep || null,
+        waitingFor: o.waitingFor || null,
       }));
       setApiOrders(mapped);
     } catch { setApiOrders([]); }
   }, []);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  useEffect(() => {
+    if (!selectedOrder || selectedOrder.status !== "quality_check") {
+      setQcChecked([false, false, false, false]);
+      return;
+    }
+    if (qcVerifiedByOrder[selectedOrder.contractId]) {
+      setQcChecked([true, true, true, true]);
+    } else {
+      setQcChecked([false, false, false, false]);
+    }
+  }, [selectedOrder, qcVerifiedByOrder]);
 
   const orders = apiOrders || [];
   const noEscrowCount = orders.filter(o => o.escrowStatus === "none").length;
@@ -1055,14 +1150,30 @@ function DonHangContent({ searchQuery = "" }) {
   };
 
   const handleMilestoneConfirm = async (order) => {
+    if (!order.enterpriseCanConfirm || !order.enterpriseConfirmStep) {
+      const waitingMessages = {
+        farmer: "Đơn hàng đang chờ nông dân xác nhận ở mốc hiện tại.",
+        system: "Đơn hàng đang được hệ thống xử lý tự động.",
+        enterprise: "Đơn hàng chưa đủ điều kiện xác nhận. Vui lòng thử lại sau.",
+      };
+
+      toast.warning(waitingMessages[order.waitingFor] || "Đơn hàng chưa sẵn sàng để xác nhận.");
+      setActionModal(null);
+      return;
+    }
+
+    if (order.status === "quality_check" && !qcVerifiedByOrder[order.contractId]) {
+      toast.warning("Vui lòng hoàn tất checklist kiểm tra chất lượng trước khi xác nhận.");
+      setSelectedOrder(order);
+      setActionModal(null);
+      return;
+    }
     setActionLoading(true);
     try {
       const escrowRes = await escrowService.getByContract(order.contractId);
       const escrow = escrowRes?.data?.escrow;
       if (!escrow) throw new Error("Không tìm thấy escrow cho hợp đồng này");
-      const milestone = escrow.milestones.find(m => m.status === "in_progress" && m.farmerConfirmed && !m.enterpriseConfirmed);
-      if (!milestone) throw new Error("Không có mốc nào cần xác nhận từ phía doanh nghiệp");
-      await escrowService.enterpriseConfirm(escrow._id || escrow.id, milestone.step);
+      await escrowService.enterpriseConfirm(escrow._id || escrow.id, order.enterpriseConfirmStep);
       toast.success("Xác nhận thành công! Tiền sẽ được giải ngân cho nông dân.");
       await loadOrders();
     } catch (err) {
@@ -1083,11 +1194,8 @@ function DonHangContent({ searchQuery = "" }) {
       const escrowRes = await escrowService.getByContract(returnModal.contractId);
       const escrow = escrowRes?.data?.escrow;
       if (!escrow) throw new Error("Không tìm thấy escrow cho hợp đồng này");
-      const milestone = escrow.milestones.find(m =>
-        m.status === "in_progress" && m.farmerConfirmed && !m.enterpriseConfirmed
-      ) || escrow.milestones.find(m => m.step === 3 || m.step === 4);
-      if (!milestone) throw new Error("Không tìm thấy mốc phù hợp để khiếu nại");
-      await escrowService.raiseDispute(escrow._id || escrow.id, milestone.step, returnReason.trim(), []);
+      const disputeStep = returnModal.disputeStep || returnModal.currentMilestoneStep || 4;
+      await escrowService.raiseDispute(escrow._id || escrow.id, disputeStep, returnReason.trim(), []);
       toast.success("Đã gửi khiếu nại trả hàng. Đội ngũ PreOnic sẽ xem xét và phân giải.");
       setReturnModal(null);
       setReturnReason("");
@@ -1108,6 +1216,21 @@ function DonHangContent({ searchQuery = "" }) {
           <p className="page-subtitle">Giám sát tiến độ các hợp đồng thu mua nông sản từ giao hàng đến hoàn tất</p>
         </div>
       </div>
+
+      <section className="order-mechanism-guide">
+        <article className="omg-card">
+          <h4>Xem chi tiết</h4>
+          <p>Mở đầy đủ hợp đồng, tiến trình, trạng thái ký quỹ và checklist kiểm tra theo từng đơn.</p>
+        </article>
+        <article className="omg-card">
+          <h4>Xác nhận đơn hàng</h4>
+          <p>Chỉ khả dụng khi đến mốc doanh nghiệp cần xác nhận. Ở bước chất lượng, cần tick đủ checklist trước khi duyệt.</p>
+        </article>
+        <article className="omg-card">
+          <h4>Trả hàng / Khiếu nại</h4>
+          <p>Tạo tranh chấp tại mốc đang xử lý để tạm dừng ký quỹ và chuyển hồ sơ cho PreOnic phân giải.</p>
+        </article>
+      </section>
 
       {/* Alert banner for orders needing escrow */}
       {(noEscrowCount > 0 || awaitingDepositCount > 0) && (
@@ -1192,14 +1315,41 @@ function DonHangContent({ searchQuery = "" }) {
                 </div>
               ) : (
                 <div className="order-action-info">
-                  <p>Xác nhận rằng bạn đã kiểm tra hàng hóa đạt tiêu chuẩn. Mốc thanh toán hiện tại sẽ được hoàn tất và tiền sẽ được giải ngân cho nông dân.</p>
+                  {actionModal.order.status === "quality_check" && !qcVerifiedByOrder[actionModal.order.contractId] ? (
+                    <p>Đơn hàng đang ở bước <strong>Kiểm tra chất lượng</strong>. Vui lòng mở chi tiết đơn hàng và tick đủ checklist trước khi xác nhận giải ngân.</p>
+                  ) : (
+                    <p>Xác nhận rằng bạn đã kiểm tra hàng hóa đạt tiêu chuẩn. Mốc thanh toán hiện tại sẽ được hoàn tất và tiền sẽ được giải ngân cho nông dân.</p>
+                  )}
                 </div>
               )}
               <p className="escrow-modal-warning">Hành động này không thể hoàn tác. Bạn có chắc chắn không?</p>
             </div>
             <div className="modal-footer">
-              <button className="btn-primary" disabled={actionLoading} onClick={() => actionModal.type === "create_escrow" ? handleCreateEscrow(actionModal.order) : handleMilestoneConfirm(actionModal.order)}>
-                {actionLoading ? "Đang xử lý..." : actionModal.type === "create_escrow" ? "Tạo ký quỹ" : "Xác nhận"}
+              <button
+                className="btn-primary"
+                  disabled={actionLoading || (actionModal.type === "confirm_milestone" && !actionModal.order.enterpriseCanConfirm)}
+                onClick={() => {
+                  if (actionModal.type === "create_escrow") {
+                    handleCreateEscrow(actionModal.order);
+                    return;
+                  }
+                  if (actionModal.order.status === "quality_check" && !qcVerifiedByOrder[actionModal.order.contractId]) {
+                    setActionModal(null);
+                    setSelectedOrder(actionModal.order);
+                    return;
+                  }
+                  handleMilestoneConfirm(actionModal.order);
+                }}
+              >
+                {actionLoading
+                  ? "Đang xử lý..."
+                  : actionModal.type === "create_escrow"
+                    ? "Tạo ký quỹ"
+                    : !actionModal.order.enterpriseCanConfirm
+                      ? "Chưa thể xác nhận"
+                      : actionModal.order.status === "quality_check" && !qcVerifiedByOrder[actionModal.order.contractId]
+                      ? "Mở checklist CL"
+                      : "Xác nhận"}
               </button>
               <button className="btn-outline" onClick={() => !actionLoading && setActionModal(null)}>Hủy</button>
             </div>
@@ -1208,95 +1358,169 @@ function DonHangContent({ searchQuery = "" }) {
       )}
 
       {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div className="order-detail-overlay" onClick={() => setSelectedOrder(null)}>
-          <div className="order-detail-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Chi tiết đơn hàng — {selectedOrder.contractCode}</h3>
-              <button className="modal-close" onClick={() => setSelectedOrder(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-grid">
-                <div className="detail-section">
-                  <h4>Thông tin hợp đồng</h4>
-                  <div className="detail-row"><span className="detail-label">Sản phẩm:</span><span>{selectedOrder.product}</span></div>
-                  <div className="detail-row"><span className="detail-label">Nhà cung cấp:</span><span>{selectedOrder.supplier}</span></div>
-                  <div className="detail-row"><span className="detail-label">Số lượng:</span><span>{selectedOrder.quantity}</span></div>
-                  <div className="detail-row"><span className="detail-label">Giá trị HĐ:</span><span className="detail-value-highlight">{selectedOrder.value}</span></div>
-                  <div className="detail-row"><span className="detail-label">Dự kiến giao:</span><span>{selectedOrder.eta}</span></div>
-                  <div className="detail-row"><span className="detail-label">Ngày tạo HĐ:</span><span>{selectedOrder.orderDate}</span></div>
+      {selectedOrder && (() => {
+        const stepMap = { confirmed: 1, processing: 2, shipping: 3, quality_check: 4, delivered: 5 };
+        const currentStep = stepMap[selectedOrder.status] || 0;
+        const QC_ITEMS = [
+          { id: 0, label: "Số lượng khớp với hợp đồng", extra: selectedOrder.quantity },
+          { id: 1, label: "Chất lượng sản phẩm đạt tiêu chuẩn cam kết" },
+          { id: 2, label: "Bao bì, tem nhãn đầy đủ và không hư hại" },
+          { id: 3, label: "Giấy tờ giao hàng hợp lệ" },
+        ];
+        const allChecked = qcChecked.every(Boolean);
+        const checkedCount = qcChecked.filter(Boolean).length;
+        const steps = [
+          { label: "Xác nhận đơn", desc: "Hợp đồng đã ký, đơn hàng được xác nhận" },
+          { label: "Đang xử lý", desc: "Nông dân đang chuẩn bị và thu hoạch hàng" },
+          { label: "Vận chuyển", desc: "Hàng đang trên đường vận chuyển đến kho" },
+          { label: "Kiểm tra CL", desc: "Kiểm tra chất lượng tại điểm nhận hàng" },
+          { label: "Hoàn thành", desc: "Đã giao hàng thành công, tiền đã giải ngân" },
+        ];
+        return (
+          <div className="order-detail-overlay" onClick={() => setSelectedOrder(null)}>
+            <div className={`order-detail-modal odm-${selectedOrder.status}`} onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="modal-header odm-header">
+                <div className="odm-header-left">
+                  <span className="odm-contract-code">{selectedOrder.contractCode}</span>
+                  <h3>Chi tiết đơn hàng</h3>
                 </div>
-                <div className="detail-section">
-                  <h4>Trạng thái ký quỹ</h4>
-                  <div className="detail-row">
-                    <span className="detail-label">Trạng thái:</span>
-                    <span className={`escrow-mini-badge ${(escrowStatusLabels[selectedOrder.escrowStatus] || {}).cls}`}>
-                      {(escrowStatusLabels[selectedOrder.escrowStatus] || { label: selectedOrder.escrowStatus }).label}
-                    </span>
+                <div className="odm-header-right">
+                  <span className={`odm-stage-chip odm-stage-${selectedOrder.status}`}>
+                    {(statusLabels[selectedOrder.status] || {}).label || selectedOrder.status}
+                  </span>
+                  <button className="modal-close" onClick={() => setSelectedOrder(null)}>✕</button>
+                </div>
+              </div>
+
+              <div className="modal-body">
+                {/* Info cards */}
+                <div className="detail-grid">
+                  <div className="detail-card">
+                    <div className="detail-card-hd">
+                      <svg className="detail-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+                      <h4>Thông tin hợp đồng</h4>
+                    </div>
+                    <div className="detail-row"><span className="detail-label">Sản phẩm</span><span>{selectedOrder.product}</span></div>
+                    <div className="detail-row"><span className="detail-label">Nhà cung cấp</span><span>{selectedOrder.supplier}</span></div>
+                    <div className="detail-row"><span className="detail-label">Số lượng</span><span>{selectedOrder.quantity}</span></div>
+                    <div className="detail-row"><span className="detail-label">Giá trị HĐ</span><span className="detail-value-highlight">{selectedOrder.value}</span></div>
+                    <div className="detail-row"><span className="detail-label">Dự kiến giao</span><span>{selectedOrder.eta}</span></div>
+                    <div className="detail-row no-border"><span className="detail-label">Ngày tạo HĐ</span><span>{selectedOrder.orderDate}</span></div>
                   </div>
-                  {selectedOrder.currentMilestone && (
-                    <div className="detail-row"><span className="detail-label">Mốc hiện tại:</span><span>{selectedOrder.currentMilestone}</span></div>
-                  )}
-                  <div className="detail-row">
-                    <span className="detail-label">Tiến độ:</span>
-                    <span>{selectedOrder.completedSteps}/{selectedOrder.totalSteps} mốc hoàn thành</span>
+                  <div className="detail-card">
+                    <div className="detail-card-hd">
+                      <svg className="detail-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <h4>Trạng thái ký quỹ</h4>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Trạng thái</span>
+                      <span className={`escrow-mini-badge ${(escrowStatusLabels[selectedOrder.escrowStatus] || {}).cls}`}>
+                        {(escrowStatusLabels[selectedOrder.escrowStatus] || { label: selectedOrder.escrowStatus }).label}
+                      </span>
+                    </div>
+                    {selectedOrder.currentMilestone && (
+                      <div className="detail-row"><span className="detail-label">Mốc hiện tại</span><span>{selectedOrder.currentMilestone}</span></div>
+                    )}
+                    <div className="detail-row no-border">
+                      <span className="detail-label">Tiến độ thanh toán</span>
+                      <span style={{ fontWeight: 600 }}>{selectedOrder.completedSteps}/{selectedOrder.totalSteps} mốc</span>
+                    </div>
+                    <div className="escrow-prog-wrap">
+                      <div className="escrow-prog-bar" style={{ width: `${(selectedOrder.completedSteps / (selectedOrder.totalSteps || 1)) * 100}%` }} />
+                    </div>
+                    {selectedOrder.escrowStatus === "none" && (
+                      <button className="btn-primary" style={{ width: "100%", marginTop: 12 }} onClick={() => { setSelectedOrder(null); setActionModal({ order: selectedOrder, type: "create_escrow" }); }}>
+                        + Tạo ký quỹ ngay
+                      </button>
+                    )}
                   </div>
-                  {selectedOrder.escrowStatus === "none" && (
-                    <div className="detail-row" style={{ marginTop: "8px" }}>
-                      <button className="btn-primary" onClick={() => { setSelectedOrder(null); setActionModal({ order: selectedOrder, type: "create_escrow" }); }}>
-                        Tạo ký quỹ ngay
+                </div>
+
+                {/* Progress steps */}
+                <div className="detail-progress">
+                  <div className="detail-progress-hd">
+                    <h4>Tiến trình đơn hàng</h4>
+                    <span className="detail-progress-count">{currentStep} / {steps.length} bước</span>
+                  </div>
+                  <div className="detail-steps">
+                    {steps.map((step, i) => (
+                      <div key={i} className={`detail-step ${i < currentStep ? "done" : ""} ${i === currentStep - 1 ? "current" : ""}`}>
+                        <div className="detail-step-marker">{i < currentStep ? "✓" : i + 1}</div>
+                        <div className="detail-step-info">
+                          <span className="detail-step-label">{step.label}</span>
+                          <span className="detail-step-desc">{step.desc}</span>
+                        </div>
+                        {i === currentStep - 1 && <span className="step-now-tag">Hiện tại</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* QC Action Panel */}
+                {selectedOrder.status === "quality_check" && selectedOrder.escrowStatus !== "none" && (
+                  <div className="qc-panel">
+                    <div className="qc-panel-header">
+                      <svg className="qc-panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><polyline points="9 12 11 14 15 10"/></svg>
+                      <div>
+                        <span className="qc-panel-title">Yêu cầu kiểm tra chất lượng</span>
+                        <span className="qc-panel-sub">Hàng đã đến — xác nhận trước khi duyệt giải ngân</span>
+                      </div>
+                      <span className="qc-panel-badge">Chờ duyệt</span>
+                    </div>
+                    <ul className="qc-checklist">
+                      {QC_ITEMS.map(item => (
+                        <li key={item.id} className={qcChecked[item.id] ? "checked" : ""} onClick={() => setQcChecked(prev => { const n = [...prev]; n[item.id] = !n[item.id]; return n; })}>
+                          <span className="qc-checkbox">{qcChecked[item.id] && <svg viewBox="0 0 12 10" fill="none"><polyline points="1,5 4.5,9 11,1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}</span>
+                          <span>{item.label}{item.extra && <strong> ({item.extra})</strong>}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="qc-checklist-progress">
+                      <div className="qc-checklist-bar" style={{ width: `${(checkedCount / QC_ITEMS.length) * 100}%` }} />
+                    </div>
+                    <div className="qc-panel-actions">
+                      <button className={`qc-btn-approve${allChecked ? "" : " disabled"}`} disabled={!allChecked} onClick={() => { if (!allChecked) return; setQcVerifiedByOrder(prev => ({ ...prev, [selectedOrder.contractId]: true })); setSelectedOrder(null); setQcChecked([false,false,false,false]); setActionModal({ order: selectedOrder, type: "confirm_milestone" }); }}>
+                        ✓ Duyệt chất lượng &amp; Giải ngân{!allChecked && <span className="qc-btn-hint">({checkedCount}/{QC_ITEMS.length})</span>}
+                      </button>
+                      <button className="qc-btn-return" onClick={() => { setSelectedOrder(null); setQcChecked([false,false,false,false]); setReturnReason(""); setReturnModal(selectedOrder); }}>
+                        ✕ Trả hàng / Khiếu nại
                       </button>
                     </div>
-                  )}
-                </div>
+                    <p className="qc-panel-warning"><svg className="qc-warn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Sau khi duyệt, tiền ký quỹ sẽ được giải ngân cho nông dân và không thể hoàn tác.</p>
+                  </div>
+                )}
               </div>
-              <div className="detail-progress">
-                <h4>Tiến trình đơn hàng</h4>
-                <div className="detail-steps">
-                  {[
-                    { label: "Xác nhận đơn", desc: "Hợp đồng đã ký, đơn hàng được xác nhận" },
-                    { label: "Đang xử lý", desc: "Nông dân đang chuẩn bị và thu hoạch hàng" },
-                    { label: "Vận chuyển", desc: "Hàng đang trên đường vận chuyển đến kho" },
-                    { label: "Kiểm tra CL", desc: "Kiểm tra chất lượng tại điểm nhận hàng" },
-                    { label: "Hoàn thành", desc: "Đã giao hàng thành công, tiền đã giải ngân" },
-                  ].map((step, i) => {
-                    const stepMap = { confirmed: 1, processing: 2, shipping: 3, quality_check: 4, delivered: 5 };
-                    const currentStep = stepMap[selectedOrder.status] || 0;
-                    return (
-                      <div key={i} className={`detail-step ${i < currentStep ? "done" : ""} ${i === currentStep - 1 ? "current" : ""}`}>
-                        <div className="detail-step-marker">{i < currentStep ? <span className="check-inline" /> : i + 1}</div>
-                        <div className="detail-step-info"><span className="detail-step-label">{step.label}</span><span className="detail-step-desc">{step.desc}</span></div>
-                      </div>
-                    );
-                  })}
-                </div>
+
+              <div className="modal-footer">
+                {selectedOrder.status === "shipping" && selectedOrder.escrowStatus !== "none" && (
+                  <button
+                    className={`btn-primary ${!selectedOrder.enterpriseCanConfirm ? "btn-disabled-soft" : ""}`}
+                    disabled={!selectedOrder.enterpriseCanConfirm}
+                    onClick={() => {
+                      if (!selectedOrder.enterpriseCanConfirm) {
+                        toast.warning("Đơn hàng đang chờ nông dân xác nhận giao hàng trước khi doanh nghiệp xác nhận.");
+                        return;
+                      }
+                      setSelectedOrder(null);
+                      setActionModal({ order: selectedOrder, type: "confirm_milestone" });
+                    }}
+                  >
+                    {selectedOrder.enterpriseCanConfirm ? "Xác nhận đã nhận hàng" : "Đang chờ nông dân giao hàng"}
+                  </button>
+                )}
+                {selectedOrder.status === "shipping" && selectedOrder.escrowStatus !== "none" && (
+                  <button className="btn-outline" style={{ color: "#dc2626", borderColor: "#fca5a5" }} onClick={() => { setSelectedOrder(null); setReturnReason(""); setReturnModal(selectedOrder); }}>
+                    Trả hàng / Khiếu nại
+                  </button>
+                )}
+                <button className="btn-outline" onClick={() => setSelectedOrder(null)}>Đóng</button>
               </div>
-            </div>
-            <div className="modal-footer">
-              {selectedOrder.status === "quality_check" && selectedOrder.escrowStatus !== "none" && (
-                <button className="btn-primary" onClick={() => { setSelectedOrder(null); setActionModal({ order: selectedOrder, type: "confirm_milestone" }); }}>
-                  Duyệt chất lượng &amp; Giải ngân
-                </button>
-              )}
-              {selectedOrder.status === "shipping" && selectedOrder.escrowStatus !== "none" && (
-                <button className="btn-primary" onClick={() => { setSelectedOrder(null); setActionModal({ order: selectedOrder, type: "confirm_milestone" }); }}>
-                  Xác nhận đã nhận hàng
-                </button>
-              )}
-              {(selectedOrder.status === "shipping" || selectedOrder.status === "quality_check") && selectedOrder.escrowStatus !== "none" && (
-                <button
-                  className="btn-outline"
-                  style={{ color: "#dc2626", borderColor: "#fca5a5" }}
-                  onClick={() => { setSelectedOrder(null); setReturnReason(""); setReturnModal(selectedOrder); }}
-                >
-                  Trả hàng / Khiếu nại
-                </button>
-              )}
-              <button className="btn-outline" onClick={() => setSelectedOrder(null)}>Đóng</button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ===== RETURN GOODS MODAL ===== */}
       {returnModal && (
@@ -1401,10 +1625,22 @@ function DonHangContent({ searchQuery = "" }) {
                     <button className="btn-escrow-create" onClick={() => setActionModal({ order, type: "create_escrow" })}>Tạo ký quỹ</button>
                   )}
                   {order.status === "quality_check" && order.escrowStatus !== "none" && (
-                    <button className="btn-check" onClick={() => setActionModal({ order, type: "confirm_milestone" })}>Duyệt chất lượng</button>
+                    <button className="btn-check" onClick={() => setSelectedOrder(order)}>Mở checklist CL</button>
                   )}
                   {order.status === "shipping" && order.escrowStatus !== "none" && (
-                    <button className="btn-track" onClick={() => setActionModal({ order, type: "confirm_milestone" })}>Xác nhận nhận hàng</button>
+                    <button
+                      className={`btn-track ${!order.enterpriseCanConfirm ? "btn-track-disabled" : ""}`}
+                      disabled={!order.enterpriseCanConfirm}
+                      onClick={() => {
+                        if (!order.enterpriseCanConfirm) {
+                          toast.warning("Đơn hàng đang chờ nông dân xác nhận giao hàng.");
+                          return;
+                        }
+                        setActionModal({ order, type: "confirm_milestone" });
+                      }}
+                    >
+                      {order.enterpriseCanConfirm ? "Xác nhận nhận hàng" : "Đang chờ nông dân"}
+                    </button>
                   )}
                   {(order.status === "shipping" || order.status === "quality_check") && order.escrowStatus !== "none" && (
                     <button className="btn-dispute" style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5", borderRadius: 8, padding: "6px 14px", fontSize: "0.82rem", cursor: "pointer" }} onClick={() => { setReturnReason(""); setReturnModal(order); }}>

@@ -123,12 +123,11 @@ export const getOrders = asyncHandler(
           m => m.status === 'completed'
         ).length || 0;
 
-        let orderStatus = 'pending';
+        // Mapping theo mốc đã hoàn thành để UI không cho phép gọi step 3 trước step 2.
+        let orderStatus = 'confirmed';
         if (completedSteps >= 4) orderStatus = 'delivered';
         else if (completedSteps >= 3) orderStatus = 'quality_check';
-        else if (completedSteps >= 2) orderStatus = 'shipping';
-        else if (completedSteps >= 1) orderStatus = 'processing';
-        else orderStatus = 'confirmed';
+        else if (completedSteps >= 2) orderStatus = 'processing';
 
         return {
           id: c._id,

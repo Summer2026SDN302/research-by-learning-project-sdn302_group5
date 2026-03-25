@@ -11,11 +11,11 @@ const paymentService = {
     return api.get(`/payment/transactions?${params}`);
   },
 
-  /** Create a real PayOS top-up link */
+  /** Create a real top-up request for the active gateway */
   createTopup: (amount, description = '') =>
     api.post('/payment/topup', { amount, description }),
 
-  /** Verify a PayOS payment after returning from gateway */
+  /** Verify a gateway payment after returning from redirect */
   verifyTopup: (orderCode) =>
     api.post('/payment/topup/verify', { orderCode }),
 

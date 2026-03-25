@@ -579,7 +579,7 @@ const Register = () => {
                   <h4>2. Mục đích sử dụng thông tin</h4>
                   <p>Thông tin của bạn được dùng để: xác minh danh tính và tài khoản; thực hiện và bảo vệ các giao dịch qua Escrow; gửi thông báo liên quan đến hợp đồng và tài khoản; cải thiện trải nghiệm người dùng; tuân thủ nghĩa vụ pháp lý.</p>
                   <h4>3. Chia sẻ thông tin</h4>
-                  <p>PreOnic <strong>không bán</strong> thông tin cá nhân của bạn. Thông tin chỉ được chia sẻ với: đối tác giao dịch trực tiếp (tên, liên hệ) khi hợp đồng được ký kết; đơn vị thanh toán (PayOS) khi xử lý giao dịch; cơ quan nhà nước khi có yêu cầu hợp pháp.</p>
+                  <p>PreOnic <strong>không bán</strong> thông tin cá nhân của bạn. Thông tin chỉ được chia sẻ với: đối tác giao dịch trực tiếp (tên, liên hệ) khi hợp đồng được ký kết; đơn vị thanh toán đang được PreOnic tích hợp để xử lý giao dịch; cơ quan nhà nước khi có yêu cầu hợp pháp.</p>
                   <h4>4. Bảo mật dữ liệu</h4>
                   <p>Dữ liệu của bạn được bảo vệ bằng mã hóa SSL 256-bit trong quá trình truyền tải. Mật khẩu được băm (hashed) bằng thuật toán bcrypt — PreOnic không bao giờ lưu mật khẩu dạng plaintext. Hệ thống được kiểm tra bảo mật định kỳ.</p>
                   <h4>5. Cookie và theo dõi</h4>

@@ -1,13 +1,20 @@
 import { Request } from 'express';
 
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: 'farmer' | 'enterprise';
+  fullName: string;
+}
+
+export interface JwtUserPayload extends AuthenticatedUser {
+  iat?: number;
+  exp?: number;
+}
+
 // Extend Express Request to include user
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: 'farmer' | 'enterprise';
-    fullName: string;
-  };
+  user?: AuthenticatedUser;
 }
 
 // User roles
@@ -76,7 +83,7 @@ export interface AuthTokens {
 // ===== GENERIC TYPES =====
 
 // Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success?: boolean;
   status: 'success' | 'error';
   message?: string;

@@ -1,150 +1,327 @@
-import { PayOS } from '@payos/node';
 import User from '../models/User.model';
 import PaymentTransaction from '../models/PaymentTransaction.model';
 import { AppError } from '../middlewares/error.middleware';
+import { PAYMENT_LIMITS } from '../constants';
 
-let payos: PayOS | null = null;
+const ORDER_CODE_SUFFIX_LENGTH = 8;
+const ORDER_CODE_RANDOM_DIGITS = 3;
+const SEPAY_TRANSFER_PREFIX = 'PON';
 
-function getPayOS(): PayOS {
-  if (!payos) {
-    if (!process.env.PAYOS_CLIENT_ID || !process.env.PAYOS_API_KEY || !process.env.PAYOS_CHECKSUM_KEY) {
-      throw new AppError('PayOS chưa được cấu hình. Vui lòng thiết lập PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY trong .env', 500);
-    }
-    payos = new PayOS();
-  }
-  return payos;
+interface SePayWebhookPayload {
+  id: number;
+  gateway?: string;
+  transactionDate?: string;
+  accountNumber?: string;
+  code?: string | null;
+  content?: string;
+  transferType?: string;
+  transferAmount?: number | string;
+  accumulated?: number | string;
+  subAccount?: string | null;
+  referenceCode?: string | null;
+  description?: string;
 }
+
+interface SePayConfig {
+  merchantId: string;
+  secretKey: string;
+  accountNumber: string;
+  bankCode: string;
+  accountName: string;
+  webhookUrl: string;
+}
+
+const generateOrderCode = (): number =>
+  Number(
+    `${Date.now().toString().slice(-ORDER_CODE_SUFFIX_LENGTH)}${Math.floor(
+      Math.random() * 1000
+    )
+      .toString()
+      .padStart(ORDER_CODE_RANDOM_DIGITS, '0')}`
+  );
+
+const buildTransferCode = (orderCode: number): string =>
+  `${SEPAY_TRANSFER_PREFIX}${orderCode}`;
+
+const getWebhookBaseUrl = (): string => {
+  const rawUrl =
+    process.env.PUBLIC_API_URL ||
+    process.env.BACKEND_PUBLIC_URL ||
+    process.env.APP_PUBLIC_URL ||
+    '';
+
+  return rawUrl.trim().replace(/\/$/, '');
+};
+
+const getSePayConfig = (): SePayConfig => {
+  const merchantId = process.env.SEPAY_MERCHANT_ID?.trim() || '';
+  const secretKey =
+    process.env.SEPAY_SECRET_KEY?.trim() ||
+    process.env.SEPAY_API_KEY?.trim() ||
+    '';
+  const accountNumber = process.env.SEPAY_ACCOUNT_NUMBER?.trim() || '';
+  const bankCode = process.env.SEPAY_BANK_CODE?.trim() || '';
+  const accountName = process.env.SEPAY_ACCOUNT_NAME?.trim() || '';
+  const webhookBaseUrl = getWebhookBaseUrl();
+
+  if (!merchantId || !secretKey) {
+    throw new AppError(
+      'SePay chưa được cấu hình đầy đủ. Vui lòng thiết lập SEPAY_MERCHANT_ID và SEPAY_SECRET_KEY trong .env',
+      500
+    );
+  }
+
+  if (!accountNumber || !bankCode || !accountName) {
+    throw new AppError(
+      'SePay thiếu thông tin nhận tiền. Vui lòng thiết lập SEPAY_ACCOUNT_NUMBER, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NAME trong .env',
+      500
+    );
+  }
+
+  if (!webhookBaseUrl) {
+    throw new AppError(
+      'Chưa có PUBLIC_API_URL để nhận webhook SePay. Vui lòng cấu hình URL public cho backend trước khi bật SePay.',
+      500
+    );
+  }
+
+  return {
+    merchantId,
+    secretKey,
+    accountNumber,
+    bankCode,
+    accountName,
+    webhookUrl: `${webhookBaseUrl}/api/v1/payment/webhook`,
+  };
+};
+
+const parseTransferAmount = (amount: number | string | undefined): number => {
+  const parsedAmount = Number(amount);
+  return Number.isFinite(parsedAmount) ? parsedAmount : 0;
+};
+
+const extractTransferCode = (content: string | undefined): string | null => {
+  if (!content) return null;
+  const normalizedContent = content.toUpperCase();
+  const match = normalizedContent.match(/PON(\d{11})/);
+  return match ? `${SEPAY_TRANSFER_PREFIX}${match[1]}` : null;
+};
+
+const extractOrderCodeFromTransferCode = (transferCode: string): number =>
+  Number(transferCode.replace(SEPAY_TRANSFER_PREFIX, ''));
+
+const buildQrCodeUrl = (
+  config: SePayConfig,
+  amount: number,
+  transferCode: string
+): string => {
+  const qrUrl = new URL('https://qr.sepay.vn/img');
+  qrUrl.searchParams.set('acc', config.accountNumber);
+  qrUrl.searchParams.set('bank', config.bankCode);
+  qrUrl.searchParams.set('amount', String(amount));
+  qrUrl.searchParams.set('des', transferCode);
+  qrUrl.searchParams.set('template', 'compact');
+  return qrUrl.toString();
+};
+
+const isAuthorizedWebhook = (authorizationHeader: string | undefined): boolean => {
+  const secretKey =
+    process.env.SEPAY_WEBHOOK_SECRET?.trim() ||
+    process.env.SEPAY_SECRET_KEY?.trim() ||
+    process.env.SEPAY_API_KEY?.trim() ||
+    '';
+
+  if (!secretKey) {
+    return true;
+  }
+
+  if (!authorizationHeader) {
+    return false;
+  }
+
+  const normalizedHeader = authorizationHeader.trim();
+  return normalizedHeader === `Apikey ${secretKey}`;
+};
 
 export class PaymentService {
   /**
-   * Create a top-up payment link via PayOS
+   * Real payment gateway is temporarily disabled while migrating to SePay.
    */
   static async createTopup(
     userId: string,
     amount: number,
     description?: string
   ) {
+    const sepayConfig = getSePayConfig();
     const user = await User.findById(userId);
     if (!user) throw new AppError('Người dùng không tồn tại', 404);
 
-    if (amount < 10000) {
+    if (amount < PAYMENT_LIMITS.MIN_TOPUP_VND) {
       throw new AppError('Số tiền nạp tối thiểu là 10.000 VND', 400);
     }
-    if (amount > 500000000) {
+    if (amount > PAYMENT_LIMITS.MAX_TOPUP_VND) {
       throw new AppError('Số tiền nạp tối đa là 500.000.000 VND', 400);
     }
 
-    // Generate unique order code (timestamp + random)
-    const orderCode = Number(
-      `${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, '0')}`
-    );
+    const orderCode = generateOrderCode();
+    const transferCode = buildTransferCode(orderCode);
 
-    // Create pending transaction
     const transaction = await PaymentTransaction.create({
       userId,
       type: 'topup',
       amount,
       status: 'pending',
-      paymentMethod: 'payos',
+      paymentMethod: 'sepay',
       orderCode,
-      description: description || `Nạp ${amount.toLocaleString('vi-VN')} VND vào ví PreOnic`,
+      description: description || `Nạp ${amount.toLocaleString('vi-VN')} VND qua SePay`,
       balanceBefore: user.virtualBalance,
-      balanceAfter: user.virtualBalance, // will be updated on success
+      balanceAfter: user.virtualBalance,
+      metadata: {
+        merchantId: sepayConfig.merchantId,
+        transferCode,
+        webhookUrl: sepayConfig.webhookUrl,
+        qrCodeUrl: buildQrCodeUrl(sepayConfig, amount, transferCode),
+      },
     });
-
-    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-
-    // Create PayOS payment link
-    // PayOS enforces a strict 25-character limit on description
-    const shortDesc = `PreOnic #${String(orderCode).slice(-8)}`; // max 18 chars
-    const paymentData = await getPayOS().paymentRequests.create({
-      orderCode,
-      amount,
-      description: shortDesc,
-      cancelUrl: `${FRONTEND_URL}/payment/cancel?orderCode=${orderCode}`,
-      returnUrl: `${FRONTEND_URL}/payment/success?orderCode=${orderCode}`,
-    });
-
-    // Store checkout URL in metadata
-    transaction.metadata = { checkoutUrl: paymentData.checkoutUrl };
-    await transaction.save();
 
     return {
-      checkoutUrl: paymentData.checkoutUrl,
+      paymentMethod: 'sepay',
       orderCode,
+      transferCode,
       transactionId: transaction._id,
+      amount,
+      expiresInMinutes: 15,
+      bankInfo: {
+        bankCode: sepayConfig.bankCode,
+        accountNumber: sepayConfig.accountNumber,
+        accountName: sepayConfig.accountName,
+      },
+      qrCodeUrl: buildQrCodeUrl(sepayConfig, amount, transferCode),
+      webhookUrl: sepayConfig.webhookUrl,
+      note: 'Chuyển khoản đúng số tiền và đúng nội dung để hệ thống tự động cộng ví.',
     };
   }
 
   /**
-   * Handle PayOS webhook / verify payment
+   * Webhook endpoint placeholder for upcoming SePay integration.
    */
-  static async handleWebhook(webhookData: any) {
-    const verifiedData = await getPayOS().webhooks.verify(webhookData);
-
-    const { orderCode } = verifiedData;
-    return this.processOrder(orderCode, 'webhook');
-  }
-
-  /**
-   * Verify and process a payment by orderCode (called from return URL or webhook)
-   */
-  static async verifyAndProcess(orderCode: number) {
-    const paymentInfo = await getPayOS().paymentRequests.get(orderCode);
-
-    if (paymentInfo.status === 'PAID') {
-      return this.processOrder(orderCode, 'verify');
+  static async handleWebhook(
+    webhookData: SePayWebhookPayload,
+    authorizationHeader?: string
+  ) {
+    if (!isAuthorizedWebhook(authorizationHeader)) {
+      throw new AppError('Webhook SePay không hợp lệ', 401);
     }
 
-    return {
-      success: false,
-      status: paymentInfo.status,
-      message: 'Giao dịch chưa được thanh toán',
-    };
+    if (webhookData.transferType !== 'in') {
+      return { success: true, ignored: true, reason: 'not_incoming_transfer' };
+    }
+
+    const transferCode = extractTransferCode(webhookData.content);
+    if (!transferCode) {
+      return { success: true, ignored: true, reason: 'missing_transfer_code' };
+    }
+
+    const orderCode = extractOrderCodeFromTransferCode(transferCode);
+    const transaction = await PaymentTransaction.findOne({
+      orderCode,
+      type: 'topup',
+      paymentMethod: 'sepay',
+    });
+
+    if (!transaction) {
+      return { success: true, ignored: true, reason: 'transaction_not_found' };
+    }
+
+    if (transaction.status === 'completed') {
+      return { success: true, ignored: true, reason: 'already_processed' };
+    }
+
+    const transferAmount = parseTransferAmount(webhookData.transferAmount);
+    if (transferAmount !== transaction.amount) {
+      transaction.metadata = {
+        ...(transaction.metadata || {}),
+        lastWebhookMismatch: {
+          sepayId: webhookData.id,
+          transferAmount,
+          content: webhookData.content,
+          at: new Date().toISOString(),
+        },
+      };
+      await transaction.save();
+
+      return { success: true, ignored: true, reason: 'amount_mismatch' };
+    }
+
+    return this.processCompletedTopup(transaction, webhookData);
   }
 
   /**
-   * Internal: process a successful payment
+   * Verify endpoint placeholder for upcoming SePay integration.
    */
-  private static async processOrder(orderCode: number, source: string) {
-    const transaction = await PaymentTransaction.findOne({ orderCode });
+  static async verifyAndProcess(_orderCode: number) {
+    const transaction = await PaymentTransaction.findOne({
+      orderCode: _orderCode,
+      type: 'topup',
+    });
+
     if (!transaction) {
       throw new AppError('Giao dịch không tồn tại', 404);
     }
 
-    // Already processed — idempotent
     if (transaction.status === 'completed') {
       return {
         success: true,
-        alreadyProcessed: true,
         transaction,
+        newBalance: transaction.balanceAfter,
       };
     }
 
-    // Credit virtual balance
+    return {
+      success: false,
+      status: transaction.status,
+      transaction,
+      message: transaction.status === 'pending'
+        ? 'Giao dịch đang chờ SePay xác nhận chuyển khoản'
+        : 'Giao dịch chưa hoàn tất',
+    };
+  }
+
+  private static async processCompletedTopup(
+    transaction: InstanceType<typeof PaymentTransaction>,
+    webhookData: SePayWebhookPayload
+  ) {
     const user = await User.findById(transaction.userId);
-    if (!user) throw new AppError('Người dùng không tồn tại', 404);
+    if (!user) {
+      throw new AppError('Người dùng không tồn tại', 404);
+    }
 
     const balanceBefore = user.virtualBalance;
     user.virtualBalance += transaction.amount;
     await user.save({ validateBeforeSave: false });
 
-    // Update transaction
     transaction.status = 'completed';
     transaction.balanceBefore = balanceBefore;
     transaction.balanceAfter = user.virtualBalance;
     transaction.completedAt = new Date();
+    transaction.gatewayRef = String(webhookData.id);
     transaction.metadata = {
-      ...transaction.metadata,
-      processedBy: source,
+      ...(transaction.metadata || {}),
+      sepayTransactionId: webhookData.id,
+      gateway: webhookData.gateway,
+      transactionDate: webhookData.transactionDate,
+      accountNumber: webhookData.accountNumber,
+      transferType: webhookData.transferType,
+      referenceCode: webhookData.referenceCode,
+      description: webhookData.description,
+      receivedContent: webhookData.content,
+      receivedAmount: parseTransferAmount(webhookData.transferAmount),
+      processedBy: 'sepay_webhook',
     };
     await transaction.save();
 
     return {
       success: true,
-      alreadyProcessed: false,
       transaction,
       newBalance: user.virtualBalance,
     };
@@ -157,7 +334,7 @@ export class PaymentService {
     const user = await User.findById(userId);
     if (!user) throw new AppError('Người dùng không tồn tại', 404);
 
-    if (amount < 1000) {
+    if (amount < PAYMENT_LIMITS.MIN_DEMO_TOPUP_VND) {
       throw new AppError('Số tiền nạp demo tối thiểu 1.000 VND', 400);
     }
 
@@ -247,12 +424,14 @@ export class PaymentService {
         totalTopup: totalTopup[0]?.total || 0,
         totalSpent: totalSpent[0]?.total || 0,
       },
-      recentTransactions,
+      recentTransactions: await PaymentTransaction.find({ userId: user._id })
+        .sort({ createdAt: -1 })
+        .limit(5),
     };
   }
 
   /**
-   * Cancel a pending topup
+   * Cancel a locally stored pending topup.
    */
   static async cancelTopup(orderCode: number, userId: string) {
     const transaction = await PaymentTransaction.findOne({ orderCode, userId });
@@ -261,13 +440,11 @@ export class PaymentService {
       throw new AppError('Chỉ có thể hủy giao dịch đang chờ', 400);
     }
 
-    try {
-      await getPayOS().paymentRequests.cancel(orderCode);
-    } catch {
-      // PayOS link may already be expired — still mark as cancelled
-    }
-
     transaction.status = 'cancelled';
+    transaction.metadata = {
+      ...(transaction.metadata || {}),
+      cancelledReason: 'Cancelled by user before SePay confirmation',
+    };
     await transaction.save();
 
     return transaction;

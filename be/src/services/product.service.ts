@@ -1,6 +1,7 @@
 import Product, { IProduct } from '../models/Product.model';
 import Review, { IReview } from '../models/Review.model';
 import { AppError } from '../middlewares/error.middleware';
+import { PRODUCT_CONFIG } from '../constants';
 
 export interface CreateProductBody {
   name: string;
@@ -31,20 +32,59 @@ export interface CreateProductBody {
   };
 }
 
+type ProductFilters = {
+  category?: string;
+  region?: string;
+  type?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+};
+
+type ProductSortOption = {
+  createdAt?: 1 | -1;
+  priceMin?: 1 | -1;
+  priceMax?: 1 | -1;
+  rating?: 1 | -1;
+  name?: 1 | -1;
+};
+
+const PRODUCT_SORT_OPTIONS: Record<string, ProductSortOption> = {
+  default: { createdAt: -1 },
+  price_asc: { priceMin: 1 },
+  price_desc: { priceMax: -1 },
+  rating: { rating: -1 },
+  name: { name: 1 },
+};
+
+const PRODUCT_UPDATE_FIELDS: Array<keyof CreateProductBody> = [
+  'name',
+  'location',
+  'farm',
+  'image',
+  'priceMin',
+  'priceMax',
+  'unit',
+  'expectedDate',
+  'progress',
+  'remaining',
+  'totalQuantity',
+  'note',
+  'badge',
+  'category',
+  'region',
+  'type',
+  'description',
+  'nutritionInfo',
+  'certifications',
+  'commitments',
+];
+
 export class ProductService {
-  /**
-   * Get all products with optional filters
-   */
-  static async getAll(filters: {
-    category?: string;
-    region?: string;
-    type?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-    sort?: string;
-  }): Promise<{ products: IProduct[]; total: number; page: number; totalPages: number }> {
-    const query: any = { isActive: true };
+  // Khối helper này giữ cho các hàm public bên dưới chỉ còn đúng trách nhiệm điều phối luồng nghiệp vụ.
+  private static buildQuery(filters: ProductFilters) {
+    const query: Record<string, unknown> = { isActive: true };
 
     if (filters.category) query.category = filters.category;
     if (filters.region) query.region = filters.region;
@@ -58,15 +98,62 @@ export class ProductService {
       ];
     }
 
-    const page = filters.page || 1;
-    const limit = filters.limit || 50;
-    const skip = (page - 1) * limit;
+    return query;
+  }
 
-    let sortOption: any = { createdAt: -1 };
-    if (filters.sort === 'price_asc') sortOption = { priceMin: 1 };
-    if (filters.sort === 'price_desc') sortOption = { priceMax: -1 };
-    if (filters.sort === 'rating') sortOption = { rating: -1 };
-    if (filters.sort === 'name') sortOption = { name: 1 };
+  private static buildSortOption(sort?: string): ProductSortOption {
+    return PRODUCT_SORT_OPTIONS[sort || 'default'] || PRODUCT_SORT_OPTIONS.default;
+  }
+
+  private static buildSellerData(
+    body: CreateProductBody,
+    userId: string,
+    userName: string
+  ) {
+    const resolvedName =
+      (userName && userName.trim()) || PRODUCT_CONFIG.DEFAULT_SELLER_NAME;
+    const resolvedAvatar = resolvedName.slice(0, 2).toUpperCase();
+    const sellerData = body.seller || {
+      name: resolvedName,
+      avatar: resolvedAvatar,
+    };
+
+    return {
+      userId,
+      name: (sellerData.name && sellerData.name.trim()) || resolvedName,
+      avatar: (sellerData.avatar && sellerData.avatar.trim()) || resolvedAvatar,
+      rating: sellerData.rating || PRODUCT_CONFIG.DEFAULT_SELLER_RATING,
+      totalContracts:
+        sellerData.totalContracts || PRODUCT_CONFIG.DEFAULT_TOTAL_CONTRACTS,
+    };
+  }
+
+  private static filterAllowedUpdateData(
+    updateData: Partial<CreateProductBody>
+  ): Partial<CreateProductBody> {
+    return PRODUCT_UPDATE_FIELDS.reduce<Partial<CreateProductBody>>(
+      (filteredData, fieldName) => {
+        if (updateData[fieldName] !== undefined) {
+          (filteredData as Record<string, unknown>)[fieldName] = updateData[
+            fieldName
+          ] as unknown;
+        }
+
+        return filteredData;
+      },
+      {}
+    );
+  }
+
+  /**
+   * Get all products with optional filters
+   */
+  static async getAll(filters: ProductFilters): Promise<{ products: IProduct[]; total: number; page: number; totalPages: number }> {
+    const query = this.buildQuery(filters);
+    const page = filters.page || 1;
+    const limit = filters.limit || PRODUCT_CONFIG.DEFAULT_PAGE_SIZE;
+    const skip = (page - 1) * limit;
+    const sortOption = this.buildSortOption(filters.sort);
 
     const [products, total] = await Promise.all([
       Product.find(query).sort(sortOption).skip(skip).limit(limit),
@@ -119,24 +206,9 @@ export class ProductService {
    * Create a new product (farmer only)
    */
   static async create(body: CreateProductBody, userId: string, userName: string): Promise<IProduct> {
-    // Fallback if userName is empty/null/undefined (e.g. old JWT or missing fullName)
-    const resolvedName = (userName && userName.trim()) || 'Nông dân';
-    const resolvedAvatar = resolvedName.slice(0, 2).toUpperCase();
-
-    const sellerData = body.seller || {
-      name: resolvedName,
-      avatar: resolvedAvatar,
-    };
-
     const product = await Product.create({
       ...body,
-      seller: {
-        userId,
-        name: (sellerData.name && sellerData.name.trim()) || resolvedName,
-        avatar: (sellerData.avatar && sellerData.avatar.trim()) || resolvedAvatar,
-        rating: sellerData.rating || 5.0,
-        totalContracts: sellerData.totalContracts || 0,
-      },
+      seller: this.buildSellerData(body, userId, userName),
       createdBy: userId,
     });
 
@@ -160,20 +232,7 @@ export class ProductService {
       throw new AppError('Bạn không có quyền chỉnh sửa sản phẩm này', 403);
     }
 
-    // Filter allowed fields
-    const allowedFields = [
-      'name', 'location', 'farm', 'image', 'priceMin', 'priceMax',
-      'unit', 'expectedDate', 'progress', 'remaining', 'totalQuantity',
-      'note', 'badge', 'category', 'region', 'type', 'description',
-      'nutritionInfo', 'certifications', 'commitments',
-    ];
-
-    const filteredUpdate: any = {};
-    for (const field of allowedFields) {
-      if ((updateData as any)[field] !== undefined) {
-        filteredUpdate[field] = (updateData as any)[field];
-      }
-    }
+    const filteredUpdate = this.filterAllowedUpdateData(updateData);
 
     const updated = await Product.findByIdAndUpdate(productId, filteredUpdate, {
       new: true,

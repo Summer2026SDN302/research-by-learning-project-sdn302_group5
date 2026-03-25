@@ -1,23 +1,23 @@
 import axios from 'axios';
 import User, { IUser } from '../models/User.model';
-import Contract from '../models/Contract.model';
 import WeatherAlert from '../models/WeatherAlert.model';
 import { AppError } from '../middlewares/error.middleware';
 import { WeatherAlertType, WeatherAlertSeverity, WeatherData, WeatherThresholds } from '../types';
+import { WEATHER_API, WEATHER_THRESHOLDS } from '../constants';
 
 // ===== CONSTANTS =====
 
-const OWM_API_KEY = process.env.OWM_API_KEY || 'abba08388fa1390911c528f4f3155778';
 const OWM_BASE_URL = 'https://api.openweathermap.org/data/2.5';
+const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 
 // Fixed system thresholds
 const THRESHOLDS: WeatherThresholds = {
-  extremeHeatTemp: 38,    // °C
-  extremeColdTemp: 5,     // °C
-  heavyRainMm: 100,       // mm/day
-  strongWindKmh: 60,      // km/h
-  droughtMm: 5,           // mm in 14 days
-  droughtDays: 14,
+  extremeHeatTemp: WEATHER_THRESHOLDS.EXTREME_HEAT_TEMP,
+  extremeColdTemp: WEATHER_THRESHOLDS.EXTREME_COLD_TEMP,
+  heavyRainMm: WEATHER_THRESHOLDS.HEAVY_RAIN_MM,
+  strongWindKmh: WEATHER_THRESHOLDS.STRONG_WIND_KMH,
+  droughtMm: WEATHER_THRESHOLDS.DROUGHT_MM,
+  droughtDays: WEATHER_THRESHOLDS.DROUGHT_DAYS,
 };
 
 // Vietnamese alert messages by type
@@ -76,36 +76,256 @@ const PROVINCE_COORDS: Record<string, { lat: number; lng: number }> = {
   'Phu Yen': { lat: 13.0882, lng: 109.0929 },
 };
 
+type ForecastItem = {
+  dt_txt: string;
+  main: {
+    temp: number;
+    temp_min: number;
+    temp_max: number;
+    humidity: number;
+  };
+  weather: Array<{ description: string; icon: string }>;
+  wind?: { speed?: number };
+  rain?: { '3h'?: number };
+};
+
+type CurrentWeatherApiResponse = {
+  main?: {
+    temp?: number;
+    humidity?: number;
+  };
+  wind?: {
+    speed?: number;
+  };
+  rain?: {
+    '1h'?: number;
+    '3h'?: number;
+  };
+  weather?: Array<{
+    description?: string;
+    icon?: string;
+  }>;
+};
+
+type ForecastApiResponse = {
+  list: ForecastItem[];
+};
+
+type OpenMeteoCurrentApiResponse = {
+  current?: {
+    temperature_2m?: number;
+    relative_humidity_2m?: number;
+    wind_speed_10m?: number;
+    weather_code?: number;
+    rain?: number;
+    is_day?: number;
+  };
+};
+
+type OpenMeteoForecastApiResponse = {
+  daily?: {
+    time?: string[];
+    weather_code?: number[];
+    temperature_2m_max?: number[];
+    temperature_2m_min?: number[];
+    precipitation_sum?: number[];
+  };
+};
+
+type ForecastSummary = {
+  date: string;
+  temp: number;
+  tempMin: number;
+  tempMax: number;
+  humidity: number;
+  description: string;
+  icon: string;
+  windSpeed: number;
+  rain: number;
+};
+
+type DetectedWeatherAlert = {
+  type: WeatherAlertType;
+  severity: WeatherAlertSeverity;
+  detail: string;
+};
+
+const getWeatherApiKey = (): string | null => {
+  const apiKey =
+    process.env.OPENWEATHER_API_KEY ||
+    process.env.OWM_API_KEY ||
+    process.env.WEATHER_API_KEY;
+
+  return apiKey || null;
+};
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const sleep = (delayMs: number) =>
+  new Promise((resolve) => setTimeout(resolve, delayMs));
+
+// Gom logic map dữ liệu thời tiết để tránh lặp lại ở nhiều API endpoint khác nhau.
+const mapCurrentWeather = (data: CurrentWeatherApiResponse): WeatherData => ({
+  temp: data.main?.temp ?? 0,
+  humidity: data.main?.humidity ?? 0,
+  windSpeed: (data.wind?.speed ?? 0) * 3.6,
+  rain1h: data.rain?.['1h'] ?? 0,
+  rain24h: data.rain?.['3h'] ? data.rain['3h'] * 8 : 0,
+  description: data.weather?.[0]?.description ?? '',
+  icon: data.weather?.[0]?.icon ?? '01d',
+});
+
+const mapOpenMeteoCode = (code: number | undefined, isDay: boolean = true) => {
+  const dayNightSuffix = isDay ? 'd' : 'n';
+
+  if (code === 0) {
+    return { description: 'Trời quang', icon: `01${dayNightSuffix}` };
+  }
+  if (code === 1 || code === 2) {
+    return { description: 'Ít mây', icon: `02${dayNightSuffix}` };
+  }
+  if (code === 3) {
+    return { description: 'Nhiều mây', icon: `04${dayNightSuffix}` };
+  }
+  if ([45, 48].includes(code ?? -1)) {
+    return { description: 'Sương mù', icon: `50${dayNightSuffix}` };
+  }
+  if ([51, 53, 55, 56, 57].includes(code ?? -1)) {
+    return { description: 'Mưa phùn', icon: `09${dayNightSuffix}` };
+  }
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1)) {
+    return { description: 'Mưa', icon: `10${dayNightSuffix}` };
+  }
+  if ([71, 73, 75, 77, 85, 86].includes(code ?? -1)) {
+    return { description: 'Tuyết', icon: `13${dayNightSuffix}` };
+  }
+  if ([95, 96, 99].includes(code ?? -1)) {
+    return { description: 'Mưa giông', icon: `11${dayNightSuffix}` };
+  }
+
+  return { description: 'Thời tiết biến đổi', icon: `03${dayNightSuffix}` };
+};
+
+const mapOpenMeteoCurrent = (data: OpenMeteoCurrentApiResponse): WeatherData => {
+  const code = data.current?.weather_code;
+  const isDay = data.current?.is_day !== 0;
+  const mapped = mapOpenMeteoCode(code, isDay);
+
+  return {
+    temp: data.current?.temperature_2m ?? 0,
+    humidity: data.current?.relative_humidity_2m ?? 0,
+    windSpeed: data.current?.wind_speed_10m ?? 0,
+    rain1h: data.current?.rain ?? 0,
+    rain24h: 0,
+    description: mapped.description,
+    icon: mapped.icon,
+  };
+};
+
+const resolveProvinceCoords = (province?: string) => {
+  if (!province) {
+    return WEATHER_API.DEFAULT_COORDS;
+  }
+
+  return PROVINCE_COORDS[province] || WEATHER_API.DEFAULT_COORDS;
+};
+
 export class WeatherService {
+  private static async fetchWeatherByCoordsFromOpenMeteo(
+    lat: number,
+    lng: number
+  ): Promise<WeatherData> {
+    const response = await axios.get<OpenMeteoCurrentApiResponse>(OPEN_METEO_BASE_URL, {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        current: 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,rain,is_day',
+        timezone: 'auto',
+      },
+      timeout: WEATHER_API.TIMEOUT_MS,
+    });
+
+    return mapOpenMeteoCurrent(response.data);
+  }
+
+  private static async fetchForecastByCoordsFromOpenMeteo(
+    lat: number,
+    lng: number
+  ): Promise<ForecastSummary[]> {
+    const response = await axios.get<OpenMeteoForecastApiResponse>(OPEN_METEO_BASE_URL, {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        daily:
+          'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum',
+        timezone: 'auto',
+        forecast_days: 5,
+      },
+      timeout: WEATHER_API.TIMEOUT_MS,
+    });
+
+    const days = response.data.daily?.time || [];
+    const weatherCodes = response.data.daily?.weather_code || [];
+    const tempMax = response.data.daily?.temperature_2m_max || [];
+    const tempMin = response.data.daily?.temperature_2m_min || [];
+    const rain = response.data.daily?.precipitation_sum || [];
+
+    return days.slice(0, 5).map((date, index) => {
+      const mapped = mapOpenMeteoCode(weatherCodes[index], true);
+      const minTemp = tempMin[index] ?? 0;
+      const maxTemp = tempMax[index] ?? minTemp;
+      return {
+        date,
+        temp: (minTemp + maxTemp) / 2,
+        tempMin: minTemp,
+        tempMax: maxTemp,
+        humidity: 0,
+        description: mapped.description,
+        icon: mapped.icon,
+        windSpeed: 0,
+        rain: rain[index] ?? 0,
+      };
+    });
+  }
+
   /**
    * Fetch current weather from OpenWeatherMap by coordinates
    */
   static async fetchWeatherByCoords(lat: number, lng: number): Promise<WeatherData> {
+    const weatherApiKey = getWeatherApiKey();
+
+    if (!weatherApiKey) {
+      try {
+        return await this.fetchWeatherByCoordsFromOpenMeteo(lat, lng);
+      } catch (fallbackError) {
+        console.error('Open-Meteo API error:', getErrorMessage(fallbackError));
+        throw new AppError('Không thể kết nối dịch vụ thời tiết', 503);
+      }
+    }
+
     try {
-      const response = await axios.get(`${OWM_BASE_URL}/weather`, {
+      const response = await axios.get<CurrentWeatherApiResponse>(`${OWM_BASE_URL}/weather`, {
         params: {
           lat,
           lon: lng,
-          appid: OWM_API_KEY,
+          appid: weatherApiKey,
           units: 'metric',
           lang: 'vi',
         },
-        timeout: 10000,
+        timeout: WEATHER_API.TIMEOUT_MS,
       });
 
-      const data = response.data;
-      return {
-        temp: data.main?.temp ?? 0,
-        humidity: data.main?.humidity ?? 0,
-        windSpeed: (data.wind?.speed ?? 0) * 3.6, // m/s → km/h
-        rain1h: data.rain?.['1h'] ?? 0,
-        rain24h: data.rain?.['3h'] ? data.rain['3h'] * 8 : 0, // estimate from 3h to 24h
-        description: data.weather?.[0]?.description ?? '',
-        icon: data.weather?.[0]?.icon ?? '01d',
-      };
-    } catch (error: any) {
-      console.error('OpenWeatherMap API error:', error.message);
-      throw new AppError('Không thể kết nối dịch vụ thời tiết', 503);
+      return mapCurrentWeather(response.data);
+    } catch (error: unknown) {
+      console.error('OpenWeatherMap API error:', getErrorMessage(error));
+
+      try {
+        return await this.fetchWeatherByCoordsFromOpenMeteo(lat, lng);
+      } catch (fallbackError) {
+        console.error('Open-Meteo fallback error:', getErrorMessage(fallbackError));
+        throw new AppError('Không thể kết nối dịch vụ thời tiết', 503);
+      }
     }
   }
 
@@ -113,33 +333,9 @@ export class WeatherService {
    * Fetch weather by province name (fallback when no coordinates)
    */
   static async fetchWeatherByProvince(province: string): Promise<WeatherData | null> {
-    const coords = PROVINCE_COORDS[province];
-    if (coords) {
-      return this.fetchWeatherByCoords(coords.lat, coords.lng);
-    }
-
-    // Try direct city name query as fallback
     try {
-      const response = await axios.get(`${OWM_BASE_URL}/weather`, {
-        params: {
-          q: `${province},VN`,
-          appid: OWM_API_KEY,
-          units: 'metric',
-          lang: 'vi',
-        },
-        timeout: 10000,
-      });
-
-      const data = response.data;
-      return {
-        temp: data.main?.temp ?? 0,
-        humidity: data.main?.humidity ?? 0,
-        windSpeed: (data.wind?.speed ?? 0) * 3.6,
-        rain1h: data.rain?.['1h'] ?? 0,
-        rain24h: data.rain?.['3h'] ? data.rain['3h'] * 8 : 0,
-        description: data.weather?.[0]?.description ?? '',
-        icon: data.weather?.[0]?.icon ?? '01d',
-      };
+      const coords = resolveProvinceCoords(province);
+      return await this.fetchWeatherByCoords(coords.lat, coords.lng);
     } catch {
       return null;
     }
@@ -161,19 +357,39 @@ export class WeatherService {
       }
     }
 
-    return this.fetchWeatherByProvince(provinceOverride || 'Ha Noi');
+    return this.fetchWeatherByProvince(
+      provinceOverride || WEATHER_API.DEFAULT_PROVINCE
+    );
   }
 
   /**
    * Fetch 5-day forecast from OpenWeatherMap by coordinates
    */
-  static async fetchForecastByCoords(lat: number, lng: number): Promise<any[]> {
+  static async fetchForecastByCoords(lat: number, lng: number): Promise<ForecastSummary[]> {
+    const weatherApiKey = getWeatherApiKey();
+
+    if (!weatherApiKey) {
+      try {
+        return await this.fetchForecastByCoordsFromOpenMeteo(lat, lng);
+      } catch (fallbackError) {
+        console.error('Open-Meteo forecast error:', getErrorMessage(fallbackError));
+        return [];
+      }
+    }
+
     try {
-      const response = await axios.get(`${OWM_BASE_URL}/forecast`, {
-        params: { lat, lon: lng, appid: OWM_API_KEY, units: 'metric', lang: 'vi', cnt: 40 },
-        timeout: 10000,
+      const response = await axios.get<ForecastApiResponse>(`${OWM_BASE_URL}/forecast`, {
+        params: {
+          lat,
+          lon: lng,
+          appid: weatherApiKey,
+          units: 'metric',
+          lang: 'vi',
+          cnt: WEATHER_API.FORECAST_ITEM_COUNT,
+        },
+        timeout: WEATHER_API.TIMEOUT_MS,
       });
-      const byDay = new Map<string, any>();
+      const byDay = new Map<string, ForecastSummary>();
       for (const item of response.data.list) {
         const day = item.dt_txt.split(' ')[0];
         const hour = item.dt_txt.split(' ')[1];
@@ -192,16 +408,21 @@ export class WeatherService {
         }
       }
       return Array.from(byDay.values()).slice(0, 5);
-    } catch (error: any) {
-      console.error('OWM forecast error:', error.message);
-      return [];
+    } catch (error: unknown) {
+      console.error('OWM forecast error:', getErrorMessage(error));
+      try {
+        return await this.fetchForecastByCoordsFromOpenMeteo(lat, lng);
+      } catch (fallbackError) {
+        console.error('Open-Meteo fallback forecast error:', getErrorMessage(fallbackError));
+        return [];
+      }
     }
   }
 
   /**
    * Get 5-day forecast for a user (based on their location or province override)
    */
-  static async getForecastForUser(userId: string, provinceOverride?: string): Promise<any[]> {
+  static async getForecastForUser(userId: string, provinceOverride?: string): Promise<ForecastSummary[]> {
     const user = await User.findById(userId);
     if (!user) throw new AppError('Người dùng không tồn tại', 404);
 
@@ -215,45 +436,44 @@ export class WeatherService {
       }
     }
 
-    const province = provinceOverride || 'Ha Noi';
-    const coords = PROVINCE_COORDS[province];
-    if (coords) return this.fetchForecastByCoords(coords.lat, coords.lng);
-    return this.fetchForecastByCoords(21.0285, 105.8542); // Ha Noi fallback
+    const province = provinceOverride || WEATHER_API.DEFAULT_PROVINCE;
+    const coords = resolveProvinceCoords(province);
+    return this.fetchForecastByCoords(coords.lat, coords.lng);
   }
 
   /**
    * Check weather against thresholds and return detected alerts
    */
-  static checkThresholds(weather: WeatherData): Array<{ type: WeatherAlertType; severity: WeatherAlertSeverity; detail: string }> {
-    const alerts: Array<{ type: WeatherAlertType; severity: WeatherAlertSeverity; detail: string }> = [];
+  static checkThresholds(weather: WeatherData): DetectedWeatherAlert[] {
+    const alerts: DetectedWeatherAlert[] = [];
 
     // Extreme heat
     if (weather.temp > THRESHOLDS.extremeHeatTemp + 5) {
-      alerts.push({ type: 'extreme_heat', severity: 'critical', detail: `Nhiet do ${weather.temp}°C > nguong ${THRESHOLDS.extremeHeatTemp}°C` });
+      alerts.push({ type: 'extreme_heat', severity: 'critical', detail: `Nhiệt độ ${weather.temp}°C vượt ngưỡng ${THRESHOLDS.extremeHeatTemp}°C` });
     } else if (weather.temp > THRESHOLDS.extremeHeatTemp) {
-      alerts.push({ type: 'extreme_heat', severity: 'warning', detail: `Nhiet do ${weather.temp}°C > nguong ${THRESHOLDS.extremeHeatTemp}°C` });
+      alerts.push({ type: 'extreme_heat', severity: 'warning', detail: `Nhiệt độ ${weather.temp}°C vượt ngưỡng ${THRESHOLDS.extremeHeatTemp}°C` });
     }
 
     // Extreme cold
     if (weather.temp < THRESHOLDS.extremeColdTemp - 3) {
-      alerts.push({ type: 'extreme_cold', severity: 'critical', detail: `Nhiet do ${weather.temp}°C < nguong ${THRESHOLDS.extremeColdTemp}°C` });
+      alerts.push({ type: 'extreme_cold', severity: 'critical', detail: `Nhiệt độ ${weather.temp}°C thấp hơn ngưỡng ${THRESHOLDS.extremeColdTemp}°C` });
     } else if (weather.temp < THRESHOLDS.extremeColdTemp) {
-      alerts.push({ type: 'extreme_cold', severity: 'warning', detail: `Nhiet do ${weather.temp}°C < nguong ${THRESHOLDS.extremeColdTemp}°C` });
+      alerts.push({ type: 'extreme_cold', severity: 'warning', detail: `Nhiệt độ ${weather.temp}°C thấp hơn ngưỡng ${THRESHOLDS.extremeColdTemp}°C` });
     }
 
     // Heavy rain (estimate from rain1h * 24 or rain24h)
     const estimatedDailyRain = Math.max((weather.rain1h ?? 0) * 24, weather.rain24h ?? 0);
     if (estimatedDailyRain > THRESHOLDS.heavyRainMm * 1.5) {
-      alerts.push({ type: 'heavy_rain', severity: 'critical', detail: `Luong mua uoc tinh ${estimatedDailyRain.toFixed(0)}mm/ngay > nguong ${THRESHOLDS.heavyRainMm}mm` });
+      alerts.push({ type: 'heavy_rain', severity: 'critical', detail: `Lượng mưa ước tính ${estimatedDailyRain.toFixed(0)}mm/ngày vượt ngưỡng ${THRESHOLDS.heavyRainMm}mm` });
     } else if (estimatedDailyRain > THRESHOLDS.heavyRainMm) {
-      alerts.push({ type: 'heavy_rain', severity: 'warning', detail: `Luong mua uoc tinh ${estimatedDailyRain.toFixed(0)}mm/ngay > nguong ${THRESHOLDS.heavyRainMm}mm` });
+      alerts.push({ type: 'heavy_rain', severity: 'warning', detail: `Lượng mưa ước tính ${estimatedDailyRain.toFixed(0)}mm/ngày vượt ngưỡng ${THRESHOLDS.heavyRainMm}mm` });
     }
 
     // Strong wind
     if (weather.windSpeed > THRESHOLDS.strongWindKmh * 1.5) {
-      alerts.push({ type: 'strong_wind', severity: 'critical', detail: `Toc do gio ${weather.windSpeed.toFixed(0)}km/h > nguong ${THRESHOLDS.strongWindKmh}km/h` });
+      alerts.push({ type: 'strong_wind', severity: 'critical', detail: `Tốc độ gió ${weather.windSpeed.toFixed(0)}km/h vượt ngưỡng ${THRESHOLDS.strongWindKmh}km/h` });
     } else if (weather.windSpeed > THRESHOLDS.strongWindKmh) {
-      alerts.push({ type: 'strong_wind', severity: 'warning', detail: `Toc do gio ${weather.windSpeed.toFixed(0)}km/h > nguong ${THRESHOLDS.strongWindKmh}km/h` });
+      alerts.push({ type: 'strong_wind', severity: 'warning', detail: `Tốc độ gió ${weather.windSpeed.toFixed(0)}km/h vượt ngưỡng ${THRESHOLDS.strongWindKmh}km/h` });
     }
 
     return alerts;
@@ -306,7 +526,7 @@ export class WeatherService {
       }
 
       // Rate limiting: 60 calls/min on free tier
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await sleep(WEATHER_API.RATE_LIMIT_DELAY_MS);
     }
 
     // Check weather for users with exact coordinates
@@ -322,7 +542,7 @@ export class WeatherService {
         console.error(`Weather check failed for user ${user._id}:`, error);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await sleep(WEATHER_API.RATE_LIMIT_DELAY_MS);
     }
 
     return alertCount;
@@ -335,10 +555,12 @@ export class WeatherService {
     user: IUser,
     province: string,
     weather: WeatherData,
-    alert: { type: WeatherAlertType; severity: WeatherAlertSeverity; detail: string }
+    alert: DetectedWeatherAlert
   ): Promise<void> {
     // Check for duplicate: don't create same alert type for same user within last 6 hours
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const sixHoursAgo = new Date(
+      Date.now() - WEATHER_API.DUPLICATE_ALERT_WINDOW_MS
+    );
     const existingAlert = await WeatherAlert.findOne({
       userId: user._id,
       alertType: alert.type,

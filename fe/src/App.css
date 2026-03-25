@@ -1,38 +1,80 @@
-.App {
-  text-align: center;
+.home-showcase {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -28px;
+  padding-top: 28px;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
-.App-logo {
-  height: 40vmin;
+.home-showcase::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
   pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(4, 11, 7, 0.86) 0%, rgba(4, 11, 7, 0.42) 56%, transparent 100%);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+.home-showcase::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 96px;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 0%, rgba(4, 11, 7, 0.48) 100%);
+}
+
+.home-showcase-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(76, 255, 137, 0.14), transparent 42%),
+    radial-gradient(circle at 86% 84%, rgba(63, 221, 255, 0.08), transparent 38%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-showcase-pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.2;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.08) 1px,
+    transparent 1px
+  );
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+}
+
+.home-showcase-content {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 991px) {
+  .home-showcase {
+    margin-top: -18px;
+    padding-top: 18px;
+    background-attachment: scroll;
   }
-}
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+  .home-showcase::before {
+    height: 88px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .home-showcase::after {
+    height: 72px;
   }
 }

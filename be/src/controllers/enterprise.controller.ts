@@ -304,9 +304,29 @@ export const getOrders = asyncHandler(
         const currentMilestone = escrow?.milestones.find(
           m => m.status === 'in_progress'
         );
+        const pendingMilestone = escrow?.milestones.find(
+          m => m.status === 'pending'
+        );
         const completedSteps = escrow?.milestones.filter(
           m => m.status === 'completed'
         ).length || 0;
+
+        const activeMilestone = currentMilestone || pendingMilestone || null;
+        const enterpriseCanConfirm =
+          !!activeMilestone &&
+          activeMilestone.requiredBy === 'enterprise' &&
+          activeMilestone.status !== 'completed' &&
+          escrow?.status !== 'disputed';
+
+        const waitingFor = activeMilestone
+          ? activeMilestone.requiredBy === 'enterprise'
+            ? 'enterprise'
+            : activeMilestone.requiredBy === 'farmer'
+              ? 'farmer'
+              : 'system'
+          : null;
+
+        const disputeStep = activeMilestone?.step || 4;
 
         let orderStatus = 'confirmed';
         if (completedSteps >= 4) orderStatus = 'delivered';
@@ -326,8 +346,14 @@ export const getOrders = asyncHandler(
           createdAt: c.createdAt,
           escrowStatus: escrow?.status || 'none',
           currentMilestone: currentMilestone?.name || null,
+          currentMilestoneStep: activeMilestone?.step || null,
+          currentMilestoneRequiredBy: activeMilestone?.requiredBy || null,
           completedSteps,
           totalSteps: 5,
+          enterpriseCanConfirm,
+          enterpriseConfirmStep: enterpriseCanConfirm ? activeMilestone?.step || null : null,
+          disputeStep,
+          waitingFor,
         };
       })
     );

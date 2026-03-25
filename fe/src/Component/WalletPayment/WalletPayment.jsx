@@ -2,9 +2,48 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import paymentService from "../../services/payment.service";
+import { formatMoney } from "../../hooks/useApiData";
 import "./WalletPayment.css";
 
+const TRANSACTION_PAGE_SIZE = 20;
+const GATEWAY_MIN_TOPUP = 10000;
+const DEMO_MIN_TOPUP = 1000;
+
 const TOPUP_PRESETS = [100000000, 500000000, 1000000000, 5000000000, 10000000000, 100000000000];
+
+const WALLET_TABS = [
+  { key: "overview", label: "Tổng quan" },
+  { key: "topup", label: "Nạp tiền" },
+  { key: "history", label: "Lịch sử" },
+];
+
+const HISTORY_FILTERS = [
+  { key: "", label: "Tất cả" },
+  { key: "topup", label: "Nạp tiền" },
+  { key: "escrow_deposit", label: "Ký quỹ" },
+  { key: "escrow_release", label: "Giải ngân" },
+  { key: "refund", label: "Hoàn tiền" },
+];
+
+const GUIDE_STEPS = [
+  {
+    n: "1",
+    icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><rect x="3" y="2" width="14" height="16" rx="2" /><path d="M7 7h6M7 10h6M7 13h4" strokeLinecap="round" /></svg>,
+    title: "Nạp tiền vào ví",
+    desc: "Tạo lệnh SePay, chuyển khoản đúng nội dung và chờ hệ thống tự cộng ví qua webhook",
+  },
+  {
+    n: "2",
+    icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><rect x="3" y="9" width="14" height="8" rx="2" /><path d="M7 9V7a3 3 0 016 0v2" strokeLinecap="round" /></svg>,
+    title: "Ký quỹ hợp đồng",
+  },
+  {
+    n: "3",
+    icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><path d="M4 10h12M10 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+    title: "Giải ngân tự động",
+    desc: "Tiền giải ngân khi cả hai bên xác nhận mốc thanh toán theo tiến độ",
+  },
+];
 
 const TYPE_LABELS = {
   topup: "Nạp tiền",
@@ -14,14 +53,6 @@ const TYPE_LABELS = {
   commission: "Phí dịch vụ",
 };
 
-const TYPE_COLORS = {
-  topup: "type-topup",
-  escrow_deposit: "type-deposit",
-  escrow_release: "type-release",
-  refund: "type-refund",
-  commission: "type-commission",
-};
-
 const STATUS_LABELS = {
   pending: "Đang chờ",
   completed: "Thành công",
@@ -29,11 +60,37 @@ const STATUS_LABELS = {
   cancelled: "Đã hủy",
 };
 
+const formatDateTime = (value) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const isPositiveTransaction = (type) => ["topup", "escrow_release", "refund"].includes(type);
+
+const formatPresetLabel = (amount) => (
+  amount >= 1000000000
+    ? `${(amount / 1000000000).toFixed(amount % 1000000000 === 0 ? 0 : 1)} tỷ`
+    : `${(amount / 1000000).toFixed(0)} triệu`
+);
+
 export default function WalletPayment({ role }) {
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [createdTopup, setCreatedTopup] = useState(null);
   const [topupAmount, setTopupAmount] = useState("");
   const [loading, setLoading] = useState(true);
   const [topupLoading, setTopupLoading] = useState(false);
@@ -44,13 +101,6 @@ export default function WalletPayment({ role }) {
   const [cancellingCode, setCancellingCode] = useState(null);
   const { user } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
-
-  const fmtMoney = (v) => (v || 0).toLocaleString("vi-VN") + " VND";
-  const fmtDate = (d) => {
-    if (!d) return "";
-    const date = new Date(d);
-    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  };
 
   const loadWallet = useCallback(async () => {
     try {
@@ -63,13 +113,42 @@ export default function WalletPayment({ role }) {
 
   const loadTransactions = useCallback(async (page = 1, type = "") => {
     try {
-      const res = await paymentService.getTransactions(page, 20, type);
+      const res = await paymentService.getTransactions(page, TRANSACTION_PAGE_SIZE, type);
       if (res.data?.data) {
         setTransactions(res.data.data.transactions || []);
         setPagination(res.data.data.pagination || null);
       }
     } catch { /* silent */ }
   }, []);
+
+  // Khối helper này gom việc làm mới dữ liệu ví và xác minh giao dịch để không lặp lại ở nhiều handler.
+  const refreshWalletData = useCallback(async (page = 1, type = "") => {
+    await loadWallet();
+    await loadTransactions(page, type);
+  }, [loadTransactions, loadWallet]);
+
+  const verifyTopupOrder = useCallback(async (orderCode) => {
+    setReturnOrderCode(String(orderCode));
+    setVerifyState("loading");
+    setActiveTab("topup");
+
+    try {
+      const res = await paymentService.verifyTopup(String(orderCode));
+      if (res.data?.data?.success) {
+        setVerifyState("success");
+        setCreatedTopup(null);
+        await refreshWalletData(1, "");
+      } else if (res.data?.data?.status === "pending") {
+        setVerifyState("pending");
+      } else if (res.data?.data?.status === "cancelled") {
+        setVerifyState("cancelled");
+      } else {
+        setVerifyState("failed");
+      }
+    } catch {
+      setVerifyState("failed");
+    }
+  }, [refreshWalletData]);
 
   useEffect(() => {
     const init = async () => {
@@ -86,7 +165,7 @@ export default function WalletPayment({ role }) {
     }
   }, [activeTab, txPage, txFilter, loadTransactions]);
 
-  // Detect PayOS return URL params and auto-verify
+  // Giữ khả năng đọc tham số trả về từ gateway để không phải đổi luồng khi bật SePay sau này.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderCode = params.get("orderCode");
@@ -100,47 +179,43 @@ export default function WalletPayment({ role }) {
       setVerifyState("cancelled");
       paymentService.cancelTopup(orderCode).catch(() => {});
     } else {
-      setVerifyState("loading");
-      paymentService.verifyTopup(orderCode)
-        .then(async (res) => {
-          if (res.data?.data?.success !== false) {
-            setVerifyState("success");
-            await loadWallet();
-            await loadTransactions(1, "");
-          } else {
-            setVerifyState("failed");
-          }
-        })
-        .catch(() => setVerifyState("failed"));
+      verifyTopupOrder(orderCode);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Khối handler bên dưới chịu trách nhiệm nạp tiền, hủy giao dịch và cập nhật lại trạng thái ví theo từng thao tác.
   /* ====== TOP-UP HANDLERS ====== */
-  const handlePayOSTopup = async () => {
+  const handleGatewayTopup = async () => {
     const amount = Number(topupAmount);
-    if (!amount || amount < 10000) {
+    if (!amount || amount < GATEWAY_MIN_TOPUP) {
       toastError("Số tiền tối thiểu là 10.000 VND");
       return;
     }
+
     setTopupLoading(true);
     try {
       const res = await paymentService.createTopup(amount);
-      const url = res.data?.data?.checkoutUrl;
-      if (url) {
-        window.location.href = url;
-      } else {
-        toastError("Không thể tạo liên kết thanh toán");
+      const topupData = res.data?.data;
+      if (!topupData) {
+        toastError("Không thể tạo yêu cầu nạp tiền qua SePay");
+        return;
       }
+
+      setCreatedTopup(topupData);
+      setReturnOrderCode(String(topupData.orderCode));
+      setVerifyState("pending");
+      toastSuccess("Đã tạo yêu cầu nạp tiền qua SePay. Hãy chuyển khoản đúng nội dung để hệ thống tự cộng ví.");
     } catch (err) {
-      toastError(err.response?.data?.message || "Lỗi tạo thanh toán");
+      toastError(err.response?.data?.message || "Không thể tạo yêu cầu nạp tiền qua SePay");
+    } finally {
+      setTopupLoading(false);
     }
-    setTopupLoading(false);
   };
 
   const handleDemoTopup = async () => {
     const amount = Number(topupAmount);
-    if (!amount || amount < 1000) {
+    if (!amount || amount < DEMO_MIN_TOPUP) {
       toastError("Vui lòng nhập số tiền");
       return;
     }
@@ -148,13 +223,13 @@ export default function WalletPayment({ role }) {
     try {
       const res = await paymentService.demoTopup(amount);
       if (res.data?.data) {
-        toastSuccess(`Nạp demo thành công +${fmtMoney(amount)}!`);
+        setCreatedTopup(null);
+        toastSuccess(`Nạp demo thành công +${formatMoney(amount)}!`);
         setTopupAmount("");
         setTxFilter("topup");
         setTxPage(1);
         setActiveTab("history");
-        await loadWallet();
-        await loadTransactions(1, "topup");
+        await refreshWalletData(1, "topup");
       }
     } catch (err) {
       toastError(err.response?.data?.message || "Lỗi nạp demo");
@@ -167,8 +242,7 @@ export default function WalletPayment({ role }) {
     try {
       await paymentService.cancelTopup(orderCode);
       toastSuccess("Đã hủy giao dịch nạp tiền");
-      await loadWallet();
-      await loadTransactions(1, txFilter);
+      await refreshWalletData(1, txFilter);
     } catch (err) {
       toastError(err?.response?.data?.message || "Hủy thất bại");
     } finally {
@@ -177,20 +251,15 @@ export default function WalletPayment({ role }) {
   };
 
   const handleVerify = async (orderCode) => {
-    setReturnOrderCode(String(orderCode));
-    setVerifyState("loading");
-    setActiveTab("topup");
+    await verifyTopupOrder(orderCode);
+  };
+
+  const copyText = async (value, successMessage) => {
     try {
-      const res = await paymentService.verifyTopup(String(orderCode));
-      if (res.data?.data?.success !== false) {
-        setVerifyState("success");
-        await loadWallet();
-        await loadTransactions(1, "");
-      } else {
-        setVerifyState("failed");
-      }
+      await navigator.clipboard.writeText(String(value));
+      toastSuccess(successMessage);
     } catch {
-      setVerifyState("failed");
+      toastError("Không thể sao chép. Vui lòng thử lại.");
     }
   };
 
@@ -208,7 +277,6 @@ export default function WalletPayment({ role }) {
   const pendingTopups = (wallet?.recentTransactions || []).filter(
     (tx) => tx.type === "topup" && tx.status === "pending" && tx.orderCode
   );
-  const isPositive = (type) => ["topup", "escrow_release", "refund"].includes(type);
 
   const TxIcon = ({ type }) => {
     const s = { width: 18, height: 18 };
@@ -219,12 +287,6 @@ export default function WalletPayment({ role }) {
     if (type === "commission")     return <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={s}><path d="M4 4h12v12H4z"/><path d="M8 8h4M8 12h4" strokeLinecap="round"/></svg>;
     return <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={s}><path d="M10 2L3 14h14L10 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>;
   };
-
-  const tabs = [
-    { key: "overview", label: "Tổng quan" },
-    { key: "topup",    label: "Nạp tiền" },
-    { key: "history",  label: "Lịch sử" },
-  ];
 
   return (
     <div className="wlt-container">
@@ -237,7 +299,7 @@ export default function WalletPayment({ role }) {
             {role === "farmer" ? "Ví Nông dân • PreOnic" : "Ví Doanh nghiệp • PreOnic"}
           </div>
           <div className="wlt-hero-balance-label">Số dư khả dụng</div>
-          <div className="wlt-hero-balance">{fmtMoney(balance)}</div>
+          <div className="wlt-hero-balance">{formatMoney(balance)}</div>
           <div className="wlt-hero-note">
             {role === "farmer"
               ? "Nhận tự động khi doanh nghiệp xác nhận mốc giao hàng"
@@ -256,14 +318,14 @@ export default function WalletPayment({ role }) {
             <div className="wlt-hero-stat-icon wlt-hs-green">↑</div>
             <div>
               <div className="wlt-hero-stat-label">Tổng nạp</div>
-              <div className="wlt-hero-stat-val">{fmtMoney(stats.totalTopup)}</div>
+              <div className="wlt-hero-stat-val">{formatMoney(stats.totalTopup)}</div>
             </div>
           </div>
           <div className="wlt-hero-stat">
             <div className="wlt-hero-stat-icon wlt-hs-red">↓</div>
             <div>
               <div className="wlt-hero-stat-label">Tổng chi</div>
-              <div className="wlt-hero-stat-val">{fmtMoney(stats.totalSpent)}</div>
+              <div className="wlt-hero-stat-val">{formatMoney(stats.totalSpent)}</div>
             </div>
           </div>
           <div className="wlt-hero-stat">
@@ -278,7 +340,7 @@ export default function WalletPayment({ role }) {
 
       {/* ── TABS ── */}
       <div className="wlt-tab-bar">
-        {tabs.map((t) => (
+        {WALLET_TABS.map((t) => (
           <button
             key={t.key}
             className={`wlt-tab-btn ${activeTab === t.key ? "wlt-tab-active" : ""}`}
@@ -310,8 +372,8 @@ export default function WalletPayment({ role }) {
                   <div className="wlt-pending-row-left">
                     <div className="wlt-tx-icon-wrap wlt-tx-topup"><TxIcon type="topup" /></div>
                     <div>
-                      <div className="wlt-pending-amt">+{fmtMoney(tx.amount)}</div>
-                      <div className="wlt-pending-time">{fmtDate(tx.createdAt)}</div>
+                      <div className="wlt-pending-amt">+{formatMoney(tx.amount)}</div>
+                      <div className="wlt-pending-time">{formatDateTime(tx.createdAt)}</div>
                     </div>
                   </div>
                   <div className="wlt-pending-row-actions">
@@ -351,11 +413,11 @@ export default function WalletPayment({ role }) {
                       <div className="wlt-tx-feed-info">
                         <div className="wlt-tx-feed-type">{TYPE_LABELS[tx.type] || tx.type}</div>
                         <div className="wlt-tx-feed-desc">{tx.description}</div>
-                        <div className="wlt-tx-feed-time">{fmtDate(tx.createdAt)}</div>
+                        <div className="wlt-tx-feed-time">{formatDateTime(tx.createdAt)}</div>
                       </div>
                       <div className="wlt-tx-feed-right">
-                        <div className={`wlt-tx-feed-amt ${isPositive(tx.type) ? "wlt-amt-pos" : "wlt-amt-neg"}`}>
-                          {isPositive(tx.type) ? "+" : "−"}{tx.amount?.toLocaleString("vi-VN")}
+                        <div className={`wlt-tx-feed-amt ${isPositiveTransaction(tx.type) ? "wlt-amt-pos" : "wlt-amt-neg"}`}>
+                          {isPositiveTransaction(tx.type) ? "+" : "−"}{tx.amount?.toLocaleString("vi-VN")}
                         </div>
                         <span className={`wlt-status-pill wlt-status-${tx.status}`}>{STATUS_LABELS[tx.status]}</span>
                       </div>
@@ -372,20 +434,24 @@ export default function WalletPayment({ role }) {
                 <h3>Cách hoạt động</h3>
               </div>
               <div className="wlt-guide-steps">
-                {[
-                  { n: "1", icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><rect x="3" y="2" width="14" height="16" rx="2"/><path d="M7 7h6M7 10h6M7 13h4" strokeLinecap="round"/></svg>, title: "Nạp tiền vào ví", desc: "Chuyển khoản qua PayOS hoặc nạp demo để lấy tiền ảo ngay lập tức" },
-                  { n: "2", icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><rect x="3" y="9" width="14" height="8" rx="2"/><path d="M7 9V7a3 3 0 016 0v2" strokeLinecap="round"/></svg>, title: "Ký quỹ hợp đồng", desc: role === "farmer" ? "Doanh nghiệp ký quỹ — tiền được giữ an toàn trong hệ thống PreOnic" : "Dùng tiền ảo để ký quỹ đảm bảo thực hiện hợp đồng bao tiêu" },
-                  { n: "3", icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 20, height: 20 }}><path d="M4 10h12M10 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round"/></svg>, title: "Giải ngân tự động", desc: "Tiền giải ngân khi cả hai bên xác nhận mốc thanh toán theo tiến độ" },
-                ].map((s) => (
-                  <div className="wlt-guide-row" key={s.n}>
-                    <div className="wlt-guide-bubble">{s.n}</div>
-                    <div className="wlt-guide-icon-wrap">{s.icon}</div>
+                {GUIDE_STEPS.map((step) => {
+                  const description = step.title === "Ký quỹ hợp đồng"
+                    ? (role === "farmer"
+                      ? "Doanh nghiệp ký quỹ — tiền được giữ an toàn trong hệ thống PreOnic"
+                      : "Dùng tiền ảo để ký quỹ đảm bảo thực hiện hợp đồng bao tiêu")
+                    : step.desc;
+
+                  return (
+                  <div className="wlt-guide-row" key={step.n}>
+                    <div className="wlt-guide-bubble">{step.n}</div>
+                    <div className="wlt-guide-icon-wrap">{step.icon}</div>
                     <div className="wlt-guide-text">
-                      <strong>{s.title}</strong>
-                      <p>{s.desc}</p>
+                      <strong>{step.title}</strong>
+                      <p>{description}</p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="wlt-security-banner">
                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 16, height: 16, flexShrink: 0 }}><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5l7-3z" strokeLinejoin="round"/></svg>
@@ -406,7 +472,7 @@ export default function WalletPayment({ role }) {
               {verifyState === "loading" && <><span className="wlt-vspin" /><div><strong>Đang xác minh thanh toán…</strong><p>Vui lòng chờ trong giây lát</p></div></>}
               {verifyState === "success" && <><span className="wlt-vicon wlt-vi-ok">✓</span><div><strong>Nạp tiền thành công!</strong><p>Số dư ví đã được cộng{returnOrderCode ? ` — Mã GD: ${returnOrderCode}` : ""}.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
               {verifyState === "failed"  && <><span className="wlt-vicon wlt-vi-err">✗</span><div><strong>Xác minh thất bại</strong><p>Nếu tiền đã bị trừ, liên hệ hỗ trợ với mã: {returnOrderCode}</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
-              {verifyState === "cancelled" && <><span className="wlt-vicon wlt-vi-warn">!</span><div><strong>Giao dịch đã hủy</strong><p>Bạn đã hủy thanh toán tại cổng PayOS. Không có tiền nào bị trừ.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
+              {verifyState === "cancelled" && <><span className="wlt-vicon wlt-vi-warn">!</span><div><strong>Giao dịch đã hủy</strong><p>Bạn đã hủy phiên thanh toán. Không có tiền nào bị trừ.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
             </div>
           )}
 
@@ -432,15 +498,13 @@ export default function WalletPayment({ role }) {
               {/* Presets */}
               <div className="wlt-topup-label">Chọn nhanh</div>
               <div className="wlt-preset-grid">
-                {TOPUP_PRESETS.map((amt) => (
+                    {TOPUP_PRESETS.map((amt) => (
                   <button
                     key={amt}
                     className={`wlt-preset-chip ${Number(topupAmount) === amt ? "wlt-preset-active" : ""}`}
                     onClick={() => setTopupAmount(String(amt))}
                   >
-                    {amt >= 1000000000
-                      ? (amt / 1000000000).toFixed(amt % 1000000000 === 0 ? 0 : 1) + " tỷ"
-                      : (amt / 1000000).toFixed(0) + " triệu"}
+                    {formatPresetLabel(amt)}
                   </button>
                 ))}
               </div>
@@ -463,27 +527,95 @@ export default function WalletPayment({ role }) {
               {topupAmount && Number(topupAmount) > 0 && (
                 <div className="wlt-balance-preview">
                   <span>Số dư sau nạp</span>
-                  <strong>{fmtMoney(balance + Number(topupAmount))}</strong>
+                  <strong>{formatMoney(balance + Number(topupAmount))}</strong>
                 </div>
               )}
 
               {/* Buttons */}
               <div className="wlt-topup-btns">
                 <button
-                  className="wlt-btn-payos"
-                  onClick={handlePayOSTopup}
-                  disabled={topupLoading || !topupAmount || Number(topupAmount) < 10000}
+                  className="wlt-btn-gateway"
+                  onClick={handleGatewayTopup}
+                  disabled={topupLoading || !topupAmount || Number(topupAmount) < GATEWAY_MIN_TOPUP}
                 >
-                  {topupLoading ? <span className="wlt-bspin" /> : <><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 17, height: 17 }}><path d="M3 8l7-5 7 5H3z"/><path d="M5 8v7m4-7v7m4-7v7M3 15h14" strokeLinecap="round"/></svg> Thanh toán qua PayOS</>}
+                  {topupLoading ? <span className="wlt-bspin" /> : <><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 17, height: 17 }}><path d="M3 8l7-5 7 5H3z"/><path d="M5 8v7m4-7v7m4-7v7M3 15h14" strokeLinecap="round"/></svg> Tạo lệnh SePay</>}
                 </button>
                 <button
                   className="wlt-btn-demo"
                   onClick={handleDemoTopup}
-                  disabled={topupLoading || !topupAmount || Number(topupAmount) < 1000}
+                  disabled={topupLoading || !topupAmount || Number(topupAmount) < DEMO_MIN_TOPUP}
                 >
                   {topupLoading ? <span className="wlt-bspin" /> : <><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 17, height: 17 }}><path d="M11 2L4 12h7l-2 6 9-10h-7L11 2z" strokeLinejoin="round"/></svg> Nạp demo (tức thì)</>}
                 </button>
               </div>
+
+              {createdTopup && (
+                <div className="wlt-sepay-card">
+                  <div className="wlt-sepay-head">
+                    <div>
+                      <strong>Thông tin chuyển khoản SePay</strong>
+                      <p>Quét mã QR hoặc chuyển khoản thủ công đúng nội dung bên dưới.</p>
+                    </div>
+                    <span className="wlt-sepay-pill">Đang chờ</span>
+                  </div>
+
+                  <div className="wlt-sepay-grid">
+                    <div className="wlt-sepay-qr-wrap">
+                      <img
+                        className="wlt-sepay-qr"
+                        src={createdTopup.qrCodeUrl}
+                        alt={`QR SePay ${createdTopup.orderCode}`}
+                      />
+                    </div>
+
+                    <div className="wlt-sepay-details">
+                      <div className="wlt-sepay-row">
+                        <span>Ngân hàng</span>
+                        <strong>{createdTopup.bankInfo?.bankCode}</strong>
+                      </div>
+                      <div className="wlt-sepay-row">
+                        <span>Số tài khoản</span>
+                        <strong>{createdTopup.bankInfo?.accountNumber}</strong>
+                      </div>
+                      <div className="wlt-sepay-row">
+                        <span>Chủ tài khoản</span>
+                        <strong>{createdTopup.bankInfo?.accountName}</strong>
+                      </div>
+                      <div className="wlt-sepay-row">
+                        <span>Số tiền</span>
+                        <strong>{formatMoney(createdTopup.amount)}</strong>
+                      </div>
+                      <div className="wlt-sepay-row wlt-sepay-row-code">
+                        <span>Nội dung CK</span>
+                        <strong>{createdTopup.transferCode}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="wlt-sepay-actions">
+                    <button
+                      className="wlt-sepay-btn"
+                      onClick={() => copyText(createdTopup.bankInfo?.accountNumber, "Đã sao chép số tài khoản")}
+                    >
+                      Sao chép STK
+                    </button>
+                    <button
+                      className="wlt-sepay-btn"
+                      onClick={() => copyText(createdTopup.transferCode, "Đã sao chép nội dung chuyển khoản")}
+                    >
+                      Sao chép nội dung
+                    </button>
+                    <button
+                      className="wlt-sepay-btn wlt-sepay-btn-primary"
+                      onClick={() => handleVerify(createdTopup.orderCode)}
+                    >
+                      Kiểm tra trạng thái
+                    </button>
+                  </div>
+
+                  <p className="wlt-sepay-note">{createdTopup.note}</p>
+                </div>
+              )}
             </div>
 
             {/* Right: info */}
@@ -494,11 +626,11 @@ export default function WalletPayment({ role }) {
                   <h3>Thông tin nạp tiền</h3>
                 </div>
                 <div className="wlt-info-rows">
-                  <div className="wlt-info-row wlt-info-payos">
+                  <div className="wlt-info-row wlt-info-gateway">
                     <div className="wlt-info-row-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 22, height: 22 }}><path d="M3 8l7-5 7 5H3z"/><path d="M5 8v7m4-7v7m4-7v7M3 15h14" strokeLinecap="round"/></svg></div>
                     <div>
-                      <strong>PayOS — Chuyển khoản thực</strong>
-                      <p>Chuyển khoản ngân hàng — tiền ảo được cộng tự động sau khi xác nhận. Tối thiểu 10.000 VND.</p>
+                      <strong>SePay — Chuyển khoản tự động</strong>
+                      <p>Tạo lệnh nạp tiền, chuyển khoản đúng nội dung, SePay sẽ gửi webhook để hệ thống cộng ví tự động.</p>
                     </div>
                   </div>
                   <div className="wlt-info-divider" />
@@ -518,7 +650,7 @@ export default function WalletPayment({ role }) {
                   <h3>Bảo mật & An toàn</h3>
                 </div>
                 <div className="wlt-security-list">
-                  {["Giao dịch được mã hóa SSL 256-bit", "Tiền ký quỹ không thể rút đơn phương", "Xác minh tự động — không cần thao tác thêm", "Hoàn tiền đầy đủ nếu tranh chấp"].map((s) => (
+                  {["Giao dịch được mã hóa SSL 256-bit", "Tiền ký quỹ không thể rút đơn phương", "SePay xác minh tự động qua webhook khi chuyển khoản thành công", "Hoàn tiền đầy đủ nếu tranh chấp"].map((s) => (
                     <div className="wlt-security-item" key={s}>
                       <span className="wlt-security-check">✓</span>
                       <span>{s}</span>
@@ -542,13 +674,7 @@ export default function WalletPayment({ role }) {
 
             {/* Filter pills */}
             <div className="wlt-filter-row">
-              {[
-                { key: "",                 label: "Tất cả" },
-                { key: "topup",            label: "Nạp tiền" },
-                { key: "escrow_deposit",   label: "Ký quỹ" },
-                { key: "escrow_release",   label: "Giải ngân" },
-                { key: "refund",           label: "Hoàn tiền" },
-              ].map((f) => (
+              {HISTORY_FILTERS.map((f) => (
                 <button
                   key={f.key}
                   className={`wlt-filter-pill ${txFilter === f.key ? "wlt-filter-active" : ""}`}
@@ -581,14 +707,14 @@ export default function WalletPayment({ role }) {
                       <span>{TYPE_LABELS[tx.type] || tx.type}</span>
                     </div>
                     <span className="wlt-hist-desc" title={tx.description}>{tx.description}</span>
-                    <span className={`wlt-hist-amt ${isPositive(tx.type) ? "wlt-amt-pos" : "wlt-amt-neg"}`}>
-                      {isPositive(tx.type) ? "+" : "−"}{tx.amount?.toLocaleString("vi-VN")}
+                    <span className={`wlt-hist-amt ${isPositiveTransaction(tx.type) ? "wlt-amt-pos" : "wlt-amt-neg"}`}>
+                      {isPositiveTransaction(tx.type) ? "+" : "−"}{tx.amount?.toLocaleString("vi-VN")}
                     </span>
                     <span className="wlt-hist-balance">{tx.balanceAfter?.toLocaleString("vi-VN") ?? "—"}</span>
                     <span style={{ textAlign: "center" }}>
                       <span className={`wlt-status-pill wlt-status-${tx.status}`}>{STATUS_LABELS[tx.status]}</span>
                     </span>
-                    <span className="wlt-hist-date">{fmtDate(tx.createdAt)}</span>
+                    <span className="wlt-hist-date">{formatDateTime(tx.createdAt)}</span>
                   </div>
                 ))}
 

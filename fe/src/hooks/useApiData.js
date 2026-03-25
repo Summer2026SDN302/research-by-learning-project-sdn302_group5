@@ -1,4 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { DATE_FORMATS } from "../constants";
+
+const currencyFormatter = new Intl.NumberFormat("vi-VN");
+
+// Chuẩn hóa dữ liệu API để component không phải tự đoán response nằm ở đâu.
+const normalizeApiData = (result) => result?.data ?? result;
+
+// Gom logic lấy message lỗi về một chỗ để tránh lặp ở nhiều component.
+const normalizeErrorMessage = (error) =>
+  error?.message || error?.response?.data?.message || "Có lỗi xảy ra";
+
+const toValidDate = (value) => {
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
 
 /**
  * Custom hook for fetching API data with loading/error states.
@@ -19,10 +34,10 @@ export function useApiData(fetchFn, options = {}) {
     setError(null);
     try {
       const result = await fetchFn(...args);
-      setData(result?.data ?? result);
+      setData(normalizeApiData(result));
       return result;
     } catch (err) {
-      setError(err?.message || "Có lỗi xảy ra");
+      setError(normalizeErrorMessage(err));
       return null;
     } finally {
       setLoading(false);
@@ -40,8 +55,8 @@ export function useApiData(fetchFn, options = {}) {
  * Format number as Vietnamese currency string
  */
 export function formatMoney(value) {
-  if (value == null) return "0 VND";
-  return value.toLocaleString("vi-VN") + " VND";
+  if (value == null || Number.isNaN(Number(value))) return "0 VNĐ";
+  return `${currencyFormatter.format(Number(value))} VNĐ`;
 }
 
 /**
@@ -49,9 +64,8 @@ export function formatMoney(value) {
  */
 export function formatDate(dateStr) {
   if (!dateStr) return "";
-  return new Date(dateStr).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const parsedDate = toValidDate(dateStr);
+  if (!parsedDate) return "";
+
+  return parsedDate.toLocaleDateString("vi-VN", DATE_FORMATS.SHORT_DATE);
 }

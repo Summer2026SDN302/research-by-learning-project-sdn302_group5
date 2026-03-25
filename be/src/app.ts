@@ -19,6 +19,8 @@ import notificationRoutes from './routes/notification.routes';
 import messagingRoutes from './routes/messaging.routes';
 import uploadRoutes from './routes/upload.routes';
 import paymentRoutes from './routes/payment.routes';
+import partnerRatingRoutes from './routes/partner-rating.routes';
+import { REQUEST_LIMITS } from './constants';
 
 // Import middlewares
 import { errorHandler } from './middlewares/error.middleware';
@@ -40,8 +42,8 @@ app.use(
 app.use(cookieParser());
 
 // Body parser
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: REQUEST_LIMITS.JSON_BODY }));
+app.use(express.urlencoded({ extended: true, limit: REQUEST_LIMITS.URL_ENCODED_BODY }));
 
 // Compression
 app.use(compression());
@@ -94,6 +96,7 @@ app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/messaging`, messagingRoutes);
 app.use(`${API_PREFIX}/upload`, uploadRoutes);
 app.use(`${API_PREFIX}/payment`, paymentRoutes);
+app.use(`${API_PREFIX}/partner-ratings`, partnerRatingRoutes);
 
 // Serve uploaded files — use absolute path so it works regardless of CWD
 // Allow cross-origin image requests from the FE dev server

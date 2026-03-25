@@ -243,11 +243,14 @@ export class EscrowService {
     const prevMilestones = escrow.milestones.filter(
       (m) => m.step < milestoneStep
     );
-    const allPrevCompleted = prevMilestones.every(
-      (m) => m.status === 'completed'
+    const firstIncompleteMilestone = prevMilestones.find(
+      (m) => m.status !== 'completed'
     );
-    if (!allPrevCompleted) {
-      throw new AppError('Các mốc trước chưa hoàn thành', 400);
+    if (firstIncompleteMilestone) {
+      throw new AppError(
+        `Các mốc trước chưa hoàn thành: mốc ${firstIncompleteMilestone.step} (${firstIncompleteMilestone.name})`,
+        400
+      );
     }
 
     if (milestoneStep === 3) {
@@ -332,11 +335,14 @@ export class EscrowService {
     const prevMilestones = escrow.milestones.filter(
       (m) => m.step < milestoneStep
     );
-    const allPrevCompleted = prevMilestones.every(
-      (m) => m.status === 'completed'
+    const firstIncompleteMilestone = prevMilestones.find(
+      (m) => m.status !== 'completed'
     );
-    if (!allPrevCompleted) {
-      throw new AppError('Các mốc trước chưa hoàn thành', 400);
+    if (firstIncompleteMilestone) {
+      throw new AppError(
+        `Các mốc trước chưa hoàn thành: mốc ${firstIncompleteMilestone.step} (${firstIncompleteMilestone.name})`,
+        400
+      );
     }
 
     milestone.enterpriseConfirmed = true;

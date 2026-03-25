@@ -132,6 +132,13 @@ const productService = {
 
 export default productService;
 
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
+
+function hasImageExtension(value) {
+  const normalized = value.split('?')[0].toLowerCase();
+  return IMAGE_EXTENSIONS.some(ext => normalized.endsWith(ext));
+}
+
 /**
  * Resolve a product image path to a fully qualified URL.
  * - Absolute URLs (http/https) are returned unchanged.
@@ -141,9 +148,12 @@ export default productService;
  */
 export function resolveImageUrl(image) {
   if (!image) return '/images/products/default.jpg';
+  if (image.startsWith('data:')) {
+    return image.startsWith('data:image/') ? image : '/images/products/default.jpg';
+  }
   // Already a full URL (old DB records or external images) — use as-is
-  if (image.startsWith('http') || image.startsWith('data:')) return image;
+  if (image.startsWith('http')) return hasImageExtension(image) ? image : '/images/products/default.jpg';
   // Server-relative upload path — return as-is; React proxy forwards /uploads/* to BE
-  if (image.startsWith('/uploads/')) return image;
-  return image;
+  if (image.startsWith('/uploads/')) return hasImageExtension(image) ? image : '/images/products/default.jpg';
+  return hasImageExtension(image) ? image : '/images/products/default.jpg';
 }

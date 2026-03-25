@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiFeather, FiCalendar, FiDollarSign, FiCamera, FiCheck, FiCheckCircle,
@@ -8,7 +8,14 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
-import { ROUTES, COMPANY, CONTRACT_STATUS, FILE_SIZE_LIMIT } from "../../constants";
+import {
+  ROUTES,
+  COMPANY,
+  CONTRACT_STATUS,
+  FILE_SIZE_LIMIT,
+  FARMER_DASHBOARD_NAV_ITEMS,
+  SEARCH_PLACEHOLDERS,
+} from "../../constants";
 import farmerService from "../../services/farmer.service";
 import contractService from "../../services/contract.service";
 import escrowService from "../../services/escrow.service";
@@ -17,23 +24,16 @@ import weatherService from "../../services/weather.service";
 import { formatMoney, formatDate } from "../../hooks/useApiData";
 import NotificationBell from "../NotificationBell/NotificationBell";
 import WalletPayment from "../WalletPayment/WalletPayment";
+import BilateralRating from "../BilateralRating/BilateralRating";
 import { matchProvince, getDistricts } from "../../data/vn-locations";
 import "./FarmerDashboard.css";
 
+// Tệp này điều phối toàn bộ dashboard nông dân: điều hướng tab, dữ liệu tổng quan và các thao tác nghiệp vụ chính.
 export default function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState("muavu");
   const [headerSearch, setHeaderSearch] = useState("");
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
-  const navItems = [
-    { key: "muavu", label: "Mùa vụ của tôi", cls: "nav-season" },
-    { key: "hopdong", label: "Hợp đồng", cls: "nav-contract" },
-    { key: "donhang", label: "Đơn hàng", cls: "nav-order" },
-    { key: "escrow", label: "Thanh toán trung gian", cls: "nav-escrow" },
-    { key: "vi", label: "Ví & Thanh toán", cls: "nav-wallet" },
-    { key: "thoitiet", label: "Thời tiết & Bảo hiểm", cls: "nav-weather" },
-  ];
 
   const handleLogout = async () => {
     await logout();
@@ -50,7 +50,7 @@ export default function FarmerDashboard() {
         </div>
 
         <nav className="fd-nav">
-          {navItems.map(item => (
+          {FARMER_DASHBOARD_NAV_ITEMS.map(item => (
             <button key={item.key} className={`${item.cls} ${activeTab === item.key ? "active" : ""}`} onClick={() => setActiveTab(item.key)}>
               <span className={`nav-icon ${item.cls}-icon`} />
               <span>{item.label}</span>
@@ -77,6 +77,7 @@ export default function FarmerDashboard() {
         {activeTab === "donhang" && <DonHangContent searchQuery={headerSearch} />}
         {activeTab === "escrow" && <FarmerEscrowContent />}
         {activeTab === "vi" && <WalletPayment role="farmer" />}
+        {activeTab === "danhgia" && <BilateralRating currentRole="farmer" />}
         {activeTab === "thoitiet" && <FarmerWeatherContent />}
         {activeTab === "dangban" && <DangBanContent />}
       </main>
@@ -85,8 +86,9 @@ export default function FarmerDashboard() {
 }
 
 /* =========================================
-   MÙA VỤ — Season overview
-   ========================================= */
+  KHỐI MÙA VỤ
+  Dùng để hiển thị số liệu tổng quan, sản phẩm đang bán và các hợp đồng gần nhất.
+  ========================================= */
 function MuaVuContent({ user, headerSearch = "", setHeaderSearch }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -154,7 +156,7 @@ function MuaVuContent({ user, headerSearch = "", setHeaderSearch }) {
           <p>Dưới đây là tổng kết các cánh đồng và cam kết hôm nay.</p>
         </div>
         <div className="header-actions">
-          <div className="fd-search"><span className="search-input-icon" /><input placeholder="Tìm kiếm mùa vụ, hợp đồng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} /></div>
+          <div className="fd-search"><span className="search-input-icon" /><input placeholder={SEARCH_PLACEHOLDERS.FARMER_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} /></div>
           <NotificationBell />
           <div className="user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
             <div className="user-avatar">{(user?.fullName || "ND").slice(0, 2).toUpperCase()}</div>
@@ -453,6 +455,38 @@ const CONTRACT_STATUS_VI = {
   disputed:  'Đang tranh chấp',
 };
 
+const PENDING_CONTRACT_STATUSES = new Set(["pending", "approved"]);
+
+const CONTRACT_LIST_CLASS_BY_STATUS = {
+  pending: "lc-pending",
+  approved: "lc-active",
+  active: "lc-active",
+  completed: "lc-completed",
+  cancelled: "lc-cancelled",
+};
+
+const CONTRACT_BADGE_CLASS_BY_STATUS = {
+  pending: "fds-amber",
+  approved: "fds-blue",
+  active: "fds-green",
+  completed: "fds-gray",
+  cancelled: "fds-red",
+};
+
+const isPendingContractStatus = (status) => PENDING_CONTRACT_STATUSES.has(status);
+const isActiveContractStatus = (status) => status === CONTRACT_STATUS.ACTIVE;
+const isCompletedContractStatus = (status) => status === CONTRACT_STATUS.COMPLETED;
+const isContractSignable = (contract) => isPendingContractStatus(contract.status) && !contract.signedByFarmer;
+const getContractListClass = (status) => CONTRACT_LIST_CLASS_BY_STATUS[status] || "lc-disputed";
+const getContractBadgeClass = (status) => CONTRACT_BADGE_CLASS_BY_STATUS[status] || "fds-purple";
+
+const matchesContractTab = (status, tab) => {
+  if (tab === "pending") return isPendingContractStatus(status);
+  if (tab === "active") return isActiveContractStatus(status);
+  if (tab === "completed") return isCompletedContractStatus(status);
+  return false;
+};
+
 function HopDongContent({ searchQuery = "" }) {
   const toast = useToast();
   const [signatureMode, setSignatureMode] = useState("draw");
@@ -492,19 +526,16 @@ function HopDongContent({ searchQuery = "" }) {
   const contracts = apiContracts !== null ? apiContracts.map(mapContract) : [];
 
   const tabs = [
-    { key: "pending",   label: "Chờ ký",             count: contracts.filter(c => c.status === 'pending' || c.status === 'approved').length },
-    { key: "active",    label: "Đang hoạt động",      count: contracts.filter(c => c.status === CONTRACT_STATUS.ACTIVE).length },
-    { key: "completed", label: "Hoàn thành",           count: contracts.filter(c => c.status === CONTRACT_STATUS.COMPLETED).length },
+    { key: "pending", label: "Chờ ký", count: contracts.filter(c => matchesContractTab(c.status, "pending")).length },
+    { key: "active", label: "Đang hoạt động", count: contracts.filter(c => matchesContractTab(c.status, "active")).length },
+    { key: "completed", label: "Hoàn thành", count: contracts.filter(c => matchesContractTab(c.status, "completed")).length },
   ];
 
   const filteredContracts = contracts.filter(c => {
     const q = searchQuery?.toLowerCase() || "";
     const matchSearch = !q || c.product?.toLowerCase().includes(q) || c.id?.toLowerCase().includes(q) || c.buyer?.toLowerCase().includes(q);
     if (!matchSearch) return false;
-    if (activeContractTab === "pending")   return c.status === 'pending' || c.status === 'approved';
-    if (activeContractTab === "active")    return c.status === CONTRACT_STATUS.ACTIVE;
-    if (activeContractTab === "completed") return c.status === CONTRACT_STATUS.COMPLETED;
-    return false;
+    return matchesContractTab(c.status, activeContractTab);
   });
 
   // Open contract detail + fetch full data from API
@@ -540,7 +571,7 @@ function HopDongContent({ searchQuery = "" }) {
     setCancelLoading(true);
     try {
       // If farmer hasn't signed yet → reject (distinct from cancel after signing)
-      if (!selectedContract.signedByFarmer && selectedContract.status === 'pending') {
+      if (!selectedContract.signedByFarmer && isPendingContractStatus(selectedContract.status)) {
         await contractService.reject(selectedContract._id, cancelReason);
         toast.success("Đã từ chối hợp đồng. Doanh nghiệp sẽ được thông báo.");
       } else {
@@ -756,7 +787,7 @@ function HopDongContent({ searchQuery = "" }) {
                 </div>
 
                 {/* Sign panel — only for unsigned pending contracts */}
-                {(sc.status === 'pending' || sc.status === 'approved') && !sc.signedByFarmer && (
+                {isContractSignable(sc) && (
                   <div className="signature-panel">
                     <div className="panel-header">
                       <h4>Ký điện tử bảo mật</h4>
@@ -833,7 +864,7 @@ function HopDongContent({ searchQuery = "" }) {
                 )}
 
                 {/* Cancel button */}
-                {(sc.status === 'pending' || sc.status === 'approved') && !sc.signedByFarmer && (
+                {isContractSignable(sc) && (
                   <button className="cd-cancel-btn" onClick={() => setShowCancelModal(true)}>
                     Từ chối / Hủy hợp đồng này
                   </button>
@@ -941,8 +972,8 @@ function HopDongContent({ searchQuery = "" }) {
               </div>
             )}
             {filteredContracts.map(contract => {
-              const lcCls = contract.status === 'pending' ? 'lc-pending' : contract.status === 'approved' ? 'lc-active' : contract.status === 'active' ? 'lc-active' : contract.status === 'completed' ? 'lc-completed' : contract.status === 'cancelled' ? 'lc-cancelled' : 'lc-disputed';
-              const bdgCls = contract.status === 'pending' ? 'fds-amber' : contract.status === 'approved' ? 'fds-blue' : contract.status === 'active' ? 'fds-green' : contract.status === 'completed' ? 'fds-gray' : contract.status === 'cancelled' ? 'fds-red' : 'fds-purple';
+              const lcCls = getContractListClass(contract.status);
+              const bdgCls = getContractBadgeClass(contract.status);
               return (
                 <div key={contract.id} className={`fd-list-card ${lcCls}`}>
                   <div className="fd-list-card-top">
@@ -960,7 +991,7 @@ function HopDongContent({ searchQuery = "" }) {
                   </div>
                   <div className="fd-list-card-footer">
                     <span className="fd-list-date">{contract.dateLabel && `Tạo: ${contract.dateLabel}`}</span>
-                    {(contract.status === 'pending' || contract.status === 'approved') && !contract.signedByFarmer && (
+                    {isContractSignable(contract) && (
                       <>
                         <button className="fd-btn fd-btn-green fd-btn-sm" onClick={() => openContract(contract)}>
                           <FiCheck size={12} />Ký hợp đồng
@@ -970,12 +1001,12 @@ function HopDongContent({ searchQuery = "" }) {
                         </button>
                       </>
                     )}
-                    {(contract.status === CONTRACT_STATUS.ACTIVE || contract.signedByFarmer) && (
+                    {(isActiveContractStatus(contract.status) || contract.signedByFarmer) && (
                       <button className="fd-btn fd-btn-white fd-btn-sm" onClick={() => openContract(contract)}>
                         <FiEye size={12} />Xem hợp đồng
                       </button>
                     )}
-                    {contract.status === CONTRACT_STATUS.COMPLETED && (
+                    {isCompletedContractStatus(contract.status) && (
                       <button className="fd-btn fd-btn-white fd-btn-sm" onClick={() => openContract(contract)}>
                         <FiFileText size={12} />Xem báo cáo
                       </button>
@@ -994,7 +1025,7 @@ function HopDongContent({ searchQuery = "" }) {
                   ? <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: 13 }}>Chưa có hoạt động nào</p>
                   : contracts.slice(0, 3).map((c, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < 2 ? '1px solid #f0f4f1' : 'none' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.status === 'active' ? '#13ec37' : '#f59e0b', flexShrink: 0 }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: isActiveContractStatus(c.status) ? '#13ec37' : '#f59e0b', flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: '#111812', margin: '0 0 2px' }}>{CONTRACT_STATUS_VI[c.status] || 'Chờ xử lý'}: {c.buyer}</p>
                         <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>{c.product} · {c.quantityLabel}</p>
@@ -1078,13 +1109,21 @@ function DonHangContent({ searchQuery = "" }) {
     completed: "Hoàn thành",
   };
 
+  // Duyệt một lần để tính số lượng theo trạng thái, tránh filter lặp nhiều lần khi render tab.
+  const statusCounts = useMemo(() => {
+    return orders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {});
+  }, [orders]);
+
   const tabs = [
     { key: "tatca", label: "Tất cả", count: orders.length },
-    { key: "confirmed", label: "Đã xác nhận", count: orders.filter(o => o.status === "confirmed").length },
-    { key: "processing", label: "Chuẩn bị", count: orders.filter(o => o.status === "processing").length },
-    { key: "shipping", label: "Đang giao", count: orders.filter(o => o.status === "shipping").length },
-    { key: "quality_check", label: "Kiểm tra", count: orders.filter(o => o.status === "quality_check").length },
-    { key: "delivered", label: "Đã giao", count: orders.filter(o => o.status === "delivered").length },
+    { key: "confirmed", label: "Đã xác nhận", count: statusCounts.confirmed || 0 },
+    { key: "processing", label: "Chuẩn bị", count: statusCounts.processing || 0 },
+    { key: "shipping", label: "Đang giao", count: statusCounts.shipping || 0 },
+    { key: "quality_check", label: "Kiểm tra", count: statusCounts.quality_check || 0 },
+    { key: "delivered", label: "Đã giao", count: statusCounts.delivered || 0 },
   ];
 
   const getStatusBadge = (s) => {
@@ -1092,9 +1131,11 @@ function DonHangContent({ searchQuery = "" }) {
     return <span className={`fds ${cls}`}>{STATUS_LABEL[s] || s}</span>;
   };
 
+  const normalizedSearch = (searchQuery || "").trim().toLowerCase();
+
   const filtered = orders
     .filter(o => orderStatus === "tatca" || o.status === orderStatus)
-    .filter(o => !searchQuery || o.product?.toLowerCase().includes(searchQuery.toLowerCase()) || o.contractCode?.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter(o => !normalizedSearch || o.product?.toLowerCase().includes(normalizedSearch) || o.contractCode?.toLowerCase().includes(normalizedSearch));
 
   // Farmer confirms step 2 (prepared goods)
   const handleConfirmPrepared = async (order) => {
@@ -1860,25 +1901,38 @@ function FarmerEscrowContent() {
     createdAt:      formatDate(e.createdAt),
   });
 
-  useEffect(() => {
-    const loadEscrowData = async () => {
-      try {
-        const [balRes, escRes] = await Promise.all([
-          escrowService.getBalance().catch(() => null),
-          escrowService.list().catch(() => null),
-        ]);
-        if (balRes?.data?.balance != null) setApiBalance(balRes.data.balance);
-        if (escRes?.data?.escrows) setApiEscrows(escRes.data.escrows.map(mapEscrow));
-      } catch { /* fallback */ }
-    };
-    loadEscrowData();
+  const loadEscrowList = useCallback(async () => {
+    const escRes = await escrowService.list().catch(() => null);
+    if (escRes?.data?.escrows) {
+      setApiEscrows(escRes.data.escrows.map(mapEscrow));
+      return;
+    }
+    setApiEscrows([]);
   }, []);
+
+  const loadEscrowData = useCallback(async () => {
+    try {
+      const [balRes] = await Promise.all([
+        escrowService.getBalance().catch(() => null),
+        loadEscrowList(),
+      ]);
+      if (balRes?.data?.balance != null) {
+        setApiBalance(balRes.data.balance);
+      }
+    } catch {
+      setApiEscrows([]);
+    }
+  }, [loadEscrowList]);
+
+  useEffect(() => {
+    loadEscrowData();
+  }, [loadEscrowData]);
 
   const balance = apiBalance ?? 0;
 
   const escrows = apiEscrows || [];
 
-  const fmtMoney = (v) => v.toLocaleString("vi-VN") + " VND";
+  const fmtMoney = (v) => formatMoney(v || 0);
 
   const statusLabels = {
     awaiting_deposit: "Chờ ký quỹ",
@@ -2109,10 +2163,10 @@ function FarmerEscrowContent() {
                   </div>
                   <div className="fd-escrow-ms-row">
                     {e.milestones.map((m, idx) => (
-                      <>
-                        {idx > 0 && <div key={`l${idx}`} className={`fd-ms-pip-line ${m.status === 'completed' || (idx > 0 && e.milestones[idx-1].status === 'completed') ? 'done' : ''}`} />}
-                        <div key={m.step} className={`fd-ms-pip ${m.status === 'completed' ? 'done' : m.status === 'in_progress' ? 'active' : ''}`}>{m.status === 'completed' ? '✓' : m.step}</div>
-                      </>
+                      <Fragment key={`${e.id || e._id}-ms-${m.step}`}>
+                        {idx > 0 && <div className={`fd-ms-pip-line ${m.status === 'completed' || (idx > 0 && e.milestones[idx - 1].status === 'completed') ? 'done' : ''}`} />}
+                        <div className={`fd-ms-pip ${m.status === 'completed' ? 'done' : m.status === 'in_progress' ? 'active' : ''}`}>{m.status === 'completed' ? '✓' : m.step}</div>
+                      </Fragment>
                     ))}
                   </div>
                   <div className="fd-escrow-prog">
@@ -2153,8 +2207,7 @@ function FarmerEscrowContent() {
                   const escrowId = confirmModal.escrow._id || confirmModal.escrow.id;
                   await escrowService.farmerConfirm(escrowId, confirmModal.milestone.step);
                   toast.success("Xác nhận mốc thanh toán thành công!");
-                  const escRes = await escrowService.list().catch(() => null);
-                  if (escRes?.data?.escrows) setApiEscrows(escRes.data.escrows.map(mapEscrow));
+                  await loadEscrowList();
                 } catch {
                   toast.error("Xác nhận thất bại. Vui lòng thử lại.");
                 }
@@ -2195,8 +2248,7 @@ function FarmerEscrowContent() {
                   const escrowId = disputeModal.escrow._id || disputeModal.escrow.id;
                   await escrowService.raiseDispute(escrowId, disputeModal.milestone.step, disputeReason.trim());
                   toast.success("Đã gửi báo cáo tranh chấp!");
-                  const escRes = await escrowService.list().catch(() => null);
-                  if (escRes?.data?.escrows) setApiEscrows(escRes.data.escrows.map(mapEscrow));
+                  await loadEscrowList();
                 } catch {
                   toast.error("Gửi tranh chấp thất bại. Vui lòng thử lại.");
                 }
@@ -2326,6 +2378,13 @@ function FarmerWeatherContent() {
   };
 
   const unreadCount = alerts.filter(a => !a.isRead).length;
+  const sectionTabs = [
+    { key: "weather", label: "Thời tiết", Icon: FiCloud },
+    { key: "map", label: "Bản đồ", Icon: FiMap },
+    { key: "alerts", label: "Cảnh báo", Icon: FiBell, badgeCount: unreadCount },
+    { key: "thresholds", label: "Ngưỡng", Icon: FiZap },
+    { key: "insurance", label: "Bảo hiểm", Icon: FiShield },
+  ];
 
   return (
     <>
@@ -2407,21 +2466,12 @@ function FarmerWeatherContent() {
 
       {/* ── Section Tabs ── */}
       <div className="fd-pg-tabs">
-        <button className={`fd-pg-tab ${activeSection === "weather" ? "active" : ""}`} onClick={() => setActiveSection("weather")}>
-          <FiCloud size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Thời tiết
-        </button>
-        <button className={`fd-pg-tab ${activeSection === "map" ? "active" : ""}`} onClick={() => setActiveSection("map")}>
-          <FiMap size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Bản đồ
-        </button>
-        <button className={`fd-pg-tab ${activeSection === "alerts" ? "active" : ""}`} onClick={() => setActiveSection("alerts")}>
-          <FiBell size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Cảnh báo {unreadCount > 0 && <span className="fd-pg-tab-badge">{unreadCount}</span>}
-        </button>
-        <button className={`fd-pg-tab ${activeSection === "thresholds" ? "active" : ""}`} onClick={() => setActiveSection("thresholds")}>
-          <FiZap size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Ngưỡng
-        </button>
-        <button className={`fd-pg-tab ${activeSection === "insurance" ? "active" : ""}`} onClick={() => setActiveSection("insurance")}>
-          <FiShield size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />Bảo hiểm
-        </button>
+        {sectionTabs.map(({ key, label, Icon, badgeCount }) => (
+          <button key={key} className={`fd-pg-tab ${activeSection === key ? "active" : ""}`} onClick={() => setActiveSection(key)}>
+            <Icon size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{label}
+            {badgeCount > 0 && <span className="fd-pg-tab-badge">{badgeCount}</span>}
+          </button>
+        ))}
       </div>
 
       {/* ── Forecast (weather tab) ── */}

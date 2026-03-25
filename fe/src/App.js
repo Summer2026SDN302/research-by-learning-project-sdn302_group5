@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./App.css";
 
 // CONTEXTS
 import { AuthProvider } from "./contexts/AuthContext";
@@ -44,13 +45,23 @@ import VerifyEmail from "./Component/VerifyEmail/VerifyEmail";
 import PaymentResult from "./Component/PaymentResult/PaymentResult";
 
 function HomePage() {
+  const homeShowcaseStyle = {
+    backgroundImage: `linear-gradient(180deg, rgba(6, 14, 10, 0.44) 0%, rgba(6, 14, 10, 0.58) 100%), url(${process.env.PUBLIC_URL}/BG1.jpg)`,
+  };
+
   return (
     <>
       <Navbar />
       <Hero />
-      <CompanyIntro />
-      <Process />
-      <Campaigns />
+      <div className="home-showcase" style={homeShowcaseStyle}>
+        <div className="home-showcase-overlay" />
+        <div className="home-showcase-pattern" />
+        <div className="home-showcase-content">
+          <CompanyIntro />
+          <Campaigns />
+          <Process />
+        </div>
+      </div>
       <AgricultureBanner />
       <Footer />
     </>

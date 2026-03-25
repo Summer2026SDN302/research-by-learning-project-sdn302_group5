@@ -191,6 +191,20 @@ const ProductDetail = () => {
     navigate(`${ROUTES.CONTRACT_FLOW}?product=${product.id}`);
   };
 
+  const handleOpenMessaging = () => {
+    const partnerId = product?.seller?.userId?._id || product?.seller?.userId;
+    const partnerName = product?.seller?.name || "";
+
+    if (!partnerId || isOwner) {
+      navigate(ROUTES.MESSAGING);
+      return;
+    }
+
+    navigate(
+      `${ROUTES.MESSAGING}?partnerId=${encodeURIComponent(partnerId)}&partnerName=${encodeURIComponent(partnerName)}`
+    );
+  };
+
   return (
     <motion.div className="product-detail-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <Navbar />
@@ -336,7 +350,7 @@ const ProductDetail = () => {
                       <p className="seller-name">{product.seller.name}</p>
                       <p className="seller-meta"><FiStar size={12} style={{ marginRight: 2, verticalAlign: 'middle' }} />{product.seller.rating} • {product.seller.totalContracts} hợp đồng</p>
                     </div>
-                    <button className="btn-message" onClick={() => navigate(ROUTES.MESSAGING)}><FiMessageSquare size={14} style={{ marginRight: 4 }} />Nhắn tin</button>
+                    <button className="btn-message" onClick={handleOpenMessaging}><FiMessageSquare size={14} style={{ marginRight: 4 }} />Nhắn tin</button>
                   </div>
 
                   <button className="btn-commit" onClick={handleGoContract}><FiUsers size={15} style={{ marginRight: 6 }} />Đăng ký Bao tiêu</button>

@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import User, { IUser } from '../models/User.model';
 import { AppError } from '../middlewares/error.middleware';
@@ -18,26 +18,189 @@ import {
 } from '../constants';
 import { isTruthy, parseFullName } from '../utils/validation.util';
 
+type UserTokenPayload = {
+  id: string;
+  email: string;
+  role: IUser['role'];
+  fullName: string;
+};
+
+type RefreshTokenPayload = JwtPayload & {
+  id: string;
+};
+
+type SmtpConfig = {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from: string;
+};
+
 export class AuthService {
+  // Khối helper này gom cấu hình JWT/SMTP và xử lý dữ liệu nhạy cảm để các hàm nghiệp vụ chính ngắn hơn.
+  private static getJwtSecret(): string {
+    if (!process.env.JWT_SECRET) {
+      throw new AppError('Máy chủ chưa cấu hình JWT_SECRET', 500);
+    }
+
+    return process.env.JWT_SECRET;
+  }
+
+  private static getRefreshJwtSecret(): string {
+    if (!process.env.JWT_REFRESH_SECRET) {
+      throw new AppError('Máy chủ chưa cấu hình JWT_REFRESH_SECRET', 500);
+    }
+
+    return process.env.JWT_REFRESH_SECRET;
+  }
+
+  private static signToken(payload: object, secret: string, expiresIn: string): string {
+    return jwt.sign(payload, secret, {
+      expiresIn: expiresIn as SignOptions['expiresIn'],
+    });
+  }
+
+  private static hideSensitiveFields(user: IUser): IUser {
+    Reflect.set(user, 'password', undefined);
+    return user;
+  }
+
+  private static ensurePasswordsMatch(password: string, confirmPassword: string, message: string): void {
+    if (password !== confirmPassword) {
+      throw new AppError(message, 400);
+    }
+  }
+
+  private static ensurePasswordLength(password: string, label: string): void {
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      throw new AppError(`${label} phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự`, 400);
+    }
+  }
+
+  private static parseRefreshToken(token: string): RefreshTokenPayload {
+    try {
+      const decoded = jwt.verify(token, AuthService.getRefreshJwtSecret());
+
+      if (typeof decoded === 'string' || !decoded.id) {
+        throw new AppError('Invalid or expired refresh token', 401);
+      }
+
+      return decoded as RefreshTokenPayload;
+    } catch {
+      throw new AppError('Invalid or expired refresh token', 401);
+    }
+  }
+
+  private static getSmtpConfig(includeLegacyEnv: boolean = false): SmtpConfig | null {
+    const host = process.env.SMTP_HOST || (includeLegacyEnv ? process.env.EMAIL_HOST : undefined);
+    const user = process.env.SMTP_USER || (includeLegacyEnv ? process.env.EMAIL_USER : undefined);
+    const pass = process.env.SMTP_PASS || (includeLegacyEnv ? process.env.EMAIL_PASSWORD : undefined);
+
+    if (!host || !user || !pass) {
+      return null;
+    }
+
+    return {
+      host,
+      user,
+      pass,
+      port: Number(process.env.SMTP_PORT || (includeLegacyEnv ? process.env.EMAIL_PORT : undefined) || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      from: process.env.SMTP_FROM || `"PreOnic" <${user}>`,
+    };
+  }
+
+  private static async sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: { user: config.user, pass: config.pass },
+    });
+
+    await transporter.sendMail({
+      from: config.from,
+      to,
+      subject,
+      html,
+    });
+  }
+
+  private static buildPasswordResetEmail(fullName: string, resetUrl: string): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #16a34a; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">PreOnic</h1>
+          <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
+        </div>
+        <div style="padding: 30px; background: #f9f9f9;">
+          <h2 style="color: #333;">Đặt lại mật khẩu</h2>
+          <p style="color: #555;">Xin chào <strong>${fullName}</strong>,</p>
+          <p style="color: #555;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản PreOnic. Link có hiệu lực trong <strong>10 phút</strong>.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Đặt lại mật khẩu</a>
+          </div>
+          <p style="color: #555; font-size: 13px;">Hoặc dán link: <span style="word-break: break-all; color: #16a34a;">${resetUrl}</span></p>
+          <p style="color: #555;">Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="color: #999; font-size: 12px;">Email tự động từ hệ thống PreOnic. Vui lòng không trả lời.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  private static buildProfileUpdateData(body: UpdateProfileBody): Partial<UpdateProfileBody> {
+    const updateData: Partial<UpdateProfileBody> = {};
+
+    if (body.fullName !== undefined) {
+      const normalizedFullName = body.fullName.trim();
+      const { firstName, lastName } = parseFullName(normalizedFullName);
+      updateData.fullName = normalizedFullName;
+      updateData.firstName = firstName;
+      updateData.lastName = lastName;
+    } else {
+      if (body.firstName !== undefined) {
+        updateData.firstName = body.firstName;
+      }
+      if (body.lastName !== undefined) {
+        updateData.lastName = body.lastName;
+      }
+    }
+
+    if (body.phone !== undefined) {
+      updateData.phone = body.phone;
+    }
+    if (body.avatar !== undefined) {
+      updateData.avatar = body.avatar;
+    }
+
+    return updateData;
+  }
+
   /**
    * Generate access & refresh tokens for a user
    */
   static generateTokens(user: IUser): AuthTokens {
-    const payload = {
-      id: user._id,
+    const payload: UserTokenPayload = {
+      id: String(user._id),
       email: user.email,
       role: user.role,
       fullName: user.fullName,
     };
 
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: process.env.JWT_EXPIRE || '7d',
-    } as any);
+    const accessToken = AuthService.signToken(
+      payload,
+      AuthService.getJwtSecret(),
+      process.env.JWT_EXPIRE || '7d'
+    );
 
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '30d' } as any
+    const refreshToken = AuthService.signToken(
+      { id: String(user._id) },
+      AuthService.getRefreshJwtSecret(),
+      process.env.JWT_REFRESH_EXPIRE || '30d'
     );
 
     return { accessToken, refreshToken };
@@ -51,9 +214,7 @@ export class AuthService {
   static async register(body: RegisterBody): Promise<{ user: IUser; tokens: AuthTokens }> {
     const { fullName, email, phone, password, confirmPassword, role, agreeTerms, province, district, ward } = body;
 
-    if (password !== confirmPassword) {
-      throw new AppError('Mật khẩu xác nhận không khớp', 400);
-    }
+    AuthService.ensurePasswordsMatch(password, confirmPassword, 'Mật khẩu xác nhận không khớp');
 
     if (!isTruthy(agreeTerms)) {
       throw new AppError('Vui lòng đồng ý với điều khoản sử dụng', 400);
@@ -101,8 +262,7 @@ export class AuthService {
       (err) => console.error('[Auth] Failed to send verification email after register:', err)
     );
 
-    // Remove sensitive data
-    user.password = undefined as any;
+    AuthService.hideSensitiveFields(user);
 
     return { user, tokens };
   }
@@ -173,8 +333,7 @@ export class AuthService {
     user.refreshToken = tokens.refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    // Remove sensitive data
-    user.password = undefined as any;
+    AuthService.hideSensitiveFields(user);
 
     return { user, tokens };
   }
@@ -196,13 +355,7 @@ export class AuthService {
       throw new AppError('Refresh token is required', 400);
     }
 
-    // Verify refresh token
-    let decoded: any;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
-    } catch {
-      throw new AppError('Invalid or expired refresh token', 401);
-    }
+    const decoded = AuthService.parseRefreshToken(token);
 
     // Find user with matching refresh token
     const user = await User.findById(decoded.id).select('+refreshToken');
@@ -244,45 +397,17 @@ export class AuthService {
 
     // Send password reset email via nodemailer
     const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    const smtpHost = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
+    const smtpConfig = AuthService.getSmtpConfig(true);
 
-    if (smtpHost && smtpUser && smtpPass) {
+    if (smtpConfig) {
       try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: { user: smtpUser, pass: smtpPass },
-        });
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || `"PreOnic" <${smtpUser}>`,
-          to: user.email,
-          subject: '[PreOnic] Đặt lại mật khẩu của bạn',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: #16a34a; color: white; padding: 20px; text-align: center;">
-                <h1 style="margin: 0;">PreOnic</h1>
-                <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
-              </div>
-              <div style="padding: 30px; background: #f9f9f9;">
-                <h2 style="color: #333;">Đặt lại mật khẩu</h2>
-                <p style="color: #555;">Xin chào <strong>${user.fullName}</strong>,</p>
-                <p style="color: #555;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản PreOnic. Link có hiệu lực trong <strong>10 phút</strong>.</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetURL}" style="background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Đặt lại mật khẩu</a>
-                </div>
-                <p style="color: #555; font-size: 13px;">Hoặc dán link: <span style="word-break: break-all; color: #16a34a;">${resetURL}</span></p>
-                <p style="color: #555;">Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="color: #999; font-size: 12px;">Email tự động từ hệ thống PreOnic. Vui lòng không trả lời.</p>
-              </div>
-            </div>
-          `,
-        });
-      } catch (emailErr) {
+        await AuthService.sendEmail(
+          smtpConfig,
+          user.email,
+          '[PreOnic] Đặt lại mật khẩu của bạn',
+          AuthService.buildPasswordResetEmail(user.fullName, resetURL)
+        );
+      } catch {
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save({ validateBeforeSave: false });
@@ -291,8 +416,8 @@ export class AuthService {
     }
 
     return {
-      resetToken: smtpHost ? undefined : resetToken,
-      message: smtpHost
+      resetToken: smtpConfig ? undefined : resetToken,
+      message: smtpConfig
         ? 'Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.'
         : 'Token đặt lại mật khẩu đã được tạo. Token có hiệu lực trong 10 phút.',
     };
@@ -304,13 +429,8 @@ export class AuthService {
   static async resetPassword(body: ResetPasswordBody): Promise<IUser> {
     const { token, password, confirmPassword } = body;
 
-    if (password !== confirmPassword) {
-      throw new AppError('Mật khẩu xác nhận không khớp', 400);
-    }
-
-    if (password.length < PASSWORD_MIN_LENGTH) {
-      throw new AppError(`Mật khẩu phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự`, 400);
-    }
+    AuthService.ensurePasswordsMatch(password, confirmPassword, 'Mật khẩu xác nhận không khớp');
+    AuthService.ensurePasswordLength(password, 'Mật khẩu');
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -347,13 +467,8 @@ export class AuthService {
   ): Promise<{ user: IUser; tokens: AuthTokens }> {
     const { currentPassword, newPassword, confirmNewPassword } = body;
 
-    if (newPassword !== confirmNewPassword) {
-      throw new AppError('Mật khẩu mới xác nhận không khớp', 400);
-    }
-
-    if (newPassword.length < PASSWORD_MIN_LENGTH) {
-      throw new AppError(`Mật khẩu mới phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự`, 400);
-    }
+    AuthService.ensurePasswordsMatch(newPassword, confirmNewPassword, 'Mật khẩu mới xác nhận không khớp');
+    AuthService.ensurePasswordLength(newPassword, 'Mật khẩu mới');
 
     if (currentPassword === newPassword) {
       throw new AppError('Mật khẩu mới không được trùng với mật khẩu hiện tại', 400);
@@ -376,7 +491,7 @@ export class AuthService {
     user.refreshToken = tokens.refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    user.password = undefined as any;
+    AuthService.hideSensitiveFields(user);
 
     return { user, tokens };
   }
@@ -399,22 +514,7 @@ export class AuthService {
     userId: string,
     body: UpdateProfileBody
   ): Promise<IUser> {
-    const ALLOWED_PROFILE_FIELDS: (keyof UpdateProfileBody)[] = [
-      'firstName', 'lastName', 'fullName', 'phone', 'avatar',
-    ];
-
-    const updateData: Partial<UpdateProfileBody> = {};
-    for (const field of ALLOWED_PROFILE_FIELDS) {
-      if (body[field] !== undefined) {
-        (updateData as any)[field] = body[field];
-      }
-    }
-
-    if (updateData.fullName) {
-      const { firstName, lastName } = parseFullName(updateData.fullName);
-      (updateData as any).firstName = firstName;
-      (updateData as any).lastName = lastName;
-    }
+    const updateData = AuthService.buildProfileUpdateData(body);
 
     const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -497,25 +597,15 @@ export class AuthService {
     token: string
   ): Promise<void> {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    const smtpConfig = AuthService.getSmtpConfig();
 
-    if (smtpHost && smtpUser && smtpPass) {
+    if (smtpConfig) {
       try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: { user: smtpUser, pass: smtpPass },
-        });
-
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || '"PreOnic" <noreply@preonic.vn>',
-          to: email,
-          subject: '[PreOnic] Xác minh địa chỉ email của bạn',
-          html: `
+        await AuthService.sendEmail(
+          smtpConfig,
+          email,
+          '[PreOnic] Xác minh địa chỉ email của bạn',
+          `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #16a34a; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
                 <h1 style="margin: 0;">PreOnic</h1>
@@ -542,10 +632,10 @@ export class AuthService {
                 </p>
               </div>
             </div>
-          `,
-        });
-      } catch (emailErr) {
-        console.error('[Auth] Email send failed:', emailErr);
+          `
+        );
+      } catch (error) {
+        console.error('[Auth] Email send failed:', error);
         // Non-critical: log token so dev can test without SMTP
         console.log(`[Email MOCK] Verification URL: ${verifyUrl}`);
       }

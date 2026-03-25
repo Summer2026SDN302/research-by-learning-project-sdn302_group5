@@ -1,50 +1,71 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthRequest } from '../types';
+import User from '../models/User.model';
+import { AuthRequest, JwtUserPayload } from '../types';
 import { AppError } from './error.middleware';
+
+const BEARER_PREFIX = 'Bearer ';
+
+// Đọc token từ header theo đúng chuẩn Bearer để tránh lặp lại việc tách chuỗi.
+const extractBearerToken = (authorizationHeader?: string): string | undefined => {
+  if (!authorizationHeader?.startsWith(BEARER_PREFIX)) {
+    return undefined;
+  }
+
+  return authorizationHeader.slice(BEARER_PREFIX.length).trim();
+};
+
+// Tách việc đọc secret ra helper riêng để lỗi cấu hình được báo rõ ràng hơn.
+const getJwtSecret = (): string => {
+  if (!process.env.JWT_SECRET) {
+    throw new AppError('Máy chủ chưa cấu hình JWT_SECRET', 500);
+  }
+
+  return process.env.JWT_SECRET;
+};
 
 export const protect = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
+  const token = extractBearerToken(req.headers.authorization);
+
+  if (!token) {
+    return next(new AppError('Bạn cần đăng nhập để truy cập tài nguyên này', 401));
+  }
+
   try {
-    let token: string | undefined;
+    // Luồng bảo vệ luôn kiểm tra lại người dùng trong DB để chặn tài khoản đã bị vô hiệu hóa.
+    const decoded = jwt.verify(token, getJwtSecret()) as JwtUserPayload;
+    const activeUser = await User.findById(decoded.id).select(
+      'email role fullName isActive'
+    );
 
-    // Get token from header
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1];
+    if (!activeUser || !activeUser.isActive) {
+      return next(
+        new AppError('Tài khoản không còn khả dụng hoặc đã bị vô hiệu hóa', 401)
+      );
     }
 
-    if (!token) {
-      return next(new AppError('Not authorized to access this route', 401));
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-
-    // Attach user to request
     req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-      fullName: decoded.fullName,
+      id: String(activeUser._id),
+      email: activeUser.email,
+      role: activeUser.role,
+      fullName: activeUser.fullName,
     };
 
-    next();
-  } catch (error) {
-    return next(new AppError('Not authorized to access this route', 401));
+    return next();
+  } catch {
+    return next(new AppError('Phiên đăng nhập không hợp lệ hoặc đã hết hạn', 401));
   }
 };
 
 export const restrictTo = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthRequest, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(
-        new AppError('You do not have permission to perform this action', 403)
+        new AppError('Bạn không có quyền thực hiện thao tác này', 403)
       );
     }
     next();

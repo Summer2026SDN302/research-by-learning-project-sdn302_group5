@@ -5,147 +5,177 @@
   left: 0;
   right: 0;
   z-index: 1000;
+  isolation: isolate;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.navbar-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Glassmorphism effect khi scroll */
 .navbar-wrapper.scrolled {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: transparent;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  border-bottom-color: rgba(45, 255, 103, 0.18);
 }
 
-/* Spacer để nội dung không bị che bởi navbar fixed */
+.navbar-wrapper.scrolled::before {
+  background: rgba(9, 24, 16, 0.2);
+  backdrop-filter: blur(8px) saturate(118%);
+  -webkit-backdrop-filter: blur(8px) saturate(118%);
+}
+
 .navbar-wrapper + * {
-  padding-top: 80px;
+  padding-top: 74px;
 }
 
-/* ===== NAVBAR NỀN TRẮNG ĐẬM ===== */
 .navbar-custom {
   background-color: transparent !important;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.3);
-  padding: 16px 0;
+  padding: 10px 0;
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .navbar-wrapper.scrolled .navbar-custom {
-  padding: 12px 0;
+  padding: 8px 0;
 }
 
-/* ===== LOGO ===== */
-.logo-container {
-  display: flex;
+.navbar-logo {
+  padding: 0 !important;
+  margin: 0;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
 }
 
-.logo-icon {
-  font-size: 28px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(19, 236, 55, 0.3));
+.navbar-logo .brand-logo-symbol {
+  width: 34px;
+  height: 34px;
+  object-position: center 24%;
+  filter: drop-shadow(0 4px 10px rgba(57, 174, 8, 0.2));
 }
 
-.logo-text {
-  color: #111827 !important;
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #111827 0%, #13ec37 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.navbar-logo .brand-logo-wordmark {
+  width: 96px;
+  height: 34px;
+  object-position: center 92%;
 }
 
-/* ===== MENU ITEMS ===== */
 .nav-item-wrapper {
   position: relative;
 }
 
 .navbar-custom .nav-link {
-  color: #374151 !important;
-  font-weight: 500;
-  margin: 0 8px;
-  padding: 8px 16px !important;
+  color: #2dff67 !important;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 6px;
+  padding: 7px 12px !important;
   border-radius: 8px;
   position: relative;
   transition: all 0.2s ease;
+  text-shadow: none;
 }
 
 .navbar-custom .nav-link:hover {
-  color: #13ec37 !important;
-  background-color: rgba(19, 236, 55, 0.08);
+  color: #53ff84 !important;
+  background-color: rgba(19, 236, 55, 0.12);
 }
 
 .navbar-custom .nav-link.active {
-  color: #13ec37 !important;
-  font-weight: 600;
+  color: #2dff67 !important;
+  font-weight: 700;
+  text-shadow: none;
 }
 
-/* Active indicator - animated underline */
 .active-indicator {
   position: absolute;
-  bottom: 0;
-  left: 16px;
-  right: 16px;
-  height: 3px;
-  background: linear-gradient(90deg, #13ec37, #0ea830);
+  bottom: -1px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: linear-gradient(90deg, #15f04a, #53ff84);
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 -2px 8px rgba(19, 236, 55, 0.4);
+  box-shadow: 0 0 8px rgba(19, 236, 55, 0.34);
 }
 
-/* ===== NAVBAR ACTIONS ===== */
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
 }
 
-/* ===== NÚT ĐĂNG NHẬP ===== */
 .navbar-login-btn {
-  background: #13ec37 !important;
-  border: none !important;
-  padding: 10px 24px;
+  background: rgba(19, 236, 55, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  padding: 9px 16px;
   border-radius: 10px;
   font-weight: 600;
   font-size: 14px;
-  color: #ffffff !important;
-  min-width: 110px;
-  text-align: center;
-}
-
-/* ===== NÚT ĐĂNG KÝ ===== */
-.navbar-register-btn {
-  background: #13ec37 !important;
-  border: none !important;
-  padding: 10px 24px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  color: #ffffff !important;
-  min-width: 110px;
-  text-align: center;
-}
-
-/* ===== USER INFO ===== */
-.navbar-user-name {
-  color: #374151;
-  font-weight: 600;
-  font-size: 14px;
-  padding: 8px 16px;
-  background: rgba(19, 236, 55, 0.08);
-  border-radius: 8px;
+  line-height: 1.1;
   white-space: nowrap;
-  max-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  min-width: 108px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(19, 236, 55, 0.24);
+}
+
+.navbar-register-btn {
+  background: rgba(19, 236, 55, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.1;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  min-width: 108px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(19, 236, 55, 0.24);
+}
+
+.navbar-login-btn:hover,
+.navbar-register-btn:hover {
+  background: #12d83e !important;
+  transform: translateY(-1px);
+}
+
+.navbar-user-name {
+  color: #2dff67;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 12px;
+  background: rgba(12, 28, 19, 0.44);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ===== NÚT VÀO DASHBOARD ===== */
 .navbar-dashboard-btn {
   border: none !important;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 10px 16px;
+  border-radius: 9px;
   font-weight: 600;
   font-size: 13px;
   color: #ffffff !important;
@@ -174,16 +204,16 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
-/* ===== NÚT ĐĂNG XUẤT ===== */
 .navbar-logout-btn {
   background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%) !important;
   border: none !important;
-  padding: 10px 24px;
-  border-radius: 10px;
+  padding: 10px 16px;
+  border-radius: 9px;
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
   color: #ffffff !important;
-  min-width: 110px;
+  min-width: 120px;
   text-align: center;
   transition: all 0.3s ease;
 }
@@ -194,10 +224,31 @@
   box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 991px) {
+  .navbar-wrapper::before {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .navbar-wrapper.scrolled::before {
+    background: rgba(9, 24, 16, 0.26);
+    backdrop-filter: blur(8px) saturate(118%);
+    -webkit-backdrop-filter: blur(8px) saturate(118%);
+  }
+
+  .navbar-custom .navbar-collapse {
+    margin-top: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid transparent;
+  }
+
   .navbar-actions {
-    margin-top: 16px;
+    margin-top: 12px;
     width: 100%;
     justify-content: space-between;
     flex-wrap: wrap;
@@ -219,16 +270,17 @@
     width: 100%;
   }
 
-  .logo-text {
-    font-size: 20px;
+  .navbar-logo .brand-logo-symbol {
+    width: 30px;
+    height: 30px;
   }
 
-  .logo-icon {
-    font-size: 24px;
+  .navbar-logo .brand-logo-wordmark {
+    width: 86px;
+    height: 30px;
   }
 }
 
-/* ===== SMOOTH TRANSITIONS ===== */
 .navbar-custom * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

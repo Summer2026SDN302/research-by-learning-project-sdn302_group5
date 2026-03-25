@@ -1,17 +1,23 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import { PaymentService } from '../services/payment.service';
+import { asyncHandler } from '../middlewares/error.middleware';
+import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from '../constants';
 import { successResponse } from '../utils/response.util';
 
+// Chuẩn hóa tham số phân trang để controller không phải lặp lại logic parse ở nhiều nơi.
+const parsePositiveInteger = (value: unknown, fallback: number): number => {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallback;
+};
+
 /**
- * POST /payment/topup — Create a PayOS payment link for topping up
+ * POST /payment/topup — Create a top-up request for the active payment gateway
  */
-export const createTopup = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const createTopup = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const { amount, description } = req.body;
     const result = await PaymentService.createTopup(
       req.user!.id,
@@ -19,88 +25,63 @@ export const createTopup = async (
       description
     );
     res.status(200).json(successResponse(result, 'Tạo liên kết thanh toán thành công'));
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
- * POST /payment/topup/verify — Verify payment after return from PayOS
+ * POST /payment/topup/verify — Verify payment after return from gateway
  */
-export const verifyTopup = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const verifyTopup = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const { orderCode } = req.body;
     const result = await PaymentService.verifyAndProcess(Number(orderCode));
     res.status(200).json(successResponse(result, result.success ? 'Nạp tiền thành công' : 'Giao dịch chưa hoàn tất'));
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
- * POST /payment/webhook — PayOS webhook handler
+ * POST /payment/webhook — Payment gateway webhook handler
  */
-export const handleWebhook = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    await PaymentService.handleWebhook(req.body);
+export const handleWebhook = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    await PaymentService.handleWebhook(
+      req.body,
+      typeof req.headers.authorization === 'string'
+        ? req.headers.authorization
+        : undefined
+    );
     res.status(200).json({ success: true });
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
  * POST /payment/demo-topup — Demo instant top-up (no real payment)
  */
-export const demoTopup = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const demoTopup = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const { amount } = req.body;
     const result = await PaymentService.demoTopup(req.user!.id, Number(amount));
     res.status(200).json(successResponse(result, 'Nạp tiền demo thành công'));
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
  * GET /payment/wallet — Get wallet info + stats
  */
-export const getWalletInfo = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const getWalletInfo = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const result = await PaymentService.getWalletInfo(req.user!.id);
     res.status(200).json(successResponse(result));
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
  * GET /payment/transactions — Get transaction history
  */
-export const getTransactions = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
+export const getTransactions = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const page = parsePositiveInteger(req.query.page, DEFAULT_PAGE);
+    const limit = parsePositiveInteger(req.query.limit, DEFAULT_PAGE_SIZE);
     const type = req.query.type as string | undefined;
     const result = await PaymentService.getTransactions(
       req.user!.id,
@@ -109,27 +90,19 @@ export const getTransactions = async (
       type
     );
     res.status(200).json(successResponse(result));
-  } catch (err) {
-    next(err);
   }
-};
+);
 
 /**
  * POST /payment/cancel — Cancel a pending topup
  */
-export const cancelTopup = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const cancelTopup = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const { orderCode } = req.body;
     const result = await PaymentService.cancelTopup(
       Number(orderCode),
       req.user!.id
     );
     res.status(200).json(successResponse(result, 'Đã hủy giao dịch'));
-  } catch (err) {
-    next(err);
   }
-};
+);

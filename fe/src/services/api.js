@@ -2,6 +2,8 @@ import axios from 'axios';
 import { STORAGE_KEYS } from '../constants';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+const AUTH_REDIRECT_PATH = '/auth';
+const UNAUTHORIZED_STATUS = 401;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -10,15 +12,47 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Tách các bước nhỏ thành helper để interceptor dễ đọc và dễ bảo trì hơn.
+const attachAccessToken = (config) => {
+  const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  if (accessToken) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return config;
+};
+
+const clearStoredAuth = () => {
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.USER);
+};
+
+const redirectToLogin = () => {
+  if (window.location.pathname !== AUTH_REDIRECT_PATH) {
+    window.location.href = AUTH_REDIRECT_PATH;
+  }
+};
+
+const refreshAccessToken = async () => {
+  const response = await axios.post(
+    `${API_URL}/auth/refresh-token`,
+    {},
+    { withCredentials: true }
+  );
+
+  const { accessToken } = response.data?.data || {};
+  if (!accessToken) {
+    throw new Error('Không nhận được access token mới từ máy chủ');
+  }
+
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+  return accessToken;
+};
+
 // Attach access token to every request
 api.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
+  attachAccessToken,
   (error) => Promise.reject(error)
 );
 
@@ -28,31 +62,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    const isUnauthorized = error.response?.status === 401;
-    const hasNotRetried = !originalRequest._retry;
+    const isUnauthorized = error.response?.status === UNAUTHORIZED_STATUS;
+    const hasNotRetried = !originalRequest?._retry;
+    const isRefreshRequest = originalRequest?.url?.includes('/auth/refresh-token');
 
-    if (isUnauthorized && hasNotRetried) {
+    if (isUnauthorized && hasNotRetried && !isRefreshRequest) {
       originalRequest._retry = true;
 
       try {
-        const response = await axios.post(
-          `${API_URL}/auth/refresh-token`,
-          {},
-          { withCredentials: true }
-        );
-
-        const { accessToken } = response.data?.data || {};
-        if (!accessToken) {
-          throw new Error('No access token in refresh response');
-        }
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-
+        const accessToken = await refreshAccessToken();
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch {
-        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        window.location.href = '/auth';
+        clearStoredAuth();
+        redirectToLogin();
         return Promise.reject(error);
       }
     }

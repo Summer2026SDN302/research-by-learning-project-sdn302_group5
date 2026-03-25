@@ -6,6 +6,9 @@ import "./Hero.css";
 
 function Hero() {
   const navigate = useNavigate();
+  const heroStyle = {
+    backgroundImage: `linear-gradient(rgba(5, 14, 8, 0.42), rgba(5, 14, 8, 0.52)), url(${process.env.PUBLIC_URL}/Vanhomc8.jpg)`,
+  };
 
   // Animation variants
   const containerVariants = {
@@ -57,32 +60,7 @@ function Hero() {
   };
 
   return (
-    <section className="hero-section">
-      {/* Animated background particles */}
-      <div className="hero-particles">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="particle"
-            animate={{
-              y: [0, -30, 0],
-              x: [0, 15, 0],
-              opacity: [0.3, 0.6, 0.3],
-            }}
-            transition={{
-              duration: 4 + i,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: "easeInOut"
-            }}
-            style={{
-              left: `${15 + i * 15}%`,
-              top: `${20 + i * 10}%`,
-            }}
-          />
-        ))}
-      </div>
-
+    <section className="hero-section" style={heroStyle}>
       <Container>
         <motion.div
           className="hero-content"
@@ -118,8 +96,7 @@ function Hero() {
             variants={itemVariants}
           >
             Tham gia cuộc cách mạng nông nghiệp số. Cam kết bao tiêu nông sản
-            chất lượng cao và hỗ trợ canh tác bền vững trực tiếp thông qua
-            sàn giao dịch minh bạch của chúng tôi.
+            chất lượng cao và hỗ trợ canh tác bền vững.
           </motion.p>
 
           <motion.div 
@@ -156,33 +133,6 @@ function Hero() {
           </motion.div>
         </motion.div>
       </Container>
-
-      {/* Floating decorative elements */}
-      <motion.div
-        className="hero-float-element float-1"
-        animate={{
-          y: [0, -20, 0],
-          rotate: [0, 5, 0],
-        }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div
-        className="hero-float-element float-2"
-        animate={{
-          y: [0, 25, 0],
-          rotate: [0, -5, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1
-        }}
-      />
     </section>
   );
 }

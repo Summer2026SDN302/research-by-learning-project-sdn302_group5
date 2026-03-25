@@ -3,6 +3,7 @@ import Product from '../models/Product.model';
 import { AppError } from '../middlewares/error.middleware';
 import { EscrowService } from './escrow.service';
 import { NotificationService } from './notification.service';
+import { CONTRACT_CONFIG, UNIT_TO_KG } from '../constants';
 
 export interface CreateContractBody {
   farmerId?: string;
@@ -20,21 +21,32 @@ export interface CreateContractBody {
   notes?: string;
 }
 
+type ContractActorRole = 'farmer' | 'enterprise';
+
+interface ContractParticipants {
+  farmerId: string;
+  enterpriseId: string;
+}
+
+interface ContractFinancials {
+  totalValue: number;
+  commission: number;
+  depositAmount: number;
+}
+
 export class ContractService {
-  /**
-   * Create a new contract
-   */
-  static async create(
+  // Khối helper này gom toàn bộ quy tắc nghiệp vụ để các hàm public bên dưới chỉ còn điều phối luồng chính.
+  private static async resolveParticipants(
     body: CreateContractBody,
     userId: string,
-    role: 'farmer' | 'enterprise'
-  ): Promise<IContract> {
+    role: ContractActorRole
+  ): Promise<ContractParticipants> {
     let farmerId = body.farmerId;
     let enterpriseId = body.enterpriseId;
 
-    // Resolve farmerId / enterpriseId from the product and role
     if (role === 'enterprise') {
       enterpriseId = userId;
+
       if (body.productId) {
         const product = await Product.findById(body.productId);
         if (product?.createdBy) {
@@ -49,144 +61,113 @@ export class ContractService {
       throw new AppError('Không thể xác định nông dân hoặc doanh nghiệp', 400);
     }
 
-    // Calculate values
-    const totalValue = body.quantity * body.pricePerUnit * 1000;
-    const commission = totalValue * 3 / 100;
+    return { farmerId, enterpriseId };
+  }
+
+  private static calculateFinancials(body: CreateContractBody): ContractFinancials {
+    const totalValue = body.quantity * body.pricePerUnit * UNIT_TO_KG[body.unit];
+    const commission = (totalValue * CONTRACT_CONFIG.COMMISSION_RATE) / 100;
     const depositAmount = (totalValue * body.depositPercentage) / 100;
 
-    // Generate unique contract code: PRE-YYYY-XXXX (retry on collision)
+    return { totalValue, commission, depositAmount };
+  }
+
+  private static async generateContractCode(): Promise<string> {
     const year = new Date().getFullYear();
-    let contractCode: string;
-    let attempts = 0;
-    do {
-      const seq = Math.floor(1000 + Math.random() * 9000);
-      contractCode = `PRE-${year}-${seq}`;
-      attempts++;
-    } while (attempts < 10 && (await Contract.exists({ contractCode })));
 
-    const contract = await Contract.create({
-      ...body,
-      contractCode,
-      farmerId,
-      enterpriseId,
-      productId: body.productId || undefined,
-      totalValue,
-      commission,
-      commissionRate: 3,
-      depositAmount,
-      status: 'pending',
-    });
+    for (
+      let attempt = 0;
+      attempt < CONTRACT_CONFIG.MAX_CODE_GENERATION_ATTEMPTS;
+      attempt += 1
+    ) {
+      const sequence = Math.floor(
+        Math.random() * CONTRACT_CONFIG.CODE_SEQUENCE_SPAN +
+          CONTRACT_CONFIG.CODE_SEQUENCE_MIN
+      );
+      const contractCode = `${CONTRACT_CONFIG.CODE_PREFIX}-${year}-${sequence}`;
+      const existingContract = await Contract.exists({ contractCode });
 
-    // Notify the farmer that enterprise created a contract with them
-    if (role === 'enterprise') {
-      try {
-        await NotificationService.create({
-          userId: farmerId.toString(),
-          type: 'contract',
-          title: 'Hợp đồng mới từ doanh nghiệp',
-          message: `Doanh nghiệp "${body.enterpriseName}" đã tạo hợp đồng mua ${body.productName} (${body.quantity} ${body.unit}). Vui lòng xem xét và ký hợp đồng.`,
-          severity: 'info',
-          relatedId: String(contract._id),
-          relatedModel: 'Contract',
-        });
-      } catch { /* non-critical */ }
+      if (!existingContract) {
+        return contractCode;
+      }
+    }
+
+    throw new AppError('Không thể tạo mã hợp đồng duy nhất. Vui lòng thử lại.', 500);
+  }
+
+  private static ensureContractExists(contract: IContract | null): IContract {
+    if (!contract) {
+      throw new AppError('Hợp đồng không tồn tại', 404);
     }
 
     return contract;
   }
 
-  /**
-   * Get contract by ID (only for parties)
-   */
-  static async getById(contractId: string, userId: string): Promise<IContract> {
-    const contract = await Contract.findById(contractId);
-    if (!contract) {
-      throw new AppError('Hợp đồng không tồn tại', 404);
-    }
-
+  private static ensurePartyAccess(contract: IContract, userId: string): void {
     const isParty =
       contract.farmerId.toString() === userId ||
       contract.enterpriseId.toString() === userId;
+
     if (!isParty) {
       throw new AppError('Bạn không có quyền xem hợp đồng này', 403);
     }
-
-    return contract;
   }
 
-  /**
-   * List contracts for a user
-   */
-  static async listByUser(
-    userId: string,
-    role: 'farmer' | 'enterprise',
-    status?: string
-  ): Promise<IContract[]> {
-    const query: any =
-      role === 'farmer'
-        ? { farmerId: userId }
-        : { enterpriseId: userId };
-
-    if (status) {
-      query.status = status;
+  // Sau khi cả hai bên ký, helper này cập nhật tiến độ sản phẩm để dashboard phản ánh đúng cam kết thực tế.
+  private static async updateProductCommitment(contract: IContract): Promise<void> {
+    if (!contract.productId) {
+      return;
     }
 
-    return Contract.find(query).sort({ createdAt: -1 });
+    const product = await Product.findById(contract.productId);
+    if (!product || product.totalQuantity <= 0) {
+      return;
+    }
+
+    const committedKg = contract.quantity * UNIT_TO_KG[contract.unit];
+    const addedProgressPercent = (committedKg / product.totalQuantity) * 100;
+
+    product.progress = Math.min(100, (product.progress || 0) + addedProgressPercent);
+    product.remaining = Math.max(
+      0,
+      (product.remaining ?? product.totalQuantity) - committedKg
+    );
+    await product.save();
   }
 
-  /**
-   * Sign a contract
-   */
-  static async sign(
-    contractId: string,
-    userId: string,
-    role: 'farmer' | 'enterprise'
-  ): Promise<IContract> {
-    const contract = await Contract.findById(contractId);
-    if (!contract) {
-      throw new AppError('Hợp đồng không tồn tại', 404);
+  private static async notifyContractCreated(
+    role: ContractActorRole,
+    body: CreateContractBody,
+    farmerId: string,
+    contractId: string
+  ): Promise<void> {
+    if (role !== 'enterprise') {
+      return;
     }
 
-    if (role === 'farmer') {
-      if (contract.farmerId.toString() !== userId) {
-        throw new AppError('Bạn không phải là nông dân trong hợp đồng này', 403);
-      }
-      contract.signedByFarmer = true;
-    } else {
-      if (contract.enterpriseId.toString() !== userId) {
-        throw new AppError('Bạn không phải là doanh nghiệp trong hợp đồng này', 403);
-      }
-      contract.signedByEnterprise = true;
+    try {
+      await NotificationService.create({
+        userId: farmerId,
+        type: 'contract',
+        title: 'Hợp đồng mới từ doanh nghiệp',
+        message: `Doanh nghiệp "${body.enterpriseName}" đã tạo hợp đồng mua ${body.productName} (${body.quantity} ${body.unit}). Vui lòng xem xét và ký hợp đồng.`,
+        severity: 'info',
+        relatedId: contractId,
+        relatedModel: 'Contract',
+      });
+    } catch {
+      // Không chặn luồng chính nếu bước gửi thông báo phụ thất bại.
     }
+  }
 
-    // If both signed, update status and product progress
-    if (contract.signedByFarmer && contract.signedByEnterprise) {
-      contract.signedAt = new Date();
-      contract.status = 'approved';
-
-      if (contract.productId) {
-        const product = await Product.findById(contract.productId);
-        if (product && product.totalQuantity > 0) {
-          const unitMultiplier =
-            contract.unit === 'tan' ? 1000 : contract.unit === 'thung' ? 25 : 1;
-          const committedKg = contract.quantity * unitMultiplier;
-          const addedPct = (committedKg / product.totalQuantity) * 100;
-          product.progress = Math.min(100, (product.progress || 0) + addedPct);
-          product.remaining = Math.max(0, (product.remaining ?? product.totalQuantity) - committedKg);
-          await product.save();
-        }
-      }
-    }
-
-    await contract.save();
-
-    // Notify parties after signing
+  private static async notifyContractSigned(
+    contract: IContract,
+    role: ContractActorRole
+  ): Promise<void> {
     try {
       if (contract.signedByFarmer && contract.signedByEnterprise) {
-        // Both signed — auto-create escrow
         await EscrowService.createEscrowForContract(contract);
 
-        // Notify both parties
         await Promise.all([
           NotificationService.create({
             userId: contract.farmerId.toString(),
@@ -207,8 +188,10 @@ export class ContractService {
             relatedModel: 'Contract',
           }),
         ]);
-      } else if (role === 'farmer') {
-        // Farmer signed — notify enterprise
+        return;
+      }
+
+      if (role === 'farmer') {
         await NotificationService.create({
           userId: contract.enterpriseId.toString(),
           type: 'contract',
@@ -218,19 +201,116 @@ export class ContractService {
           relatedId: String(contract._id),
           relatedModel: 'Contract',
         });
-      } else {
-        // Enterprise signed — notify farmer
-        await NotificationService.create({
-          userId: contract.farmerId.toString(),
-          type: 'contract',
-          title: 'Doanh nghiệp đã ký hợp đồng',
-          message: `Doanh nghiệp "${contract.enterpriseName}" đã ký hợp đồng ${contract.contractCode}. Vui lòng ký để hoàn tất.`,
-          severity: 'info',
-          relatedId: String(contract._id),
-          relatedModel: 'Contract',
-        });
+        return;
       }
-    } catch { /* non-critical */ }
+
+      await NotificationService.create({
+        userId: contract.farmerId.toString(),
+        type: 'contract',
+        title: 'Doanh nghiệp đã ký hợp đồng',
+        message: `Doanh nghiệp "${contract.enterpriseName}" đã ký hợp đồng ${contract.contractCode}. Vui lòng ký để hoàn tất.`,
+        severity: 'info',
+        relatedId: String(contract._id),
+        relatedModel: 'Contract',
+      });
+    } catch {
+      // Không làm hỏng thao tác ký chỉ vì bước thông báo phụ thất bại.
+    }
+  }
+
+  /**
+   * Create a new contract
+   */
+  static async create(
+    body: CreateContractBody,
+    userId: string,
+    role: ContractActorRole
+  ): Promise<IContract> {
+    const { farmerId, enterpriseId } = await this.resolveParticipants(
+      body,
+      userId,
+      role
+    );
+    const { totalValue, commission, depositAmount } =
+      this.calculateFinancials(body);
+    const contractCode = await this.generateContractCode();
+
+    const contract = await Contract.create({
+      ...body,
+      contractCode,
+      farmerId,
+      enterpriseId,
+      productId: body.productId || undefined,
+      totalValue,
+      commission,
+      commissionRate: CONTRACT_CONFIG.COMMISSION_RATE,
+      depositAmount,
+      status: 'pending',
+    });
+
+    await this.notifyContractCreated(role, body, farmerId, String(contract._id));
+
+    return contract;
+  }
+
+  /**
+   * Get contract by ID (only for parties)
+   */
+  static async getById(contractId: string, userId: string): Promise<IContract> {
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
+    this.ensurePartyAccess(contract, userId);
+
+    return contract;
+  }
+
+  /**
+   * List contracts for a user
+   */
+  static async listByUser(
+    userId: string,
+    role: ContractActorRole,
+    status?: string
+  ): Promise<IContract[]> {
+    const query = role === 'farmer' ? { farmerId: userId } : { enterpriseId: userId };
+
+    if (status) {
+      return Contract.find({ ...query, status }).sort({ createdAt: -1 });
+    }
+
+    return Contract.find(query).sort({ createdAt: -1 });
+  }
+
+  /**
+   * Sign a contract
+   */
+  static async sign(
+    contractId: string,
+    userId: string,
+    role: ContractActorRole
+  ): Promise<IContract> {
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
+
+    if (role === 'farmer') {
+      if (contract.farmerId.toString() !== userId) {
+        throw new AppError('Bạn không phải là nông dân trong hợp đồng này', 403);
+      }
+      contract.signedByFarmer = true;
+    } else {
+      if (contract.enterpriseId.toString() !== userId) {
+        throw new AppError('Bạn không phải là doanh nghiệp trong hợp đồng này', 403);
+      }
+      contract.signedByEnterprise = true;
+    }
+
+    // If both signed, update status and product progress
+    if (contract.signedByFarmer && contract.signedByEnterprise) {
+      contract.signedAt = new Date();
+      contract.status = 'approved';
+      await this.updateProductCommitment(contract);
+    }
+
+    await contract.save();
+    await this.notifyContractSigned(contract, role);
 
     return contract;
   }
@@ -243,10 +323,7 @@ export class ContractService {
     userId: string,
     reason: string
   ): Promise<IContract> {
-    const contract = await Contract.findById(contractId);
-    if (!contract) {
-      throw new AppError('Hợp đồng không tồn tại', 404);
-    }
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
 
     if (contract.farmerId.toString() !== userId) {
       throw new AppError('Chỉ nông dân mới có thể từ chối hợp đồng', 403);
@@ -276,7 +353,9 @@ export class ContractService {
         relatedId: String(contract._id),
         relatedModel: 'Contract',
       });
-    } catch { /* non-critical */ }
+    } catch {
+      // Không làm gián đoạn thao tác từ chối nếu chỉ lỗi bước thông báo.
+    }
 
     return contract;
   }
@@ -289,10 +368,7 @@ export class ContractService {
     userId: string,
     reason: string
   ): Promise<IContract> {
-    const contract = await Contract.findById(contractId);
-    if (!contract) {
-      throw new AppError('Hợp đồng không tồn tại', 404);
-    }
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
 
     const isParty =
       contract.farmerId.toString() === userId ||
@@ -326,7 +402,9 @@ export class ContractService {
         relatedId: String(contract._id),
         relatedModel: 'Contract',
       });
-    } catch { /* non-critical */ }
+    } catch {
+      // Không làm hỏng thao tác hủy nếu chỉ lỗi bước thông báo.
+    }
 
     return contract;
   }

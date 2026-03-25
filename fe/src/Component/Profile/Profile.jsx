@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
-import { ROUTES } from "../../constants";
+import { ROUTES, DEFAULT_UI_METRICS } from "../../constants";
 import authService from "../../services/auth.service";
 import { formatMoney } from "../../hooks/useApiData";
 import Navbar from "../Navbar/Navbar";
@@ -197,11 +197,11 @@ export default function Profile() {
               <h3>Thống kê</h3>
               <div className="profile-stats">
                 <div className="stat-box">
-                  <span className="stat-number">{data.reputationScore ?? 85}</span>
+                  <span className="stat-number">{data.reputationScore ?? DEFAULT_UI_METRICS.PROFILE_REPUTATION_SCORE}</span>
                   <span className="stat-label">Điểm uy tín</span>
                 </div>
                 <div className="stat-box">
-                  <span className="stat-number">{formatMoney(data.virtualBalance ?? 50000000000)}</span>
+                  <span className="stat-number">{formatMoney(data.virtualBalance ?? DEFAULT_UI_METRICS.PROFILE_VIRTUAL_BALANCE)}</span>
                   <span className="stat-label">Số dư ảo</span>
                 </div>
                 <div className="stat-box">

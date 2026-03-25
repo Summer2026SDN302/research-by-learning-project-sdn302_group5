@@ -1,156 +1,105 @@
 .hero-section {
-  background-image: url("./BG.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
-  border-radius: 20px;
-  margin: 20px;
-  margin-top: 90px; /* Khoảng cách cho navbar fixed */
-  padding: 90px 0;
-
+  min-height: 100vh;
+  margin: 0;
+  padding: 132px 0 108px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
-/* overlay làm chữ nổi */
 .hero-section::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background:
+    linear-gradient(90deg, rgba(3, 11, 7, 0.74) 0%, rgba(3, 11, 7, 0.46) 40%, rgba(3, 11, 7, 0.22) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.02) 92px, transparent 93px),
+    radial-gradient(circle at 82% 84%, rgba(26, 255, 90, 0.12), transparent 36%);
+}
+
+.hero-section::after {
+  content: "PreOnic";
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  font-size: clamp(3.4rem, 9.2vw, 7.2rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  color: rgba(31, 146, 58, 0.2);
+  text-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
-  max-width: 720px;
+  max-width: 700px;
 }
 
-/* Badge */
 .hero-badge {
   display: inline-block;
-  background: #1aff5a;
-  color: #0b3d1c;
-
-  padding: 6px 16px;
+  background: rgba(36, 248, 90, 0.88);
+  color: #0e4320;
+  padding: 9px 18px;
   border-radius: 999px;
-
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-
+  letter-spacing: 0.8px;
   margin-bottom: 20px;
+  box-shadow: 0 10px 28px rgba(19, 236, 55, 0.22);
 }
 
-/* Title */
 .hero-title {
-  font-size: 52px;
+  font-size: clamp(2.7rem, 5.4vw, 4.75rem);
   font-weight: 900;
-  line-height: 1.2;
-  margin-bottom: 24px;
+  line-height: 1.12;
+  margin-bottom: 20px;
   color: #ffffff;
+  letter-spacing: -0.04em;
 }
 
 .hero-title .highlight {
   display: inline-block;
-  margin-top: 6px;
-
-  font-size: 56px;
+  margin-top: 8px;
+  font-size: clamp(2.9rem, 5.8vw, 4.95rem);
   font-weight: 900;
   font-style: italic;
-
-  color: #1aff5a;
-  text-shadow: 0 4px 20px rgba(26, 255, 90, 0.35);
+  white-space: nowrap;
+  color: #22c55e;
+  text-shadow: 0 6px 24px rgba(26, 255, 90, 0.35);
 }
 
-/* Description */
 .hero-desc {
-  font-size: 17px;
-  line-height: 1.7;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 32px;
+  font-size: 1.08rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 34px;
+  max-width: 590px;
 }
 
-/* Buttons */
-.hero-actions button {
-  margin-right: 16px;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-weight: 600;
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 70px 20px;
-  }
-
-  .hero-title {
-    font-size: 36px;
-  }
-
-  .hero-title .highlight {
-    font-size: 40px;
-  }
-
-  .hero-actions button {
-    margin-bottom: 12px;
-  }
-}
-
-/* Animated particles */
 .hero-particles {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
+  display: none;
 }
 
-.hero-particles .particle {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: rgba(26, 255, 90, 0.4);
-  border-radius: 50%;
-  filter: blur(2px);
-}
-
-/* Floating decorative elements */
 .hero-float-element {
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(26, 255, 90, 0.2) 0%, transparent 70%);
-  z-index: 1;
-  pointer-events: none;
+  display: none;
 }
 
-.hero-float-element.float-1 {
-  top: 20%;
-  right: 10%;
-  width: 150px;
-  height: 150px;
-}
-
-.hero-float-element.float-2 {
-  bottom: 20%;
-  left: 5%;
-  width: 80px;
-  height: 80px;
-}
-
-/* Enhanced highlight animation */
 .hero-title .highlight {
   display: inline-block;
-  margin-top: 6px;
-  font-size: 56px;
-  font-weight: 900;
-  font-style: italic;
-  color: #1aff5a;
-  text-shadow: 0 4px 20px rgba(26, 255, 90, 0.35);
-  background: linear-gradient(90deg, #1aff5a, #00ff88, #1aff5a);
+  background: linear-gradient(90deg, #22c55e, #34d399, #22c55e);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -162,30 +111,29 @@
   50% { background-position: 100% 50%; }
 }
 
-/* Button hover enhancements */
 .hero-actions > div {
   display: inline-block;
 }
 
 .hero-actions button {
-  margin-right: 16px;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-weight: 600;
+  min-width: 214px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.96rem;
   transition: all 0.3s ease;
 }
 
-/* Primary Button - Màu xanh lá chủ đạo */
 .hero-btn-primary {
   background: #13ec37 !important;
   border: none !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(19, 236, 55, 0.4);
+  color: #07401b !important;
+  box-shadow: 0 12px 28px rgba(19, 236, 55, 0.34);
 }
 
 .hero-btn-primary:hover {
-  background: #0ea830 !important;
-  box-shadow: 0 6px 20px rgba(19, 236, 55, 0.5) !important;
+  background: #16d93f !important;
+  box-shadow: 0 14px 30px rgba(19, 236, 55, 0.42) !important;
   transform: translateY(-2px);
 }
 
@@ -193,33 +141,43 @@
   transform: translateY(0) !important;
 }
 
-/* Secondary Button - Outline xanh lá */
 .hero-btn-secondary {
-  background: transparent !important;
-  border: 2px solid #13ec37 !important;
-  color: #13ec37 !important;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-btn-secondary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 100%;
-  background: #13ec37;
-  transition: width 0.3s ease;
-  z-index: -1;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  color: #185b31 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
 }
 
 .hero-btn-secondary:hover {
-  color: #ffffff !important;
-  border-color: #13ec37 !important;
-  box-shadow: 0 4px 14px rgba(19, 236, 55, 0.4) !important;
+  color: #115228 !important;
+  background: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 14px 30px rgba(255, 255, 255, 0.2) !important;
 }
 
-.hero-btn-secondary:hover::before {
-  width: 100%;
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: auto;
+    margin-top: 0;
+    padding: 120px 0 82px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-desc {
+    font-size: 0.98rem;
+    margin-bottom: 22px;
+    line-height: 1.7;
+  }
+
+  .hero-actions button {
+    min-width: 100%;
+  }
+
+  .hero-section::after {
+    font-size: 3.6rem;
+    bottom: 14px;
+  }
 }

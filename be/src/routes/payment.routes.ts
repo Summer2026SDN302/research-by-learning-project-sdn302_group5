@@ -12,7 +12,7 @@ import {
 
 const router = Router();
 
-// PayOS webhook — no auth required (PayOS calls this)
+// Payment gateway webhook — no auth required
 router.post('/webhook', handleWebhook);
 
 // All other routes require authentication

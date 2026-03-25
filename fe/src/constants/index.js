@@ -49,6 +49,21 @@ export const STORAGE_KEYS = {
   USER: 'user',
 };
 
+// ===== ĐỊNH DẠNG DÙNG CHUNG =====
+export const DATE_FORMATS = {
+  SHORT_DATE: {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  },
+  FULL_DATE: {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  },
+};
+
 // ===== COMPANY INFO =====
 export const COMPANY = {
   NAME: 'PreOnic',
@@ -80,6 +95,51 @@ export const CONTRACT_STATUS = {
   ACTIVE: 'active',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+};
+
+export const CONTRACT_STATUS_META = {
+  [CONTRACT_STATUS.DRAFT]: { label: 'Bản nháp', color: '#9ca3af' },
+  [CONTRACT_STATUS.PENDING]: { label: 'Chờ duyệt', color: '#f59e0b' },
+  [CONTRACT_STATUS.APPROVED]: { label: 'Đã phê duyệt', color: '#0ea5e9' },
+  [CONTRACT_STATUS.ACTIVE]: { label: 'Đang chạy', color: '#1d4ed8' },
+  [CONTRACT_STATUS.COMPLETED]: { label: 'Hoàn thành', color: '#16a34a' },
+  [CONTRACT_STATUS.CANCELLED]: { label: 'Đã hủy', color: '#ef4444' },
+};
+
+export const getContractStatusMeta = (status) =>
+  CONTRACT_STATUS_META[status] || { label: status || 'Không xác định', color: '#9ca3af' };
+
+// ===== CẤU HÌNH DASHBOARD =====
+export const SEARCH_PLACEHOLDERS = {
+  FARMER_DASHBOARD: 'Tìm kiếm mùa vụ, hợp đồng...',
+  ENTERPRISE_DASHBOARD: 'Tìm kiếm nông dân, nông sản, hoặc hợp đồng...',
+};
+
+export const FARMER_DASHBOARD_NAV_ITEMS = [
+  { key: 'muavu', label: 'Mùa vụ của tôi', cls: 'nav-season' },
+  { key: 'hopdong', label: 'Hợp đồng', cls: 'nav-contract' },
+  { key: 'donhang', label: 'Đơn hàng', cls: 'nav-order' },
+  { key: 'escrow', label: 'Thanh toán trung gian', cls: 'nav-escrow' },
+  { key: 'vi', label: 'Ví & Thanh toán', cls: 'nav-wallet' },
+  { key: 'danhgia', label: 'Đánh giá đối tác', cls: 'nav-rating' },
+  { key: 'thoitiet', label: 'Thời tiết & Bảo hiểm', cls: 'nav-weather' },
+];
+
+export const ENTERPRISE_DASHBOARD_NAV_ITEMS = [
+  { key: 'tongguan', label: 'Tổng quan', cls: 'nav-overview' },
+  { key: 'hopdong', label: 'Hợp đồng', cls: 'nav-contract' },
+  { key: 'sanpham', label: 'Danh sách sản phẩm', cls: 'nav-product' },
+  { key: 'donhang', label: 'Theo dõi đơn hàng', cls: 'nav-order' },
+  { key: 'escrow', label: 'Thanh toán trung gian', cls: 'nav-escrow' },
+  { key: 'vi', label: 'Ví & Thanh toán', cls: 'nav-wallet' },
+  { key: 'lichsu', label: 'Lịch sử giao dịch', cls: 'nav-warehouse' },
+  { key: 'danhgia', label: 'Đánh giá đối tác', cls: 'nav-rating' },
+  { key: 'thoitiet', label: 'Thời tiết & Bảo hiểm', cls: 'nav-weather' },
+];
+
+export const DEFAULT_UI_METRICS = {
+  PROFILE_REPUTATION_SCORE: 0,
+  PROFILE_VIRTUAL_BALANCE: 0,
 };
 
 // ===== FILE UPLOAD =====

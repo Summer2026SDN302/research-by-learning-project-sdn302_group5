@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Container } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { COMPANY } from "../../constants";
 import messagingService from "../../services/messaging.service";
@@ -9,31 +9,51 @@ import "./Messaging.css";
 
 const POLLING_INTERVAL_MS = 5000;
 
-/** Normalize a raw API conversation to UI shape */
-const toUiConversation = (c) => ({
-  id: c._id,
-  name: c.partner?.fullName || "Người dùng",
-  avatar: (c.partner?.fullName || "ND").slice(0, 2).toUpperCase(),
-  role: c.partner?.role || "farmer",
-  lastMessage: c.lastMessage || "",
-  time: c.lastMessageAt
-    ? new Date(c.lastMessageAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-    : "",
-  unread: 0,
-  online: false,
-});
+const getCurrentUserId = (user) => user?._id || user?.id || user?.email || null;
 
-/** Normalize a raw API message to UI shape */
-const toUiMessage = (m, currentUserId) => ({
-  id: m._id,
-  sender: m.sender?._id === currentUserId || m.sender?.email === currentUserId ? "me" : "them",
-  text: m.text,
-  time: new Date(m.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-});
+const toUiConversation = (conversation, currentUserId) => {
+  const partner =
+    conversation.partner
+    || conversation.participants?.find((participant) => {
+      const participantId = participant?._id || participant?.id;
+      return participantId && participantId !== currentUserId;
+    })
+    || null;
+
+  return {
+    id: conversation._id,
+    name: partner?.fullName || "Nguoi dung",
+    avatar: (partner?.fullName || "ND").slice(0, 2).toUpperCase(),
+    role: partner?.role || "farmer",
+    lastMessage: conversation.lastMessage || "",
+    time: conversation.lastMessageAt
+      ? new Date(conversation.lastMessageAt).toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+    unread: 0,
+    online: false,
+  };
+};
+
+const toUiMessage = (message, currentUserId) => {
+  const senderId = message.sender?._id || message.sender?.id || message.sender;
+  return {
+    id: message._id,
+    sender: senderId === currentUserId ? "me" : "them",
+    text: message.text,
+    time: new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+};
 
 function Messaging() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeChat, setActiveChat] = useState(null);
   const [inputText, setInputText] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -41,86 +61,175 @@ function Messaging() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [conversationError, setConversationError] = useState("");
   const messagesEndRef = useRef(null);
   const pollingRef = useRef(null);
+
+  const currentUserId = getCurrentUserId(user);
+  const initialPartnerId = searchParams.get("partnerId");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const mergeConversation = useCallback((conversation) => {
+    setConversations((prev) => {
+      const next = prev.filter((item) => item.id !== conversation.id);
+      return [conversation, ...next];
+    });
+  }, []);
+
+  const loadMessages = useCallback(async (chatId) => {
+    if (!chatId || !currentUserId) return;
+
+    try {
+      const res = await messagingService.getMessages(chatId);
+      if (res?.data) {
+        const apiMessages = res.data.map((message) =>
+          toUiMessage(message, currentUserId)
+        );
+        setMessages((prev) => ({ ...prev, [chatId]: apiMessages }));
+      }
+    } catch {
+      // Keep existing messages on error so the screen stays usable.
+    }
+  }, [currentUserId]);
+
   useEffect(() => {
     scrollToBottom();
   }, [activeChat, messages]);
 
-  // Load conversation list once on mount
   useEffect(() => {
-    const loadConversations = async () => {
+    if (!currentUserId) return undefined;
+
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      setLoadingConvs(true);
+      setConversationError("");
+
       try {
         const res = await messagingService.getConversations();
-        if (res?.data) {
-          const convs = res.data.map(toUiConversation);
-          setConversations(convs);
-          if (convs.length > 0) setActiveChat(convs[0].id);
+        let nextConversations = (res?.data || []).map((conversation) =>
+          toUiConversation(conversation, currentUserId)
+        );
+
+        if (initialPartnerId) {
+          try {
+            const createdRes = await messagingService.createConversation(initialPartnerId);
+            if (createdRes?.data) {
+              const createdConversation = toUiConversation(
+                createdRes.data,
+                currentUserId
+              );
+              nextConversations = [
+                createdConversation,
+                ...nextConversations.filter((item) => item.id !== createdConversation.id),
+              ];
+            }
+          } catch (error) {
+            if (!cancelled) {
+              setConversationError(
+                error?.message || "Khong the bat dau cuoc tro chuyen moi"
+              );
+            }
+          } finally {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        }
+
+        if (!cancelled) {
+          setConversations(nextConversations);
+          setActiveChat((prev) => prev || nextConversations[0]?.id || null);
         }
       } catch {
-        // API unavailable — show empty state, user can still try later
+        if (!cancelled) {
+          setConversationError("Khong the tai danh sach cuoc tro chuyen");
+          setConversations([]);
+        }
       } finally {
-        setLoadingConvs(false);
+        if (!cancelled) {
+          setLoadingConvs(false);
+        }
       }
     };
-    loadConversations();
-  }, []);
 
-  // Load messages when switching conversation + start polling
-  const loadMessages = useCallback(async (chatId) => {
-    if (!chatId) return;
-    try {
-      const res = await messagingService.getMessages(chatId);
-      if (res?.data) {
-        const userId = user?._id || user?.email;
-        const apiMsgs = res.data.map((m) => toUiMessage(m, userId));
-        setMessages((prev) => ({ ...prev, [chatId]: apiMsgs }));
-      }
-    } catch { /* keep existing messages on error */ }
-  }, [user]);
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId, initialPartnerId]);
 
   useEffect(() => {
-    if (!activeChat) return;
+    if (!activeChat) return undefined;
 
     setLoadingMsgs(true);
     loadMessages(activeChat).finally(() => setLoadingMsgs(false));
 
-    // Start / reset polling for active conversation
     clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(() => loadMessages(activeChat), POLLING_INTERVAL_MS);
+    pollingRef.current = setInterval(() => {
+      loadMessages(activeChat);
+    }, POLLING_INTERVAL_MS);
 
     return () => clearInterval(pollingRef.current);
   }, [activeChat, loadMessages]);
 
   const handleSend = async () => {
     if (!inputText.trim() || !activeChat) return;
-    const text = inputText.trim();
-    const now = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const optimisticMsg = { id: `opt-${Date.now()}`, sender: "me", text, time: now };
 
-    // Optimistic update
-    setMessages((prev) => ({ ...prev, [activeChat]: [...(prev[activeChat] || []), optimisticMsg] }));
+    const text = inputText.trim();
+    const now = new Date();
+    const nowText = now.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const optimisticMessage = {
+      id: `opt-${Date.now()}`,
+      sender: "me",
+      text,
+      time: nowText,
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeChat]: [...(prev[activeChat] || []), optimisticMessage],
+    }));
+
     setConversations((prev) =>
-      prev.map((c) => (c.id === activeChat ? { ...c, lastMessage: text, time: now } : c))
+      prev.map((conversation) =>
+        conversation.id === activeChat
+          ? { ...conversation, lastMessage: text, time: nowText }
+          : conversation
+      )
     );
+
     setInputText("");
 
     try {
       await messagingService.sendMessage(activeChat, text);
-      // Refresh messages to replace optimistic entry with real one
+      const updatedConversation = conversations.find(
+        (conversation) => conversation.id === activeChat
+      );
+      if (updatedConversation) {
+        mergeConversation({
+          ...updatedConversation,
+          lastMessage: text,
+          time: nowText,
+        });
+      }
       await loadMessages(activeChat);
-    } catch { /* optimistic message already visible; user sees their text */ }
+    } catch {
+      // The optimistic entry remains visible; polling/manual refresh can recover.
+    }
   };
 
-  const activePerson = conversations.find((c) => c.id === activeChat);
+  const activePerson = conversations.find((conversation) => conversation.id === activeChat);
   const currentMessages = messages[activeChat] || [];
   const filteredConversations = conversations.filter(
-    (c) => !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (conversation) =>
+      !searchQuery
+      || conversation.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -129,83 +238,115 @@ function Messaging() {
       <div className="messaging-page">
         <Container fluid className="messaging-container">
           <div className="messaging-layout">
-            {/* LEFT — Conversation List */}
             <div className="msg-sidebar">
               <div className="msg-sidebar-header">
-                <h3><span className="msg-header-icon" /> Tin nhắn</h3>
-                <button className="back-btn" onClick={() => navigate(-1)}>Quay lại</button>
+                <h3><span className="msg-header-icon" /> Tin nhan</h3>
+                <button className="back-btn" onClick={() => navigate(-1)}>Quay lai</button>
               </div>
 
               <div className="msg-search">
-                <input type="text" placeholder="Tìm kiếm cuộc trò chuyện..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <input
+                  type="text"
+                  placeholder="Tim kiem cuoc tro chuyen..."
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
               </div>
+
+              {conversationError && (
+                <div className="msg-list-empty">
+                  <p>{conversationError}</p>
+                </div>
+              )}
 
               <div className="msg-list">
                 {loadingConvs ? (
-                  <div className="msg-list-loading">Đang tải...</div>
+                  <div className="msg-list-loading">Dang tai...</div>
                 ) : filteredConversations.length === 0 ? (
                   <div className="msg-list-empty">
-                    <p>{searchQuery ? "Không tìm thấy cuộc trò chuyện" : "Chưa có cuộc trò chuyện nào"}</p>
+                    <p>
+                      {searchQuery
+                        ? "Khong tim thay cuoc tro chuyen"
+                        : "Chua co cuoc tro chuyen nao"}
+                    </p>
+                    {!searchQuery && (
+                      <p>Hay mo tu trang san pham de bat dau nhan tin voi doi tac.</p>
+                    )}
                   </div>
                 ) : (
-                  filteredConversations.map(conv => (
+                  filteredConversations.map((conversation) => (
                     <div
-                      key={conv.id}
-                      className={`msg-item ${activeChat === conv.id ? "active" : ""}`}
-                      onClick={() => setActiveChat(conv.id)}
+                      key={conversation.id}
+                      className={`msg-item ${activeChat === conversation.id ? "active" : ""}`}
+                      onClick={() => setActiveChat(conversation.id)}
                     >
                       <div className="msg-item-avatar">
-                        {conv.avatar}
-                        {conv.online && <span className="online-dot"></span>}
+                        {conversation.avatar}
+                        {conversation.online && <span className="online-dot" />}
                       </div>
                       <div className="msg-item-content">
                         <div className="msg-item-top">
-                          <h4>{conv.name}</h4>
-                          <span className="msg-time">{conv.time}</span>
+                          <h4>{conversation.name}</h4>
+                          <span className="msg-time">{conversation.time}</span>
                         </div>
-                        <p className="msg-preview">{conv.lastMessage}</p>
+                        <p className="msg-preview">{conversation.lastMessage}</p>
                       </div>
-                      {conv.unread > 0 && <span className="unread-badge">{conv.unread}</span>}
+                      {conversation.unread > 0 && (
+                        <span className="unread-badge">{conversation.unread}</span>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            {/* RIGHT — Chat */}
             <div className="msg-chat">
               {activePerson ? (
                 <>
                   <div className="msg-chat-header">
                     <div className="chat-person">
-                      <div className="msg-item-avatar">{activePerson.avatar}{activePerson.online && <span className="online-dot"></span>}</div>
+                      <div className="msg-item-avatar">
+                        {activePerson.avatar}
+                        {activePerson.online && <span className="online-dot" />}
+                      </div>
                       <div>
                         <h4>{activePerson.name}</h4>
-                        <span className="chat-status">{activePerson.online ? "Đang hoạt động" : "Offline"}</span>
+                        <span className="chat-status">
+                          {activePerson.online ? "Dang hoat dong" : "Offline"}
+                        </span>
                       </div>
                     </div>
                     <div className="chat-actions">
-                      <button className="chat-action-btn contract-action" title="Tạo hợp đồng"><span className="action-icon contract-a-icon" /></button>
-                      <button className="chat-action-btn call-action" title="Gọi điện"><span className="action-icon call-a-icon" /></button>
-                      <button className="chat-action-btn more-action" title="Thêm">...</button>
+                      <button className="chat-action-btn contract-action" title="Tao hop dong">
+                        <span className="action-icon contract-a-icon" />
+                      </button>
+                      <button className="chat-action-btn call-action" title="Goi dien">
+                        <span className="action-icon call-a-icon" />
+                      </button>
+                      <button className="chat-action-btn more-action" title="Them">...</button>
                     </div>
                   </div>
 
                   <div className="msg-chat-body">
                     <div className="preon-notice">
                       <span className="shield-icon" />
-                      <p>Cuộc trò chuyện được bảo vệ bởi {COMPANY.NAME}. Mọi thỏa thuận nên được ký kết qua hợp đồng điện tử để đảm bảo quyền lợi.</p>
+                      <p>
+                        Cuoc tro chuyen duoc bao ve boi {COMPANY.NAME}. Moi thoa thuan
+                        nen duoc ky ket qua hop dong dien tu de dam bao quyen loi.
+                      </p>
                     </div>
 
                     {loadingMsgs && currentMessages.length === 0 ? (
-                      <div className="msgs-loading">Đang tải tin nhắn...</div>
+                      <div className="msgs-loading">Dang tai tin nhan...</div>
                     ) : currentMessages.length === 0 ? (
-                      <div className="msgs-empty">Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!</div>
+                      <div className="msgs-empty">
+                        Chua co tin nhan. Hay bat dau cuoc tro chuyen!
+                      </div>
                     ) : (
-                      currentMessages.map(msg => (
-                        <div key={msg.id} className={`msg-bubble ${msg.sender}`}>
-                          <p>{msg.text}</p>
-                          <span className="msg-bubble-time">{msg.time}</span>
+                      currentMessages.map((message) => (
+                        <div key={message.id} className={`msg-bubble ${message.sender}`}>
+                          <p>{message.text}</p>
+                          <span className="msg-bubble-time">{message.time}</span>
                         </div>
                       ))
                     )}
@@ -213,21 +354,29 @@ function Messaging() {
                   </div>
 
                   <div className="msg-chat-input">
-                    <button className="attach-btn" title="Đính kèm"><span className="attach-icon" /></button>
+                    <button className="attach-btn" title="Dinh kem">
+                      <span className="attach-icon" />
+                    </button>
                     <input
                       type="text"
-                      placeholder="Nhập tin nhắn..."
+                      placeholder="Nhap tin nhan..."
                       value={inputText}
-                      onChange={e => setInputText(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleSend()}
+                      onChange={(event) => setInputText(event.target.value)}
+                      onKeyDown={(event) => event.key === "Enter" && handleSend()}
                     />
-                    <button className="send-btn" onClick={handleSend} disabled={!inputText.trim()}>Gửi</button>
+                    <button
+                      className="send-btn"
+                      onClick={handleSend}
+                      disabled={!inputText.trim()}
+                    >
+                      Gui
+                    </button>
                   </div>
                 </>
               ) : (
                 <div className="msg-empty">
                   <div className="empty-msg-icon" />
-                  <p>Chọn cuộc trò chuyện để bắt đầu</p>
+                  <p>Chon cuoc tro chuyen de bat dau</p>
                 </div>
               )}
             </div>

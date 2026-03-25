@@ -161,7 +161,7 @@ const Auth = () => {
             if (user.role === 'farmer') {
               navigate(ROUTES.FARMER);
             } else if (user.role === 'enterprise') {
-              navigate(ROUTES.PRODUCTS);
+              navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
             } else {
               navigate(ROUTES.HOME);
             }

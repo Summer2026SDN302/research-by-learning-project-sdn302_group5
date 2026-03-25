@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Navbar, Nav, Container, Button } from "react-bootstrap";
-import { FiFeather } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { NAV_ITEMS, ROUTES, TOAST_DURATION } from "../../constants";
+import BrandLogo from "../BrandLogo/BrandLogo";
 import "./Navbar.css";
 
 const NavbarComponent = () => {
@@ -64,10 +64,7 @@ const NavbarComponent = () => {
               onClick={() => navigate(ROUTES.HOME)} 
               style={{ cursor: "pointer" }}
             >
-              <div className="logo-container">
-                <div className="logo-icon"><FiFeather size={18} /></div>
-                <span className="logo-text">PreOnic</span>
-              </div>
+              <BrandLogo size="sm" />
             </Navbar.Brand>
           </motion.div>
 
