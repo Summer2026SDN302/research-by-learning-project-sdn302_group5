@@ -95,6 +95,16 @@ const Register = () => {
       return;
     }
 
+    if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      setError('Email khĂ´ng há»£p lá»‡');
+      return;
+    }
+
+    if (!/^[0-9]{10,11}$/.test(formData.phone.trim())) {
+      setError('Sá»‘ Ä‘iá»‡n thoáº¡i pháº£i cĂ³ 10-11 chá»¯ sá»‘');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
       return;
@@ -420,17 +430,22 @@ const Register = () => {
                   <label>Mật khẩu</label>
                   <div className="password-input">
                     <motion.input
+                      key={`password-${showPassword ? "text" : "password"}`}
                       type={showPassword ? "text" : "password"}
                       name="password"
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={handleInputChange}
+                      autoComplete="new-password"
                       whileFocus={{ scale: 1.01 }}
                     />
                     <motion.button
                       type="button"
                       className="toggle-password"
-                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "áº¨n máº­t kháº©u" : "Hiá»‡n máº­t kháº©u"}
+                      aria-pressed={showPassword}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowPassword((prev) => !prev)}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >
@@ -454,17 +469,22 @@ const Register = () => {
                   <label>Xác nhận mật khẩu</label>
                   <div className="password-input">
                     <motion.input
+                      key={`confirm-password-${showConfirmPassword ? "text" : "password"}`}
                       type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       placeholder="••••••••"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
+                      autoComplete="new-password"
                       whileFocus={{ scale: 1.01 }}
                     />
                     <motion.button
                       type="button"
                       className="toggle-password"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "áº¨n máº­t kháº©u xĂ¡c nháº­n" : "Hiá»‡n máº­t kháº©u xĂ¡c nháº­n"}
+                      aria-pressed={showConfirmPassword}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >

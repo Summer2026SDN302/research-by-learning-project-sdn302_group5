@@ -1,5 +1,5 @@
 import Contract, { IContract } from '../models/Contract.model';
-import Product from '../models/Product.model';
+import Product, { IProduct } from '../models/Product.model';
 import { AppError } from '../middlewares/error.middleware';
 import { EscrowService } from './escrow.service';
 import { NotificationService } from './notification.service';
@@ -72,6 +72,54 @@ export class ContractService {
     return { totalValue, commission, depositAmount };
   }
 
+  private static toKg(quantity: number, unit: CreateContractBody['unit']): number {
+    return quantity * UNIT_TO_KG[unit];
+  }
+
+  private static getAvailableProductQuantityKg(product: IProduct): number {
+    return Math.max(0, Number(product.remaining ?? product.totalQuantity ?? 0));
+  }
+
+  private static formatQuantityForDisplay(
+    quantityKg: number,
+    unit: string = 'kg'
+  ): string {
+    if (unit === 'tan') {
+      return `${Number((quantityKg / UNIT_TO_KG.tan).toFixed(3)).toLocaleString('vi-VN')} tấn`;
+    }
+
+    if (unit === 'thung') {
+      return `${Number((quantityKg / UNIT_TO_KG.thung).toFixed(2)).toLocaleString('vi-VN')} thùng`;
+    }
+
+    return `${Number(quantityKg.toFixed(2)).toLocaleString('vi-VN')} kg`;
+  }
+
+  private static async ensureRequestedQuantityAvailable(
+    productId: string | undefined,
+    quantity: number,
+    unit: CreateContractBody['unit']
+  ): Promise<void> {
+    if (!productId) {
+      return;
+    }
+
+    const product = await Product.findById(productId);
+    if (!product || !product.isActive) {
+      throw new AppError('Sản phẩm không tồn tại hoặc đã ngừng hiển thị', 404);
+    }
+
+    const requestedKg = this.toKg(quantity, unit);
+    const availableKg = this.getAvailableProductQuantityKg(product);
+
+    if (requestedKg - availableKg > 1e-9) {
+      throw new AppError(
+        `Số lượng hợp đồng vượt quá sản lượng còn lại của sản phẩm. Tối đa còn ${this.formatQuantityForDisplay(availableKg, product.unit)}.`,
+        400
+      );
+    }
+  }
+
   private static async generateContractCode(): Promise<string> {
     const year = new Date().getFullYear();
 
@@ -125,6 +173,15 @@ export class ContractService {
     }
 
     const committedKg = contract.quantity * UNIT_TO_KG[contract.unit];
+    const availableKg = this.getAvailableProductQuantityKg(product);
+
+    if (committedKg - availableKg > 1e-9) {
+      throw new AppError(
+        `Sản lượng còn lại của sản phẩm không đủ để ký hợp đồng này. Tối đa còn ${this.formatQuantityForDisplay(availableKg, product.unit)}.`,
+        400
+      );
+    }
+
     const addedProgressPercent = (committedKg / product.totalQuantity) * 100;
 
     product.progress = Math.min(100, (product.progress || 0) + addedProgressPercent);
@@ -230,6 +287,11 @@ export class ContractService {
       body,
       userId,
       role
+    );
+    await this.ensureRequestedQuantityAvailable(
+      body.productId,
+      body.quantity,
+      body.unit
     );
     const { totalValue, commission, depositAmount } =
       this.calculateFinancials(body);

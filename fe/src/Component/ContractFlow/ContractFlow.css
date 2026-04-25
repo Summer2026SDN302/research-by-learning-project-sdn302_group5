@@ -198,6 +198,18 @@
 }
 
 /* ── Summary ── */
+.cf-field-note {
+  margin: 2px 0 0;
+  font-size: .8rem;
+  color: #198754;
+  line-height: 1.4;
+}
+
+.cf-field-note.error {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
 .cf-summary {
   display: flex;
   flex-direction: column;

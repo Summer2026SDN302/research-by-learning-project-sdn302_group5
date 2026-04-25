@@ -266,7 +266,15 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 1;
+  transition: background 0.2s ease;
 }
 
 .toggle-password svg {
@@ -276,8 +284,18 @@
   transition: color 0.3s;
 }
 
+.toggle-password:hover {
+  background: rgba(19, 236, 55, 0.06);
+}
+
 .toggle-password:hover svg {
   color: #13ec37;
+}
+
+.toggle-password:focus-visible {
+  outline: none;
+  background: rgba(19, 236, 55, 0.1);
+  box-shadow: 0 0 0 3px rgba(19, 236, 55, 0.14);
 }
 
 /* TERMS CHECKBOX */
@@ -310,14 +328,40 @@
   cursor: pointer;
 }
 
-.terms-checkbox label a {
-  color: #13ec37;
-  font-weight: 600;
-  text-decoration: none;
+.register-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 2px;
+  padding: 0 0 1px;
+  border: none;
+  border-bottom: 1px solid rgba(19, 236, 55, 0.28);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #2f8f48;
+  font: inherit;
+  font-weight: 700;
+  line-height: inherit;
+  vertical-align: baseline;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
-.terms-checkbox label a:hover {
-  text-decoration: underline;
+.register-link-btn:hover {
+  color: #13ec37;
+  border-bottom-color: currentColor;
+}
+
+.register-link-btn:focus-visible {
+  outline: none;
+  border-bottom-color: currentColor;
+  box-shadow: 0 0 0 3px rgba(19, 236, 55, 0.14);
+  border-radius: 6px;
+}
+
+.register-link-btn:active {
+  opacity: 0.75;
 }
 
 /* SUBMIT BUTTON */

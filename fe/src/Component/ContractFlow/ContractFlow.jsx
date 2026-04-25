@@ -18,6 +18,18 @@ const STEPS = [
   { key: "done", label: "Hoàn tất" },
 ];
 
+const UNIT_TO_KG = {
+  tan: 1000,
+  kg: 1,
+  thung: 25,
+};
+
+const formatQuantityByUnit = (quantity, unit) => {
+  const numericValue = Number(quantity) || 0;
+  const fractionDigits = unit === "tan" ? 3 : unit === "thung" ? 2 : 0;
+  return Number(numericValue.toFixed(fractionDigits)).toLocaleString("vi-VN");
+};
+
 function ContractFlow() {
   const { user } = useAuth();
   const toast = useToast();
@@ -28,6 +40,7 @@ function ContractFlow() {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [createdContract, setCreatedContract] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [form, setForm] = useState({
     productName: "",
     quantity: "",
@@ -47,11 +60,13 @@ function ContractFlow() {
       .then(res => {
         const p = res?.data?.product;
         if (!p) return;
+        setSelectedProduct(p);
         setForm(prev => ({
           ...prev,
           productName: p.name || prev.productName,
+          unit: p.unit || prev.unit,
           pricePerUnit: prev.pricePerUnit || String(p.priceMin || ""),
-          quantity: prev.quantity || "5",
+          quantity: prev.quantity || "1",
         }));
       })
       .catch(() => { /* ignore */ });
@@ -71,7 +86,17 @@ function ContractFlow() {
   const [agreed, setAgreed] = useState({ terms: false, preon: false });
   const [showTermsModal, setShowTermsModal] = useState(null); // 'contract' | 'service'
 
-  const totalValue = (parseFloat(form.quantity) || 0) * (parseFloat(form.pricePerUnit) || 0) * 1000;
+  const unitFactor = UNIT_TO_KG[form.unit] || 1;
+  const requestedQuantity = parseFloat(form.quantity) || 0;
+  const availableQuantityKg = Number(selectedProduct?.remaining ?? selectedProduct?.totalQuantity ?? 0);
+  const availableQuantityInSelectedUnit = selectedProduct ? availableQuantityKg / unitFactor : 0;
+  const maxQuantityInSelectedUnit = selectedProduct
+    ? Number(availableQuantityInSelectedUnit.toFixed(form.unit === "tan" ? 3 : 2))
+    : undefined;
+  const quantityExceedsAvailable =
+    !!selectedProduct && requestedQuantity * unitFactor - availableQuantityKg > 1e-9;
+  const quantityInputStep = form.unit === "tan" ? "0.001" : form.unit === "thung" ? "0.1" : "1";
+  const totalValue = requestedQuantity * (parseFloat(form.pricePerUnit) || 0) * unitFactor;
   const commission = totalValue * COMPANY.COMMISSION_RATE / 100;
 
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -97,6 +122,8 @@ function ContractFlow() {
   const canAdvance = () => {
     if (currentStep === 0) {
       if (!form.productName || !form.quantity || !form.pricePerUnit || !form.deliveryDate) return false;
+      if (requestedQuantity <= 0) return false;
+      if (selectedProduct && quantityExceedsAvailable) return false;
       if (form.paymentTerms === "custom" && !customDepositValid()) return false;
       return true;
     }
@@ -210,13 +237,30 @@ function ContractFlow() {
                     <div className="cf-field">
                       <label>Số lượng *</label>
                       <div className="cf-input-group">
-                        <input type="number" value={form.quantity} onChange={e => handleChange("quantity", e.target.value)} placeholder="VD: 5" />
+                        <input
+                          type="number"
+                          min="0.01"
+                          step={quantityInputStep}
+                          max={maxQuantityInSelectedUnit}
+                          value={form.quantity}
+                          onChange={e => handleChange("quantity", e.target.value)}
+                          placeholder="VD: 5"
+                        />
                         <select value={form.unit} onChange={e => handleChange("unit", e.target.value)}>
                           <option value="tan">tan</option>
                           <option value="kg">kg</option>
                           <option value="thung">thung</option>
                         </select>
                       </div>
+                      {selectedProduct && (
+                        <p className={`cf-field-note ${quantityExceedsAvailable ? "error" : ""}`}>
+                          {availableQuantityKg <= 0
+                            ? "Sản phẩm này hiện không còn sản lượng khả dụng."
+                            : quantityExceedsAvailable
+                              ? `Số lượng vượt mức cho phép. Tối đa còn ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${form.unit}.`
+                              : `Sản lượng còn lại: ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${form.unit}.`}
+                        </p>
+                      )}
                     </div>
                   </div>
 

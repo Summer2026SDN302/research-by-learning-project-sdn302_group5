@@ -20,6 +20,13 @@ const clearAuth = () => {
 /** Extract a user-friendly error message from an API error */
 const extractErrorMessage = (error, fallback) => {
   const errorData = error.response?.data;
+  if (!errorData && error.request) {
+    return {
+      success: false,
+      message: 'Không thể kết nối tới máy chủ. Hãy kiểm tra backend đang chạy ở http://localhost:8080.',
+    };
+  }
+
   // Prefer specific validation errors over generic message
   const message = errorData?.errors?.[0] || errorData?.message || fallback;
   return { ...errorData, message };
