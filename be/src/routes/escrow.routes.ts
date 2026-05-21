@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect } from '../middlewares/auth.middleware';
+import { protect, restrictTo } from '../middlewares/auth.middleware';
 import {
   createEscrow,
   deposit,
@@ -24,7 +24,7 @@ router.get('/balance', getBalance);
 
 // ===== DISPUTES =====
 router.get('/disputes', listUserDisputes);
-router.post('/disputes/:id/resolve', resolveDispute);
+router.post('/disputes/:id/resolve', restrictTo('admin'), resolveDispute);
 
 // ===== ESCROW CRUD =====
 router.post('/', createEscrow);

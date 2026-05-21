@@ -21,7 +21,7 @@ export interface CreateContractBody {
   notes?: string;
 }
 
-type ContractActorRole = 'farmer' | 'enterprise';
+type ContractActorRole = 'farmer' | 'enterprise' | 'admin';
 
 interface ContractParticipants {
   farmerId: string;

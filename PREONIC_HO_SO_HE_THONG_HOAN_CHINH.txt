@@ -5,7 +5,7 @@ Nguồn sự thật được sử dụng: mã nguồn hiện tại trong repo + 
 
 GHI CHÚ QUAN TRỌNG
 - Báo cáo này được viết dựa trên code hiện có, không dựa trên tài liệu cũ.
-- File `PROJECT_OVERVIEW.txt`, `be/.env.example`, `fe/.env.example` và một số cấu hình frontend đang có độ lệch so với code đang chạy.
+- File `PROJECT_OVERVIEW.txt` và một số cấu hình frontend có thể lệch so với code đang chạy; `be/.env.example` và `fe/.env.example` đã được đồng bộ.
 - Báo cáo không công bố giá trị bí mật trong `.env`, chỉ mô tả tên biến và vai trò.
 - File TXT không chèn ảnh trực tiếp. Vì vậy phần "Kết quả chạy" sẽ cung cấp:
   1. Kết quả xác minh kỹ thuật thực tế.
@@ -48,24 +48,22 @@ GHI CHÚ QUAN TRỌNG
 
 1.4. Cấu hình runtime đang dùng trong workspace
 - Backend:
-  - `PORT=5001`
+  - `PORT=8080`
   - `API_PREFIX=/api/v1`
-  - `FRONTEND_URL=http://localhost:3001`
+  - `FRONTEND_URL=http://localhost:3000`
 - Frontend:
-  - `REACT_APP_API_URL=http://localhost:5001/api/v1`
-  - `PORT=3001`
+  - `REACT_APP_API_URL=http://localhost:8080/api/v1`
+  - `PORT=3000`
 - Tình trạng khớp:
-  - `be/.env` và `fe/.env` hiện tại đang khớp nhau.
-- Tình trạng lệch:
-  - `be/.env.example` vẫn để `PORT=5000` và `FRONTEND_URL=http://localhost:3000`
-  - `fe/.env.example` vẫn để `REACT_APP_API_URL=http://localhost:5000/api/v1`
-  - `fe/package.json` vẫn giữ `proxy` là `http://localhost:5000`
+  - `be/.env` và `fe/.env` hiện tại đang khớp nhau theo runtime thực tế: `PORT=8080` và `PORT=3000`.
+  - `be/.env.example` và `fe/.env.example` đã đồng bộ theo runtime 8080/3000.
+  - `fe/package.json` đã trỏ `proxy` về `http://localhost:8080`.
 
 1.5. Kết quả xác minh thực tế khi khảo sát
 - `npm run build` trong thư mục `be`: thành công.
 - `npm run build` trong thư mục `fe`: thành công.
-- `GET http://localhost:5001/health`: thành công.
-- `GET http://localhost:5001/api/v1/products`: thành công, trả về 13 sản phẩm active tại thời điểm khảo sát.
+- `GET http://localhost:8080/health`: thành công.
+- `GET http://localhost:8080/api/v1/products`: thành công, trả về 13 sản phẩm active tại thời điểm khảo sát.
 - Điều này cho thấy:
   - Backend đang chạy.
   - Database đang kết nối được.
@@ -110,8 +108,10 @@ GHI CHÚ QUAN TRỌNG
   - Nạp tiền/ví ảo, ký quỹ escrow.
   - Đánh giá sản phẩm.
   - Xác nhận milestone doanh nghiệp trong escrow.
+- Admin:
+  - Xử lý `resolve dispute` khi có tranh chấp.
 - Lưu ý:
-  - API `resolve dispute` hiện chưa được giới hạn admin, đây là lỗ hổng nghiệp vụ/bảo mật cần fix.
+  - API `resolve dispute` hiện đã được giới hạn admin.
 
 ========================================================================
 2. THIẾT KẾ DỮ LIỆU
@@ -122,6 +122,7 @@ GHI CHÚ QUAN TRỌNG
 User role
 - `farmer`
 - `enterprise`
+- `admin`
 
 Contract status
 - `draft`
@@ -551,9 +552,9 @@ Tỷ lệ release hiện tại
 
 3.1. Quy ước chung
 - Base URL thực tế hiện tại:
-  - Backend local: `http://localhost:5001`
+  - Backend local: `http://localhost:8080`
   - API prefix: `/api/v1`
-  - Ví dụ đầy đủ: `http://localhost:5001/api/v1/products`
+  - Ví dụ đầy đủ: `http://localhost:8080/api/v1/products`
 - Header bảo mật:
   - `Authorization: Bearer <accessToken>`
 - Cookie:
@@ -1367,12 +1368,12 @@ POST /api/v1/partner-ratings
   - `be/.env.example` -> `be/.env`
 - Biến tối thiểu cần có:
   - `NODE_ENV=development`
-  - `PORT=5001`
+  - `PORT=8080`
   - `API_PREFIX=/api/v1`
   - `MONGODB_URI=...`
   - `JWT_SECRET=...`
   - `JWT_REFRESH_SECRET=...`
-  - `FRONTEND_URL=http://localhost:3001`
+  - `FRONTEND_URL=http://localhost:3000`
 - Biến bổ sung nếu dùng email:
   - `SMTP_HOST`
   - `SMTP_PORT`
@@ -1395,10 +1396,10 @@ POST /api/v1/partner-ratings
 - Copy file:
   - `fe/.env.example` -> `fe/.env`
 - Biến cần có:
-  - `REACT_APP_API_URL=http://localhost:5001/api/v1`
-  - `PORT=3001`
+  - `REACT_APP_API_URL=http://localhost:8080/api/v1`
+  - `PORT=3000`
 - Lưu ý:
-  - `fe/.env.example` đang để `5000`, cần sửa thành `5001` nếu dùng theo workspace hiện tại.
+  - `fe/.env.example` đã đồng bộ `REACT_APP_API_URL=http://localhost:8080/api/v1` theo runtime.
 
 4.6. Chạy development
 - Backend:
@@ -1408,9 +1409,9 @@ POST /api/v1/partner-ratings
   - `cd fe`
   - `npm start`
 - Địa chỉ truy cập:
-  - Frontend: `http://localhost:3001`
-  - Backend health: `http://localhost:5001/health`
-  - Backend API base: `http://localhost:5001/api/v1`
+  - Frontend: `http://localhost:3000`
+  - Backend health: `http://localhost:8080/health`
+  - Backend API base: `http://localhost:8080/api/v1`
 
 4.7. Build production
 - Backend:
@@ -1454,9 +1455,10 @@ POST /api/v1/partner-ratings
   - Shipping reminder cron: mỗi 1 giờ.
 
 4.11. Lưu ý hiện trạng quan trọng khi chạy project
-- `be/.env` và `fe/.env` hiện tại đã khớp 5001/3001.
-- `be/.env.example`, `fe/.env.example` và `proxy` trong `fe/package.json` chưa khớp code runtime.
-- Frontend đang có đoạn xóa `accessToken/user` ngay lúc khởi động, cần fix nếu muốn session tồn tại qua refresh.
+- `be/.env` và `fe/.env` hiện tại đã khớp runtime 8080/3000.
+- `be/.env.example` và `fe/.env.example` đã khớp runtime 8080/3000.
+- `proxy` trong `fe/package.json` đã khớp code runtime ở `http://localhost:8080`.
+- Frontend đã bỏ đoạn xóa `accessToken/user` khi khởi động để giữ session.
 
 ========================================================================
 5. KẾT QUẢ CHẠY
@@ -1838,116 +1840,42 @@ Giải thích
 
 7.2. Các vấn đề kỹ thuật/rủi ro quan trọng cần lưu ý
 
-[Mức độ cao] Frontend tự xóa session mỗi lần khởi động
-- File: `fe/src/index.js`
-- Dấu hiệu:
-  - `localStorage.removeItem('accessToken');`
-  - `localStorage.removeItem('user');`
-- Tác động:
-  - Mất khả năng giữ đăng nhập sau refresh/reopen tab.
-  - Làm vô nghĩa một phần luồng refresh token đã xây dựng.
+Đã xử lý (đã cập nhật code)
+- [Mức độ cao] Frontend giữ session khi khởi động.
+  - File: `fe/src/index.js`
+- [Mức độ cao] Resolve dispute đã giới hạn admin.
+  - File: `be/src/routes/escrow.routes.ts`, `be/src/controllers/escrow.controller.ts`
+- [Mức độ cao] PaymentTransaction đã ghi nhận escrow deposit/release/refund.
+  - File: `be/src/services/escrow.service.ts`
+- [Mức độ cao] Công thức totalValue đã đồng nhất theo `UNIT_TO_KG`.
+  - File: `be/src/models/Contract.model.ts`, `be/src/services/contract.service.ts`
+- [Mức độ trung bình] Profile page đã khớp `AuthContext` và response `data.user`.
+  - File: `fe/src/Component/Profile/Profile.jsx`, `fe/src/contexts/AuthContext.jsx`
+- [Mức độ trung bình] Drought detection đã được triển khai.
+  - File: `be/src/services/weather.service.ts`
+- [Mức độ trung bình] Notification icon map đã hỗ trợ `weather_alert` và `insurance`.
+  - File: `fe/src/Component/NotificationBell/NotificationBell.jsx`
+- [Mức độ trung bình] Tài liệu và `.env.example` đã đồng bộ theo runtime.
+  - File: `be/.env.example`, `fe/.env.example`
 
-[Mức độ cao] Resolve dispute chưa được giới hạn admin
-- File: `be/src/controllers/escrow.controller.ts`
-- Dấu hiệu:
-  - comment controller nói rõ "For now, any authenticated user can resolve".
-- Tác động:
-  - Lỗi phân quyền nghiệp vụ.
-  - User thường có thể can thiệp vào kết quả tranh chấp.
-
-[Mức độ cao] PaymentTransaction chưa ghi nhận giao dịch escrow
-- File liên quan:
-  - `be/src/models/PaymentTransaction.model.ts`
-  - `be/src/services/payment.service.ts`
-  - `fe/src/Component/WalletPayment/WalletPayment.jsx`
-- Dấu hiệu:
-  - Model và UI đã dự trù type `escrow_deposit`, `escrow_release`, `refund`, `commission`.
-  - Nhưng `PaymentTransaction.create` hiện chỉ xuất hiện trong `payment.service.ts` cho `topup/demo topup`.
-- Tác động:
-  - Lịch sử ví không phản ánh đầy đủ ký quỹ/giải ngân/hoàn tiền.
-  - Số liệu wallet stats có thể không đúng với nghiệp vụ escrow.
-
-[Mức độ cao] Công thức totalValue hợp đồng đang có nguy cơ không đồng nhất
-- File:
-  - `be/src/services/contract.service.ts`
-  - `be/src/models/Contract.model.ts`
-- Dấu hiệu:
-  - Service tính `totalValue = quantity * pricePerUnit * UNIT_TO_KG[unit]`
-  - Schema pre-save lại tính `totalValue = quantity * pricePerUnit * 1000`
-- Tác động:
-  - Nếu unit không phải tấn, tổng giá trị hợp đồng có thể bị sai.
-  - Có thể kéo theo sai `commission` và `depositAmount`.
-
-[Mức độ trung bình] Profile page lệch với AuthContext và shape response
-- File:
-  - `fe/src/Component/Profile/Profile.jsx`
-  - `fe/src/contexts/AuthContext.jsx`
-- Dấu hiệu:
-  - Profile destructure `{ user, setUser }` trong khi context expose `updateUser`.
-  - Profile xử lý `res.data` như object phẳng trong khi auth API trả `data.user`.
-- Tác động:
-  - Đồng bộ profile sau khi sửa có thể không ổn định.
-
-[Mức độ trung bình] Logic drought được khai báo nhưng chưa thực sự detect
-- File: `be/src/services/weather.service.ts`
-- Dấu hiệu:
-  - `THRESHOLDS` có `droughtMm`, `droughtDays`.
-  - `ALERT_MESSAGES` có `drought`.
-  - `checkThresholds()` hiện tại không push alert drought nào.
-- Tác động:
-  - Tính năng drought hiện mới dừng ở mức khai báo, chưa đầy đủ nghiệp vụ.
-
-[Mức độ trung bình] Notification type mismatch cho weather alert
-- File:
-  - `be/src/models/Notification.model.ts`
-  - `fe/src/Component/NotificationBell/NotificationBell.jsx`
-- Dấu hiệu:
-  - Backend dùng type `weather_alert`.
-  - Frontend icon map đang tìm key `weather`.
-- Tác động:
-  - Alert thời tiết có thể hiện icon generic thay vì icon đúng nghĩa.
-
-[Mức độ trung bình] Tài liệu và cấu hình đang bị drift
-- File:
-  - `PROJECT_OVERVIEW.txt`
-  - `be/.env.example`
-  - `fe/.env.example`
-  - `fe/package.json`
-- Tác động:
-  - Onboarding dễ nhầm port/gateway.
-  - Gây khó debug khi team đọc tài liệu cũ.
-
-[Mức độ trung bình] Dashboard quá lớn, khó bảo trì
-- File:
-  - `fe/src/Component/FarmerDashboard/FarmerDashboard.jsx` ~2442 lines
-  - `fe/src/Component/EnterpriseDashboard/EnterpriseDashboard.jsx` ~2440 lines
-- Tác động:
-  - Khó test.
-  - Khó tách logic.
-  - Dễ phát sinh regression khi sửa tính năng.
-
-[Mức độ trung bình] Chưa thấy test suite thực tế
-- Kiểm tra:
-  - `rg --files -g "*test*" -g "*spec*"` không trả về file nào.
-- Tác động:
-  - Regression risk cao.
-  - Không có safety net cho refactor/payment/escrow.
+Còn cần lưu ý / tiếp tục nâng cấp
+- Dashboard vẫn lớn; đã tách các phần chính (Farmer: Mùa vụ + Thời tiết, Enterprise: Tổng quan + Thời tiết) nhưng các tab còn lại vẫn dày.
+- Test suite đã có test cơ bản (totalValue, escrow transaction, topup), cần mở rộng coverage.
 
 7.3. Thứ tự ưu tiên để nâng cấp
-Ưu tiên 1
+Hoàn thành
 - Fix auth persistence.
 - Siết quyền resolve dispute.
 - Đồng bộ ghi nhận `PaymentTransaction` với luồng escrow.
-
-Ưu tiên 2
 - Sửa công thức `totalValue` cho contract và viết test.
 - Sửa Profile page để khớp context/API response.
 - Sửa icon mapping notification `weather_alert`.
-
-Ưu tiên 3
 - Hoàn thiện drought detection.
 - Cập nhật tài liệu, `.env.example`, `proxy`.
-- Tách dashboard thành các module nhỏ hơn.
+
+Còn ưu tiên tiếp theo
+- Tách dashboard thành các module nhỏ hơn (tiếp tục hoàn thiện các tab còn lại).
+- Mở rộng test coverage cho các flow hợp đồng, escrow, thanh toán và notification.
 
 ========================================================================
 8. DANH MỤC TỆP NGUỒN QUAN TRỌNG ĐỂ THAM CHIẾU

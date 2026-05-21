@@ -5,7 +5,7 @@ import crypto from 'crypto';
 export interface IUser extends Document {
   email: string;
   password: string;
-  role: 'farmer' | 'enterprise';
+  role: 'farmer' | 'enterprise' | 'admin';
   firstName: string;
   lastName: string;
   fullName: string;
@@ -63,7 +63,7 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['farmer', 'enterprise'],
+      enum: ['farmer', 'enterprise', 'admin'],
       required: [true, 'Role is required'],
     },
     firstName: {

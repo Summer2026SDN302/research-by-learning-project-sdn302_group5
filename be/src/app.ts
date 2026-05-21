@@ -27,13 +27,46 @@ import { errorHandler } from './middlewares/error.middleware';
 
 const app: Application = express();
 
+const normalizeOrigin = (value?: string | null): string | null => {
+  if (!value) return null;
+  return value.trim().replace(/\/$/, '');
+};
+
+const allowedOrigins = new Set(
+  [process.env.FRONTEND_URL, ...(process.env.FRONTEND_URLS || '').split(',')]
+    .map(normalizeOrigin)
+    .filter((origin): origin is string => Boolean(origin))
+);
+
+const isAllowedOrigin = (origin?: string | null): boolean => {
+  if (!origin) return true;
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) return true;
+
+  if (allowedOrigins.has(normalizedOrigin)) return true;
+
+  try {
+    const parsedOrigin = new URL(normalizedOrigin);
+    if (parsedOrigin.hostname.endsWith('.vercel.app')) return true;
+
+    if (process.env.NODE_ENV !== 'production') {
+      return parsedOrigin.hostname === 'localhost' || parsedOrigin.hostname === '127.0.0.1';
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
+
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
   })
 );

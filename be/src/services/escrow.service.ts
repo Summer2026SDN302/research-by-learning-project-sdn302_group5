@@ -3,6 +3,7 @@ import Escrow, { IEscrow, IMilestone } from '../models/Escrow.model';
 import Contract, { IContract } from '../models/Contract.model';
 import Dispute, { IDispute } from '../models/Dispute.model';
 import User from '../models/User.model';
+import PaymentTransaction from '../models/PaymentTransaction.model';
 import { AppError } from '../middlewares/error.middleware';
 import { NotificationService } from './notification.service';
 import Product from '../models/Product.model';
@@ -44,6 +45,28 @@ function buildMilestones(
 }
 
 export class EscrowService {
+  private static async recordPaymentTransaction(params: {
+    userId: mongoose.Types.ObjectId;
+    type: 'escrow_deposit' | 'escrow_release' | 'refund';
+    amount: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    description: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    await PaymentTransaction.create({
+      userId: params.userId,
+      type: params.type,
+      amount: params.amount,
+      status: 'completed',
+      paymentMethod: 'internal',
+      description: params.description,
+      balanceBefore: params.balanceBefore,
+      balanceAfter: params.balanceAfter,
+      completedAt: new Date(),
+      metadata: params.metadata,
+    });
+  }
   /**
    * Internal: create escrow directly from a contract object (no auth check).
    * Used by ContractService when both parties have signed.
@@ -157,6 +180,7 @@ export class EscrowService {
     }
 
     // Deduct from enterprise balance
+    const enterpriseBalanceBefore = enterprise.virtualBalance;
     enterprise.virtualBalance -= amount;
     await enterprise.save({ validateBeforeSave: false });
 
@@ -171,6 +195,19 @@ export class EscrowService {
       fromUserId: new mongoose.Types.ObjectId(userId),
       description: `Doanh nghiệp đặt cọc ${amount.toLocaleString('vi-VN')} VND`,
       createdAt: new Date(),
+    });
+
+    await this.recordPaymentTransaction({
+      userId: enterprise._id,
+      type: 'escrow_deposit',
+      amount,
+      balanceBefore: enterpriseBalanceBefore,
+      balanceAfter: enterprise.virtualBalance,
+      description: `Ký quỹ hợp đồng ${escrow.contractId.toString()}`,
+      metadata: {
+        escrowId: escrow._id.toString(),
+        contractId: escrow.contractId.toString(),
+      },
     });
 
     // Mark milestone 1 as completed
@@ -397,8 +434,23 @@ export class EscrowService {
       // Release funds to farmer
       const farmer = await User.findById(escrow.farmerId);
       if (farmer) {
+        const farmerBalanceBefore = farmer.virtualBalance;
         farmer.virtualBalance += releaseAmount;
         await farmer.save({ validateBeforeSave: false });
+
+        await this.recordPaymentTransaction({
+          userId: farmer._id,
+          type: 'escrow_release',
+          amount: releaseAmount,
+          balanceBefore: farmerBalanceBefore,
+          balanceAfter: farmer.virtualBalance,
+          description: `Giải ngân từ ký quỹ — mốc ${milestone.step} (${milestone.name})`,
+          metadata: {
+            escrowId: escrow._id.toString(),
+            contractId: escrow.contractId.toString(),
+            milestoneStep: milestone.step,
+          },
+        });
       }
 
       escrow.releasedAmount += releaseAmount;
@@ -551,8 +603,23 @@ export class EscrowService {
       if (remainingAmount > 0) {
         const enterprise = await User.findById(escrow.enterpriseId);
         if (enterprise) {
+          const enterpriseBalanceBefore = enterprise.virtualBalance;
           enterprise.virtualBalance += remainingAmount;
           await enterprise.save({ validateBeforeSave: false });
+
+          await this.recordPaymentTransaction({
+            userId: enterprise._id,
+            type: 'refund',
+            amount: remainingAmount,
+            balanceBefore: enterpriseBalanceBefore,
+            balanceAfter: enterprise.virtualBalance,
+            description: `Hoàn trả ký quỹ — tranh chấp mốc ${dispute.milestoneStep}`,
+            metadata: {
+              escrowId: escrow._id.toString(),
+              contractId: escrow.contractId.toString(),
+              milestoneStep: dispute.milestoneStep,
+            },
+          });
         }
 
         escrow.refundedAmount += remainingAmount;

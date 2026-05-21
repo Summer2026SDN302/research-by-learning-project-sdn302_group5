@@ -3,7 +3,7 @@ import { Request } from 'express';
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: 'farmer' | 'enterprise';
+  role: 'farmer' | 'enterprise' | 'admin';
   fullName: string;
 }
 
@@ -21,6 +21,7 @@ export interface AuthRequest extends Request {
 export enum UserRole {
   FARMER = 'farmer',
   ENTERPRISE = 'enterprise',
+  ADMIN = 'admin',
 }
 
 // ===== AUTH TYPES =====

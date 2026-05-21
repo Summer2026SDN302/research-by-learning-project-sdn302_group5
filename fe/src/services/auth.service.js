@@ -1,5 +1,6 @@
 import api from './api';
 import { STORAGE_KEYS } from '../constants';
+import { API_URL } from './api';
 
 const { ACCESS_TOKEN, USER } = STORAGE_KEYS;
 
@@ -23,7 +24,7 @@ const extractErrorMessage = (error, fallback) => {
   if (!errorData && error.request) {
     return {
       success: false,
-      message: 'Không thể kết nối tới máy chủ. Hãy kiểm tra backend đang chạy ở http://localhost:8080.',
+      message: `Không thể kết nối tới máy chủ. Hãy kiểm tra backend đang chạy tại ${API_URL}.`,
     };
   }
 

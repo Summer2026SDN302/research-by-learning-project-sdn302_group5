@@ -43,6 +43,7 @@ export const DEFAULT_PAGE_SIZE = 20;
 export const ROLES = {
   FARMER: 'farmer',
   ENTERPRISE: 'enterprise',
+  ADMIN: 'admin',
 } as const;
 
 // ===== CONTRACT CONFIG =====

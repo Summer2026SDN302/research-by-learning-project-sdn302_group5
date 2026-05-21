@@ -95,6 +95,10 @@ export const enterpriseConfirm = asyncHandler(
  */
 export const raiseDispute = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    if (req.user!.role === 'admin') {
+      throw new AppError('Admin không thể tạo khiếu nại thay cho các bên trong hợp đồng', 403);
+    }
+
     const dispute = await EscrowService.raiseDispute(
       req.params.id,
       req.user!.id,
@@ -157,6 +161,10 @@ export const getEscrow = asyncHandler(
  */
 export const listEscrows = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    if (req.user!.role === 'admin') {
+      throw new AppError('Admin không thể truy vấn escrow theo vai trò người dùng', 403);
+    }
+
     const escrows = await EscrowService.listByUser(
       req.user!.id,
       req.user!.role
@@ -189,7 +197,7 @@ export const listUserDisputes = asyncHandler(
 /**
  * Admin: Resolve dispute
  * POST /api/v1/escrow/disputes/:id/resolve
- * (For now, any authenticated user can resolve — in production, restrict to admin)
+ * (Restricted to admin)
  */
 export const resolveDispute = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {

@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { InsuranceCoveredEvent } from '../types';
+import { UNIT_TO_KG } from '../constants';
 
 // ===== INTERFACES =====
 
@@ -221,7 +222,8 @@ ContractSchema.pre('save', async function (next) {
 // Auto-calculate totalValue and commission
 ContractSchema.pre('save', function (next) {
   if (this.isModified('quantity') || this.isModified('pricePerUnit')) {
-    this.totalValue = this.quantity * this.pricePerUnit * 1000; // pricePerUnit is in nghìn VND
+    const unitFactor = UNIT_TO_KG[this.unit as keyof typeof UNIT_TO_KG] ?? 1;
+    this.totalValue = this.quantity * this.pricePerUnit * unitFactor;
     this.commission = this.totalValue * this.commissionRate / 100;
   }
   next();

@@ -9,7 +9,7 @@ import Navbar from "../Navbar/Navbar";
 import "./Profile.css";
 
 export default function Profile() {
-  const { user, setUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -29,16 +29,16 @@ export default function Profile() {
     const loadProfile = async () => {
       try {
         const res = await authService.getMe();
-        if (res?.data) {
-          setProfile(res.data);
+        if (res?.data?.user) {
+          setProfile(res.data.user);
           setForm({
-            fullName: res.data.fullName || "",
-            phone: res.data.phone || "",
-            address: res.data.address || "",
-            farmName: res.data.farmName || "",
-            farmSize: res.data.farmSize || "",
-            companyName: res.data.companyName || "",
-            taxCode: res.data.taxCode || "",
+            fullName: res.data.user.fullName || "",
+            phone: res.data.user.phone || "",
+            address: res.data.user.address || "",
+            farmName: res.data.user.farmName || "",
+            farmSize: res.data.user.farmSize || "",
+            companyName: res.data.user.companyName || "",
+            taxCode: res.data.user.taxCode || "",
           });
         }
       } catch {
@@ -64,9 +64,9 @@ export default function Profile() {
     setSaving(true);
     try {
       const res = await authService.updateProfile(form);
-      if (res?.data) {
-        setProfile(res.data);
-        if (setUser) setUser(res.data);
+      if (res?.data?.user) {
+        setProfile(res.data.user);
+        if (updateUser) updateUser(res.data.user);
         toast.success("Cập nhật hồ sơ thành công!");
       }
       setEditing(false);

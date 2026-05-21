@@ -251,7 +251,11 @@ export class PartnerRatingService {
       throw new AppError('Đối tác cần đánh giá không tồn tại', 404);
     }
 
-    const revieweeRole = revieweeUser.role;
+    if (revieweeUser.role === 'admin') {
+      throw new AppError('Admin không thuộc đối tượng đánh giá đối tác', 400);
+    }
+
+    const revieweeRole = revieweeUser.role as UserRole;
     this.ensureDirection(reviewerRole, revieweeRole);
 
     const expectedRevieweeId = reviewerRole === 'farmer'

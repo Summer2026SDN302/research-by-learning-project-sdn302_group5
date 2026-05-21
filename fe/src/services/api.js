@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { STORAGE_KEYS } from '../constants';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
 const AUTH_REDIRECT_PATH = '/auth';
 const UNAUTHORIZED_STATUS = 401;
 

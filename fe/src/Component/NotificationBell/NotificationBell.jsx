@@ -72,7 +72,8 @@ export default function NotificationBell() {
       contract: <FiFileText size={16} />,
       escrow: <FiDollarSign size={16} />,
       order: <FiPackage size={16} />,
-      weather: <FiCloud size={16} />,
+      weather_alert: <FiCloud size={16} />,
+      insurance: <FiFileText size={16} />,
       system: <FiBell size={16} />,
     };
     return icons[type] || <FiBell size={16} />;

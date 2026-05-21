@@ -476,6 +476,21 @@ export class WeatherService {
       alerts.push({ type: 'strong_wind', severity: 'warning', detail: `Tốc độ gió ${weather.windSpeed.toFixed(0)}km/h vượt ngưỡng ${THRESHOLDS.strongWindKmh}km/h` });
     }
 
+    // Drought (heuristic based on recent daily rain estimate)
+    if (estimatedDailyRain <= THRESHOLDS.droughtMm * 0.5) {
+      alerts.push({
+        type: 'drought',
+        severity: 'critical',
+        detail: `Lượng mưa ước tính ${estimatedDailyRain.toFixed(0)}mm/ngày thấp hơn ngưỡng hạn hán ${THRESHOLDS.droughtMm}mm/${THRESHOLDS.droughtDays} ngày`,
+      });
+    } else if (estimatedDailyRain <= THRESHOLDS.droughtMm) {
+      alerts.push({
+        type: 'drought',
+        severity: 'warning',
+        detail: `Lượng mưa ước tính ${estimatedDailyRain.toFixed(0)}mm/ngày thấp hơn ngưỡng hạn hán ${THRESHOLDS.droughtMm}mm/${THRESHOLDS.droughtDays} ngày`,
+      });
+    }
+
     return alerts;
   }
 
