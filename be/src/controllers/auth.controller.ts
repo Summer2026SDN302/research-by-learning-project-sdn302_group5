@@ -224,6 +224,43 @@ export const deactivateAccount = asyncHandler(
 );
 
 /**
+ * @desc    Login / register with Google OAuth
+ * @route   POST /api/v1/auth/google
+ * @access  Public
+ *
+ * FE sends: { accessToken } (from useGoogleLogin hook)
+ *       or: { credential } (from GoogleLogin component ID token)
+ * Optional: { role } for new users
+ */
+export const googleLogin = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const result = await AuthService.googleLogin(req.body);
+
+    if ('requiresRole' in result) {
+      return res.status(200).json({
+        success: true,
+        status: 'success',
+        requiresRole: true,
+        data: { profile: result.profile },
+      });
+    }
+
+    if ('requiresVerification' in result) {
+      return res.status(200).json({
+        success: true,
+        status: 'success',
+        requiresVerification: true,
+        message: 'Tài khoản đã được tạo! Vui lòng kiểm tra email để xác minh trước khi đăng nhập.',
+        data: { email: result.email },
+      });
+    }
+
+    const { user, tokens } = result;
+    return sendAuthResponse(res, 200, 'Đăng nhập Google thành công!', user, tokens);
+  }
+);
+
+/**
  * @desc    Verify email address
  * @route   GET /api/v1/auth/verify-email/:token
  * @access  Public

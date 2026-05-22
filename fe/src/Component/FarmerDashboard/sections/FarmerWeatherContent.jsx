@@ -1,5 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
-import { FiBell, FiCloud, FiClock, FiDroplet, FiMap, FiMapPin, FiRefreshCw, FiShield, FiWind, FiZap, FiCheckCircle, FiAlertTriangle, FiInfo, FiPhone } from "react-icons/fi";
+import {
+  FiBell, FiCloud, FiClock, FiDroplet, FiMap, FiMapPin,
+  FiRefreshCw, FiShield, FiWind, FiZap, FiCheckCircle,
+  FiAlertTriangle, FiInfo, FiPhone, FiChevronDown,
+} from "react-icons/fi";
 import { useAuth } from "../../../contexts/AuthContext";
 import { matchProvince, getDistricts } from "../../../data/vn-locations";
 import weatherService from "../../../services/weather.service";
@@ -38,19 +42,19 @@ const PROVINCE_COORDS_FE = {
   "Binh Dinh": { lat: 13.782, lng: 109.2197 }, "Phu Yen": { lat: 13.0882, lng: 109.0929 },
 };
 
-/* =========================================
-   INSURANCE SECTION
-   ========================================= */
 const INSURANCE_PROGRAMS = [
   {
     id: "agribank",
     name: "Bảo hiểm nông nghiệp Agribank",
     provider: "Agribank Insurance (ABIC)",
     hotline: "1900 55 88 99",
-    color: "#15803d",
-    bg: "#f0fdf4",
-    border: "#bbf7d0",
-    coverages: ["Thiên tai, lũ lụt, hạn hán", "Dịch bệnh cây trồng", "Cháy nổ kho lưu trữ", "Mất mùa do thời tiết cực đoan"],
+    accentColor: "#15803d",
+    coverages: [
+      "Thiên tai, lũ lụt, hạn hán",
+      "Dịch bệnh cây trồng",
+      "Cháy nổ kho lưu trữ",
+      "Mất mùa do thời tiết cực đoan",
+    ],
     suitable: ["Lúa, ngô, hoa màu", "Cây ăn quả", "Cây công nghiệp"],
     note: "Hỗ trợ nông dân vùng ĐBSCL và Tây Nguyên theo chương trình nhà nước.",
   },
@@ -59,10 +63,13 @@ const INSURANCE_PROGRAMS = [
     name: "Bảo hiểm cây trồng VBI",
     provider: "VietinBank Insurance (VBI)",
     hotline: "1800 588 878",
-    color: "#1d4ed8",
-    bg: "#eff6ff",
-    border: "#bfdbfe",
-    coverages: ["Thiệt hại do bão, lũ", "Sâu bệnh, dịch hại", "Hỏa hoạn, sét đánh", "Rủi ro vận chuyển nông sản"],
+    accentColor: "#1d4ed8",
+    coverages: [
+      "Thiệt hại do bão, lũ",
+      "Sâu bệnh, dịch hại",
+      "Hỏa hoạn, sét đánh",
+      "Rủi ro vận chuyển nông sản",
+    ],
     suitable: ["Cà phê, tiêu, điều", "Rau màu, nấm", "Cây ăn quả cao cấp"],
     note: "Gói linh hoạt, phí thấp, phù hợp nông hộ nhỏ đến trang trại lớn.",
   },
@@ -71,36 +78,50 @@ const INSURANCE_PROGRAMS = [
     name: "Bảo hiểm nông sản Bảo Việt",
     provider: "Bảo Việt Nhân Thọ (BVBH)",
     hotline: "1800 599 980",
-    color: "#dc2626",
-    bg: "#fef2f2",
-    border: "#fecaca",
-    coverages: ["Thiên tai, mưa đá, sương giá", "Dịch bệnh quy mô lớn", "Mất thu hoạch trên 30%", "Thiệt hại cơ sở hạ tầng nông nghiệp"],
+    accentColor: "#dc2626",
+    coverages: [
+      "Thiên tai, mưa đá, sương giá",
+      "Dịch bệnh quy mô lớn",
+      "Mất thu hoạch trên 30%",
+      "Thiệt hại cơ sở hạ tầng",
+    ],
     suitable: ["Lúa gạo đặc sản", "Thanh long, xoài, sầu riêng", "Cây trồng xuất khẩu"],
-    note: "Phối hợp chương trình hỗ trợ phí bảo hiểm của Nhà nước theo Nghị định 58/2018.",
+    note: "Phối hợp chương trình hỗ trợ phí bảo hiểm Nhà nước theo Nghị định 58/2018.",
   },
   {
     id: "mic",
     name: "Bảo hiểm nông nghiệp MIC",
     provider: "Military Insurance Corporation (MIC)",
     hotline: "1900 54 54 52",
-    color: "#7c3aed",
-    bg: "#f5f3ff",
-    border: "#ddd6fe",
-    coverages: ["Rủi ro thời tiết theo mùa vụ", "Đảm bảo thu nhập tối thiểu", "Bảo vệ vốn đầu tư vụ mùa", "Hỗ trợ phục hồi sau thiên tai"],
+    accentColor: "#7c3aed",
+    coverages: [
+      "Rủi ro thời tiết theo mùa vụ",
+      "Đảm bảo thu nhập tối thiểu",
+      "Bảo vệ vốn đầu tư vụ mùa",
+      "Hỗ trợ phục hồi sau thiên tai",
+    ],
     suitable: ["Hoa màu ngắn ngày", "Nông sản ký hợp đồng bao tiêu", "Trang trại kết hợp"],
     note: "Đặc biệt phù hợp cho nông dân đã ký hợp đồng bao tiêu, bảo vệ đôi bên.",
   },
 ];
 
-function InsuranceSection({ weather, alerts, thresholds }) {
+const ALERT_TYPE_LABEL = {
+  extreme_heat: "Nắng nóng",
+  extreme_cold: "Rét đậm",
+  heavy_rain: "Mưa lớn",
+  strong_wind: "Gió mạnh",
+  drought: "Hạn hán",
+};
+
+function InsuranceSection({ weather, alerts }) {
   const [expanded, setExpanded] = useState(null);
 
-  const riskLevel = useMemo(() => {
-    const criticalAlerts = alerts.filter(a => a.severity === "critical" && !a.isRead);
-    const warningAlerts = alerts.filter(a => a.severity === "warning" && !a.isRead);
-    if (criticalAlerts.length > 0) return { level: "high", label: "Cao", color: "#dc2626", bg: "#fef2f2", border: "#fecaca", icon: "🔴" };
-    if (warningAlerts.length > 0) return { level: "medium", label: "Trung bình", color: "#d97706", bg: "#fffbeb", border: "#fde68a", icon: "🟡" };
-    return { level: "low", label: "Thấp", color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0", icon: "🟢" };
+  const risk = useMemo(() => {
+    const critical = alerts.filter(a => a.severity === "critical" && !a.isRead);
+    const warning = alerts.filter(a => a.severity === "warning" && !a.isRead);
+    if (critical.length > 0) return { label: "Cao", key: "high", Icon: FiAlertTriangle };
+    if (warning.length > 0) return { label: "Trung bình", key: "medium", Icon: FiAlertTriangle };
+    return { label: "Thấp", key: "low", Icon: FiCheckCircle };
   }, [alerts]);
 
   const activeAlertTypes = useMemo(() =>
@@ -108,119 +129,97 @@ function InsuranceSection({ weather, alerts, thresholds }) {
     [alerts]
   );
 
-  const alertTypeLabel = {
-    extreme_heat: "nắng nóng",
-    extreme_cold: "rét đậm",
-    heavy_rain: "mưa lớn",
-    strong_wind: "gió mạnh",
-    drought: "hạn hán",
-  };
-
   return (
-    <div className="wthr-insurance" style={{ padding: "0 0 32px" }}>
-      {/* Risk assessment */}
-      <div style={{ background: riskLevel.bg, border: `1.5px solid ${riskLevel.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 22, display: "flex", alignItems: "flex-start", gap: 14 }}>
-        <span style={{ fontSize: "2rem", lineHeight: 1 }}>{riskLevel.icon}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: riskLevel.color }}>Mức rủi ro thời tiết hiện tại: {riskLevel.label}</h3>
-          </div>
-          {activeAlertTypes.length > 0 ? (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "#374151", lineHeight: 1.6 }}>
-              Đang có cảnh báo: <strong>{activeAlertTypes.map(t => alertTypeLabel[t] || t).join(", ")}</strong>.
-              Khuyến nghị kiểm tra các gói bảo hiểm phù hợp để bảo vệ vụ mùa.
-            </p>
-          ) : (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "#374151" }}>
-              Thời tiết ổn định. Đây là thời điểm tốt để cân nhắc tham gia bảo hiểm nông nghiệp với phí thấp.
-            </p>
-          )}
+    <div className="ins-page">
+      {/* Risk banner */}
+      <div className={`ins-risk-banner ins-risk-${risk.key}`}>
+        <div className="ins-risk-icon-wrap">
+          <risk.Icon size={22} />
+        </div>
+        <div className="ins-risk-content">
+          <span className="ins-risk-label">Mức rủi ro thời tiết hiện tại</span>
+          <strong className="ins-risk-level">{risk.label}</strong>
+          <p className="ins-risk-desc">
+            {activeAlertTypes.length > 0
+              ? <>Đang có cảnh báo: <strong>{activeAlertTypes.map(t => ALERT_TYPE_LABEL[t] || t).join(", ")}</strong>. Khuyến nghị kiểm tra các gói bảo hiểm phù hợp.</>
+              : "Thời tiết ổn định. Đây là thời điểm tốt để cân nhắc tham gia bảo hiểm nông nghiệp."
+            }
+          </p>
           {weather && (
-            <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
-                🌡️ {weather.temp?.toFixed(1)}°C
-              </span>
-              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
-                💧 Độ ẩm {weather.humidity}%
-              </span>
-              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
-                💨 Gió {weather.windSpeed?.toFixed(1)} km/h
-              </span>
+            <div className="ins-weather-chips">
+              <span className="ins-chip"><FiDroplet size={12} /> {weather.humidity}% độ ẩm</span>
+              <span className="ins-chip"><FiWind size={12} /> {weather.windSpeed?.toFixed(1)} km/h</span>
+              <span className="ins-chip"><FiCloud size={12} /> {weather.temp?.toFixed(1)}°C</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Section title */}
-      <div style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 700, color: "#111827" }}>Các gói bảo hiểm nông nghiệp</h3>
-        <p style={{ margin: 0, fontSize: "0.83rem", color: "#6b7280" }}>Thông tin tham khảo các chương trình bảo hiểm phổ biến tại Việt Nam</p>
+      {/* Section header */}
+      <div className="ins-section-header">
+        <h3 className="ins-section-title">Các gói bảo hiểm nông nghiệp</h3>
+        <p className="ins-section-sub">Thông tin tham khảo các chương trình bảo hiểm phổ biến tại Việt Nam</p>
       </div>
 
-      {/* Insurance cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Program accordion list */}
+      <div className="ins-program-list">
         {INSURANCE_PROGRAMS.map(prog => {
           const isOpen = expanded === prog.id;
           return (
-            <div key={prog.id} style={{ background: "#fff", border: `1.5px solid ${isOpen ? prog.border : "#e5e7eb"}`, borderRadius: 12, overflow: "hidden", transition: "border-color 0.2s, box-shadow 0.2s", boxShadow: isOpen ? `0 4px 16px ${prog.border}` : "none" }}>
-              {/* Card header */}
+            <div key={prog.id} className={`ins-program-card ${isOpen ? "open" : ""}`} style={{ "--accent": prog.accentColor }}>
               <button
+                className="ins-program-header"
                 onClick={() => setExpanded(isOpen ? null : prog.id)}
-                style={{ width: "100%", background: "none", border: "none", padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left" }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: prog.bg, border: `1.5px solid ${prog.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <FiShield size={18} color={prog.color} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#111827", fontSize: "0.92rem" }}>{prog.name}</div>
-                    <div style={{ fontSize: "0.78rem", color: "#6b7280" }}>{prog.provider}</div>
-                  </div>
+                <div className="ins-program-icon">
+                  <FiShield size={18} />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="ins-program-info">
+                  <span className="ins-program-name">{prog.name}</span>
+                  <span className="ins-program-provider">{prog.provider}</span>
+                </div>
+                <div className="ins-program-actions">
                   <a
                     href={`tel:${prog.hotline.replace(/\s/g, "")}`}
+                    className="ins-hotline-btn"
                     onClick={e => e.stopPropagation()}
-                    style={{ display: "flex", alignItems: "center", gap: 4, background: prog.bg, color: prog.color, border: `1px solid ${prog.border}`, borderRadius: 8, padding: "4px 10px", fontSize: "0.78rem", fontWeight: 600, textDecoration: "none" }}
                   >
-                    <FiPhone size={12} /> {prog.hotline}
+                    <FiPhone size={12} />
+                    {prog.hotline}
                   </a>
-                  <span style={{ color: "#9ca3af", fontSize: "1rem", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
+                  <span className={`ins-chevron ${isOpen ? "open" : ""}`}>
+                    <FiChevronDown size={16} />
+                  </span>
                 </div>
               </button>
 
-              {/* Expanded content */}
               {isOpen && (
-                <div style={{ borderTop: `1px solid ${prog.border}`, padding: "14px 18px", background: prog.bg }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 7, display: "flex", alignItems: "center", gap: 5 }}>
-                        <FiCheckCircle size={13} color={prog.color} /> Phạm vi bảo hiểm
+                <div className="ins-program-body">
+                  <div className="ins-coverages-grid">
+                    <div className="ins-coverages-col">
+                      <div className="ins-col-label">
+                        <FiCheckCircle size={13} /> Phạm vi bảo hiểm
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: 14, listStyle: "none" }}>
+                      <ul className="ins-coverage-list">
                         {prog.coverages.map((c, i) => (
-                          <li key={i} style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
-                            <span style={{ color: prog.color, flexShrink: 0 }}>•</span>{c}
-                          </li>
+                          <li key={i}>{c}</li>
                         ))}
                       </ul>
                     </div>
-                    <div>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 7, display: "flex", alignItems: "center", gap: 5 }}>
-                        <FiInfo size={13} color={prog.color} /> Phù hợp với
+                    <div className="ins-coverages-col">
+                      <div className="ins-col-label">
+                        <FiInfo size={13} /> Phù hợp với
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: 14, listStyle: "none" }}>
+                      <ul className="ins-coverage-list">
                         {prog.suitable.map((s, i) => (
-                          <li key={i} style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
-                            <span style={{ color: prog.color, flexShrink: 0 }}>•</span>{s}
-                          </li>
+                          <li key={i}>{s}</li>
                         ))}
                       </ul>
                     </div>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.7)", border: `1px solid ${prog.border}`, borderRadius: 8, padding: "8px 12px", display: "flex", gap: 8 }}>
-                    <FiAlertTriangle size={13} color={prog.color} style={{ flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ margin: 0, fontSize: "0.8rem", color: "#374151", lineHeight: 1.6 }}>{prog.note}</p>
+                  <div className="ins-note-row">
+                    <FiInfo size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>{prog.note}</span>
                   </div>
                 </div>
               )}
@@ -229,12 +228,14 @@ function InsuranceSection({ weather, alerts, thresholds }) {
         })}
       </div>
 
-      {/* Government program note */}
-      <div style={{ marginTop: 20, background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "14px 18px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <FiShield size={18} color="#15803d" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#15803d", fontSize: "0.88rem" }}>Chương trình hỗ trợ phí bảo hiểm Nhà nước</p>
-          <p style={{ margin: 0, fontSize: "0.82rem", color: "#374151", lineHeight: 1.7 }}>
+      {/* Government support note */}
+      <div className="ins-govt-card">
+        <div className="ins-govt-icon">
+          <FiShield size={20} />
+        </div>
+        <div className="ins-govt-body">
+          <p className="ins-govt-title">Chương trình hỗ trợ phí bảo hiểm Nhà nước</p>
+          <p className="ins-govt-desc">
             Theo <strong>Nghị định 58/2018/NĐ-CP</strong>, nông dân nghèo và cận nghèo được hỗ trợ tới <strong>90%</strong> phí bảo hiểm.
             Nông dân không thuộc diện nghèo được hỗ trợ <strong>20%</strong>. Liên hệ UBND xã/phường để được hướng dẫn đăng ký.
           </p>
@@ -288,35 +289,31 @@ export default function FarmerWeatherContent() {
   const markRead = async (id) => {
     try {
       await weatherService.markAlertAsRead(id);
-      setAlerts((prev) => prev.map((a) => a._id === id ? { ...a, isRead: true } : a));
-    } catch {
-      /* silent */
-    }
+      setAlerts(prev => prev.map(a => a._id === id ? { ...a, isRead: true } : a));
+    } catch { /* silent */ }
   };
+
   const markAllRead = async () => {
     try {
       await weatherService.markAllAlertsAsRead();
-      setAlerts((prev) => prev.map((a) => ({ ...a, isRead: true })));
-    } catch {
-      /* silent */
-    }
+      setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
+    } catch { /* silent */ }
   };
 
-  const getSeverityClass = (s) => s === "critical" ? "weather-critical" : "weather-warning";
-  const getAlertIcon = (t) => ({ extreme_heat: "heat", extreme_cold: "cold", heavy_rain: "rain", strong_wind: "wind", drought: "drought" })[t] || "weather";
-  const getAlertLabel = (t) => ({ extreme_heat: "Nắng nóng", extreme_cold: "Rét đậm", heavy_rain: "Mưa lớn", strong_wind: "Gió mạnh", drought: "Hạn hán" })[t] || t;
-  const formatDateStr = (d) => new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const getAlertIconClass = (t) =>
+    ({ extreme_heat: "heat", extreme_cold: "cold", heavy_rain: "rain", strong_wind: "wind", drought: "drought" })[t] || "rain";
+
+  const getAlertLabel = (t) =>
+    ({ extreme_heat: "Nắng nóng", extreme_cold: "Rét đậm", heavy_rain: "Mưa lớn", strong_wind: "Gió mạnh", drought: "Hạn hán" })[t] || t;
+
+  const formatDateStr = (d) =>
+    new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
   const formatForecastDate = (ds) => {
     const d = new Date(ds);
-    const days = ["CN","T2","T3","T4","T5","T6","T7"];
+    const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     return { day: days[d.getDay()], date: `${d.getDate()}/${d.getMonth() + 1}` };
   };
-
-  const provinceLabel = VIETNAM_PROVINCES.find((p) => p.value === selectedProvince)?.label || selectedProvince;
-  const displayLocation = selectedDistrict ? `${selectedDistrict}, ${provinceLabel}` : provinceLabel;
-  const coords = PROVINCE_COORDS_FE[selectedProvince] || { lat: 16.0, lng: 107.0 };
-  const windyZoom = selectedDistrict ? 10 : 8;
-  const windyUrl = `https://embed.windy.com/embed2.html?lat=${coords.lat}&lon=${coords.lng}&detailLat=${coords.lat}&detailLon=${coords.lng}&zoom=${windyZoom}&level=surface&overlay=temp&menu=&message=&marker=true&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`;
 
   const getHeroGradient = (icon) => {
     if (!icon) return "linear-gradient(145deg, #2d6a4f 0%, #40916c 60%, #52b788 100%)";
@@ -328,17 +325,24 @@ export default function FarmerWeatherContent() {
     if (code === "02") return isDay
       ? "linear-gradient(145deg, #0284c7 0%, #38bdf8 55%, #7dd3fc 100%)"
       : "linear-gradient(145deg, #1e293b 0%, #334155 55%, #475569 100%)";
-    if (["03","04"].includes(code)) return "linear-gradient(145deg, #475569 0%, #64748b 55%, #94a3b8 100%)";
-    if (["09","10"].includes(code)) return "linear-gradient(145deg, #1e3a5f 0%, #374151 55%, #4b5563 100%)";
+    if (["03", "04"].includes(code)) return "linear-gradient(145deg, #475569 0%, #64748b 55%, #94a3b8 100%)";
+    if (["09", "10"].includes(code)) return "linear-gradient(145deg, #1e3a5f 0%, #374151 55%, #4b5563 100%)";
     if (code === "11") return "linear-gradient(145deg, #111827 0%, #1f2937 55%, #374151 100%)";
     return "linear-gradient(145deg, #2d6a4f 0%, #40916c 60%, #52b788 100%)";
   };
 
-  const unreadCount = alerts.filter((a) => !a.isRead).length;
+  const provinceLabel = VIETNAM_PROVINCES.find(p => p.value === selectedProvince)?.label || selectedProvince;
+  const displayLocation = selectedDistrict ? `${selectedDistrict}, ${provinceLabel}` : provinceLabel;
+  const coords = PROVINCE_COORDS_FE[selectedProvince] || { lat: 16.0, lng: 107.0 };
+  const windyZoom = selectedDistrict ? 10 : 8;
+  const windyUrl = `https://embed.windy.com/embed2.html?lat=${coords.lat}&lon=${coords.lng}&detailLat=${coords.lat}&detailLon=${coords.lng}&zoom=${windyZoom}&level=surface&overlay=temp&menu=&message=&marker=true&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`;
+
+  const unreadCount = alerts.filter(a => !a.isRead).length;
+
   const sectionTabs = [
     { key: "weather", label: "Thời tiết", Icon: FiCloud },
     { key: "map", label: "Bản đồ", Icon: FiMap },
-    { key: "alerts", label: "Cảnh báo", Icon: FiBell, badgeCount: unreadCount },
+    { key: "alerts", label: "Cảnh báo", Icon: FiBell, badge: unreadCount },
     { key: "thresholds", label: "Ngưỡng", Icon: FiZap },
     { key: "insurance", label: "Bảo hiểm", Icon: FiShield },
   ];
@@ -352,6 +356,7 @@ export default function FarmerWeatherContent() {
         </div>
       </div>
 
+      {/* ── Weather hero ── */}
       <div className="wthr-hero" style={{ background: getHeroGradient(weather?.icon) }}>
         <div className="wthr-deco wthr-deco-1" />
         <div className="wthr-deco wthr-deco-2" />
@@ -359,16 +364,16 @@ export default function FarmerWeatherContent() {
         <div className="wthr-loc-row">
           <div className="wthr-loc-selects">
             <select className="wthr-loc-select" value={selectedProvince} onChange={handleProvinceChange}>
-              {VIETNAM_PROVINCES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              {VIETNAM_PROVINCES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
             <select
               className="wthr-loc-select"
               value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
+              onChange={e => setSelectedDistrict(e.target.value)}
               disabled={districtOptions.length === 0}
             >
               <option value="">{districtOptions.length > 0 ? "Tất cả Quận/Huyện" : "— Không có dữ liệu —"}</option>
-              {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+              {districtOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <button className="wthr-refresh-btn" onClick={() => loadData(selectedProvince)} disabled={loading}>
@@ -383,10 +388,17 @@ export default function FarmerWeatherContent() {
           </div>
         ) : weather ? (
           <div className="wthr-current">
-            <div className="wthr-location-label"><FiMapPin size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />{displayLocation}</div>
+            <div className="wthr-location-label">
+              <FiMapPin size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+              {displayLocation}
+            </div>
             <div className="wthr-main-row">
               <div className="wthr-icon-temp">
-                <img src={`https://openweathermap.org/img/wn/${weather.icon}@4x.png`} alt={weather.description} className="wthr-big-icon" />
+                <img
+                  src={`https://openweathermap.org/img/wn/${weather.icon}@4x.png`}
+                  alt={weather.description}
+                  className="wthr-big-icon"
+                />
                 <div>
                   <div className="wthr-temp">{weather.temp?.toFixed(1)}°C</div>
                   <div className="wthr-desc-text">{weather.description}</div>
@@ -395,54 +407,69 @@ export default function FarmerWeatherContent() {
               <div className="wthr-stats-grid">
                 <div className="wthr-stat-badge">
                   <span className="stat-emoji"><FiDroplet size={18} /></span>
-                  <div><div className="stat-lbl">Độ ẩm</div><div className="stat-val">{weather.humidity}%</div></div>
+                  <div>
+                    <div className="stat-lbl">Độ ẩm</div>
+                    <div className="stat-val">{weather.humidity}%</div>
+                  </div>
                 </div>
                 <div className="wthr-stat-badge">
                   <span className="stat-emoji"><FiWind size={18} /></span>
-                  <div><div className="stat-lbl">Gió</div><div className="stat-val">{weather.windSpeed?.toFixed(1)} km/h</div></div>
+                  <div>
+                    <div className="stat-lbl">Gió</div>
+                    <div className="stat-val">{weather.windSpeed?.toFixed(1)} km/h</div>
+                  </div>
                 </div>
                 <div className="wthr-stat-badge">
                   <span className="stat-emoji"><FiCloud size={18} /></span>
-                  <div><div className="stat-lbl">Mưa 1h</div><div className="stat-val">{weather.rain1h?.toFixed(1) || 0} mm</div></div>
+                  <div>
+                    <div className="stat-lbl">Mưa 1h</div>
+                    <div className="stat-val">{weather.rain1h?.toFixed(1) || 0} mm</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ) : null}
-
-        <div className="wthr-tabs">
-          {sectionTabs.map(({ key, label, Icon, badgeCount }) => (
-            <button key={key} className={`wthr-tab ${activeSection === key ? "active" : ""}`} onClick={() => setActiveSection(key)}>
-              <Icon size={14} /> {label}
-              {badgeCount > 0 && <span className="wthr-tab-badge">{badgeCount}</span>}
-            </button>
-          ))}
-        </div>
       </div>
 
+      {/* ── Section tabs (outside hero) ── */}
+      <div className="weather-section-tabs">
+        {sectionTabs.map(({ key, label, Icon, badge }) => (
+          <button
+            key={key}
+            className={`ws-tab ${activeSection === key ? "active" : ""}`}
+            onClick={() => setActiveSection(key)}
+          >
+            <Icon size={14} />
+            {label}
+            {badge > 0 && <span className="ws-tab-badge">{badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Section content ── */}
       {!loading && (
         <>
-          {activeSection === "map" && (
-            <div className="wthr-map-wrap">
-              <iframe title="windy" src={windyUrl} frameBorder="0" className="wthr-map-frame" />
-            </div>
-          )}
-
+          {/* Forecast */}
           {activeSection === "weather" && (
-            <div className="wthr-forecast">
-              <h3>Dự báo 5 ngày</h3>
-              <div className="wthr-forecast-grid">
+            <div className="wthr-forecast-section">
+              <h3 className="wthr-forecast-title">Dự báo 5 ngày</h3>
+              <div className="wthr-forecast-strip">
                 {forecast.length === 0 ? (
-                  <div className="wthr-empty">Chưa có dữ liệu dự báo</div>
+                  <div className="wthr-no-data">Chưa có dữ liệu dự báo</div>
                 ) : forecast.map((f, i) => {
                   const label = formatForecastDate(f.date || f.dt_txt || "");
                   return (
-                    <div key={i} className="wthr-forecast-item">
-                      <span className="wf-day">{label.day}</span>
-                      <span className="wf-date">{label.date}</span>
-                      <img src={`https://openweathermap.org/img/wn/${f.icon}@2x.png`} alt={f.description} />
-                      <span className="wf-temp">{f.temp?.toFixed?.(0) || f.temp}°C</span>
-                      <span className="wf-desc">{f.description}</span>
+                    <div key={i} className={`wthr-day-card ${i === 0 ? "today" : ""}`}>
+                      <div className="wthr-day-label">{label.day}</div>
+                      <div className="wthr-day-date">{label.date}</div>
+                      <img
+                        src={`https://openweathermap.org/img/wn/${f.icon}@2x.png`}
+                        alt={f.description}
+                        className="wthr-day-icon"
+                      />
+                      <div className="wthr-day-temp-max">{f.temp?.toFixed?.(0) ?? f.temp}°C</div>
+                      <div className="wthr-day-desc">{f.description}</div>
                     </div>
                   );
                 })}
@@ -450,30 +477,56 @@ export default function FarmerWeatherContent() {
             </div>
           )}
 
+          {/* Map */}
+          {activeSection === "map" && (
+            <div className="wthr-map-section">
+              <div className="wthr-map-header">
+                <div className="wthr-map-title">Bản đồ thời tiết</div>
+                <div className="wthr-map-loc">{displayLocation}</div>
+                <div className="wthr-map-sub">Dữ liệu từ Windy.com — overlay nhiệt độ bề mặt</div>
+              </div>
+              <iframe title="windy" src={windyUrl} frameBorder="0" className="wthr-map-frame" />
+            </div>
+          )}
+
+          {/* Alerts */}
           {activeSection === "alerts" && (
-            <div className="wthr-alerts">
-              <div className="wthr-alerts-header">
+            <div className="weather-alerts-section">
+              <div className="wa-header">
                 <h3>Cảnh báo thời tiết</h3>
                 {alerts.length > 0 && (
-                  <button onClick={markAllRead} className="wthr-mark-all">Đánh dấu tất cả đã đọc</button>
+                  <button onClick={markAllRead} className="wa-mark-all">Đánh dấu tất cả đã đọc</button>
                 )}
               </div>
               {alerts.length === 0 ? (
-                <div className="wthr-empty">Không có cảnh báo</div>
+                <div className="wa-empty">
+                  <span className="wa-empty-icon" />
+                  Không có cảnh báo nào
+                </div>
               ) : (
-                <div className="wthr-alert-list">
-                  {alerts.map((a) => (
-                    <div key={a._id} className={`wthr-alert-item ${getSeverityClass(a.severity)} ${a.isRead ? "read" : "unread"}`} onClick={() => !a.isRead && markRead(a._id)}>
-                      <div className={`wthr-alert-icon ${getAlertIcon(a.alertType)}-icon`} />
-                      <div className="wthr-alert-body">
-                        <div className="wthr-alert-header">
-                          <span className={`wthr-alert-badge ${a.severity}`}>{a.severity === "critical" ? "Khẩn cấp" : "Cảnh báo"}</span>
-                          <span className="wthr-alert-type">{getAlertLabel(a.alertType)}</span>
-                          <span className="wthr-alert-date">{formatDateStr(a.createdAt)}</span>
+                <div className="wa-list">
+                  {alerts.map(a => (
+                    <div
+                      key={a._id}
+                      className={`wa-item ${a.severity === "critical" ? "weather-critical" : "weather-warning"} ${a.isRead ? "read" : "unread"}`}
+                      onClick={() => !a.isRead && markRead(a._id)}
+                    >
+                      <div className="wa-item-icon">
+                        <span className={`alert-type-icon ${getAlertIconClass(a.alertType)}-icon`} />
+                      </div>
+                      <div className="wa-item-body">
+                        <div className="wa-item-header">
+                          <span className={`wa-badge ${a.severity}`}>
+                            {a.severity === "critical" ? "Khẩn cấp" : "Cảnh báo"}
+                          </span>
+                          <span className="wa-type">{getAlertLabel(a.alertType)}</span>
+                          <span className="wa-date">{formatDateStr(a.createdAt)}</span>
                         </div>
-                        <p className="wthr-alert-msg">{a.message}</p>
-                        <p className="wthr-alert-detail">{a.thresholdExceeded}</p>
-                        <p className="wthr-alert-loc">{a.location?.province}{a.location?.district ? ` - ${a.location.district}` : ""}</p>
+                        <p className="wa-message">{a.message}</p>
+                        {a.thresholdExceeded && <p className="wa-detail">{a.thresholdExceeded}</p>}
+                        <p className="wa-location">
+                          {a.location?.province}{a.location?.district ? ` - ${a.location.district}` : ""}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -482,19 +535,40 @@ export default function FarmerWeatherContent() {
             </div>
           )}
 
+          {/* Thresholds */}
           {activeSection === "thresholds" && (
-            <div className="wthr-thresholds">
+            <div className="weather-thresholds-card">
               <h3>Ngưỡng cảnh báo hệ thống</h3>
-              <div className="wthr-threshold-grid">
-                <div className="wt-item heat"><span className="wt-icon heat-icon" /><div><h4>Nắng nóng</h4><p>&gt; {thresholds?.extremeHeatTemp || 38}°C</p></div></div>
-                <div className="wt-item cold"><span className="wt-icon cold-icon" /><div><h4>Rét đậm</h4><p>&lt; {thresholds?.extremeColdTemp || 5}°C</p></div></div>
-                <div className="wt-item rain"><span className="wt-icon rain-icon" /><div><h4>Mưa lớn</h4><p>&gt; {thresholds?.heavyRainMm || 100}mm/ngày</p></div></div>
-                <div className="wt-item wind"><span className="wt-icon wind-icon" /><div><h4>Gió mạnh</h4><p>&gt; {thresholds?.strongWindKmh || 60}km/h</p></div></div>
-                <div className="wt-item drought"><span className="wt-icon drought-icon" /><div><h4>Hạn hán</h4><p>&lt; {thresholds?.droughtMm || 5}mm / {thresholds?.droughtDays || 14} ngày</p></div></div>
+              <p className="wt-desc">Hệ thống tự động phát cảnh báo khi các chỉ số vượt ngưỡng dưới đây.</p>
+              <div className="wt-grid">
+                <div className="wt-item heat">
+                  <span className="wt-icon heat-icon" />
+                  <div><h4>Nắng nóng</h4><p>Trên {thresholds?.extremeHeatTemp || 38}°C</p></div>
+                </div>
+                <div className="wt-item cold">
+                  <span className="wt-icon cold-icon" />
+                  <div><h4>Rét đậm</h4><p>Dưới {thresholds?.extremeColdTemp || 5}°C</p></div>
+                </div>
+                <div className="wt-item rain">
+                  <span className="wt-icon rain-icon" />
+                  <div><h4>Mưa lớn</h4><p>Trên {thresholds?.heavyRainMm || 100}mm/ngày</p></div>
+                </div>
+                <div className="wt-item wind">
+                  <span className="wt-icon wind-icon" />
+                  <div><h4>Gió mạnh</h4><p>Trên {thresholds?.strongWindKmh || 60} km/h</p></div>
+                </div>
+                <div className="wt-item drought">
+                  <span className="wt-icon drought-icon" />
+                  <div>
+                    <h4>Hạn hán</h4>
+                    <p>Dưới {thresholds?.droughtMm || 5}mm / {thresholds?.droughtDays || 14} ngày</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
+          {/* Insurance */}
           {activeSection === "insurance" && (
             <InsuranceSection weather={weather} alerts={alerts} thresholds={thresholds} />
           )}

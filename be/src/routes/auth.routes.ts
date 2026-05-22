@@ -12,6 +12,7 @@ import {
   deactivateAccount,
   verifyEmail,
   resendVerificationEmail,
+  googleLogin,
 } from '../controllers/auth.controller';
 import { protect } from '../middlewares/auth.middleware';
 import {
@@ -46,6 +47,13 @@ router.post('/login', validateLogin, login);
  * @access  Public
  */
 router.post('/refresh-token', refreshToken);
+
+/**
+ * @route   POST /api/v1/auth/google
+ * @desc    Login or register with Google OAuth
+ * @access  Public
+ */
+router.post('/google', googleLogin);
 
 /**
  * @route   POST /api/v1/auth/forgot-password

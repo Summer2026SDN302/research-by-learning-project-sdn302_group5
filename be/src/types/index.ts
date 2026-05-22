@@ -75,6 +75,13 @@ export interface UpdateProfileBody {
   avatar?: string;
 }
 
+// Google OAuth login body
+export interface GoogleLoginBody {
+  accessToken?: string;   // OAuth2 access token from FE useGoogleLogin
+  credential?: string;    // ID token from GoogleLogin component
+  role?: 'farmer' | 'enterprise';  // Required only for new users
+}
+
 // Auth response with tokens
 export interface AuthTokens {
   accessToken: string;

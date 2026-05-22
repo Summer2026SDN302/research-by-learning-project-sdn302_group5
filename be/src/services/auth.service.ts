@@ -10,6 +10,7 @@ import {
   ResetPasswordBody,
   UpdatePasswordBody,
   UpdateProfileBody,
+  GoogleLoginBody,
 } from '../types';
 import {
   MAX_LOGIN_ATTEMPTS,
@@ -296,6 +297,11 @@ export class AuthService {
       throw new AppError('Tài khoản đã bị vô hiệu hóa. Liên hệ hỗ trợ.', 403);
     }
 
+    // Block Google-only accounts from password login
+    if (user.authProvider === 'google') {
+      throw new AppError('Tài khoản này đăng nhập bằng Google. Vui lòng dùng nút "Đăng nhập bằng Google".', 400);
+    }
+
     if (user.isLocked()) {
       throw new AppError(
         'Tài khoản đã bị khóa tạm thời do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.',
@@ -566,6 +572,124 @@ export class AuthService {
   }
 
   /**
+   * GOOGLE LOGIN - Authenticate with Google OAuth
+   * Accepts access_token (from useGoogleLogin hook) or credential (ID token from GoogleLogin component)
+   * Returns { requiresRole: true, profile } when new user hasn't selected a role yet
+   */
+  static async googleLogin(
+    body: GoogleLoginBody
+  ): Promise<
+    | { user: IUser; tokens: AuthTokens }
+    | { requiresRole: true; profile: { email: string; name: string; picture?: string } }
+    | { requiresVerification: true; email: string }
+  > {
+    const { accessToken, credential, role } = body;
+
+    if (!accessToken && !credential) {
+      throw new AppError('Google token không hợp lệ', 400);
+    }
+
+    // Resolve Google user info
+    let googleEmail: string;
+    let googleName: string;
+    let googlePicture: string | undefined;
+    let googleSub: string;
+
+    if (credential) {
+      const { OAuth2Client } = require('google-auth-library');
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      let ticket: any;
+      try {
+        ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+      } catch {
+        throw new AppError('Google ID token không hợp lệ', 401);
+      }
+      const payload = ticket.getPayload();
+      googleEmail = payload.email;
+      googleName = payload.name || payload.email;
+      googlePicture = payload.picture;
+      googleSub = payload.sub;
+    } else {
+      const axios = require('axios');
+      try {
+        const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        googleEmail = data.email;
+        googleName = data.name || data.email;
+        googlePicture = data.picture;
+        googleSub = data.sub;
+      } catch {
+        throw new AppError('Không thể xác thực token Google', 401);
+      }
+    }
+
+    if (!googleEmail) {
+      throw new AppError('Không lấy được email từ Google', 400);
+    }
+
+    // Find existing user by googleId or email
+    let user = await User.findOne({
+      $or: [{ googleId: googleSub }, { email: googleEmail.toLowerCase() }],
+    }).select('+googleId');
+
+    if (!user) {
+      // New user — require role selection
+      if (!role) {
+        return {
+          requiresRole: true as const,
+          profile: { email: googleEmail, name: googleName, picture: googlePicture },
+        };
+      }
+
+      const { firstName, lastName } = parseFullName(googleName);
+      user = await User.create({
+        email: googleEmail.toLowerCase(),
+        password: crypto.randomBytes(32).toString('hex'),
+        role,
+        firstName,
+        lastName,
+        fullName: googleName.trim(),
+        avatar: googlePicture,
+        googleId: googleSub,
+        authProvider: 'google',
+        isVerified: false,
+      });
+
+      // Send verification email — user must confirm before first login
+      const verificationToken = user.createEmailVerificationToken();
+      await user.save({ validateBeforeSave: false });
+      await AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken);
+
+      return { requiresVerification: true as const, email: googleEmail };
+    } else {
+      // Existing user — update googleId if not linked yet
+      if (!user.googleId) {
+        user.googleId = googleSub;
+        if (googlePicture && !user.avatar) user.avatar = googlePicture;
+        await user.save({ validateBeforeSave: false });
+      }
+      if (!user.isActive) {
+        throw new AppError('Tài khoản đã bị vô hiệu hóa. Liên hệ hỗ trợ.', 403);
+      }
+      if (!user.isVerified) {
+        throw new AppError('Email chưa được xác minh. Vui lòng kiểm tra hộp thư và nhấn link xác minh.', 403);
+      }
+    }
+
+    const tokens = AuthService.generateTokens(user);
+    user.lastLogin = new Date();
+    user.refreshToken = tokens.refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    AuthService.hideSensitiveFields(user);
+    return { user, tokens };
+  }
+
+  /**
    * RESEND VERIFICATION EMAIL - Generate new token and send email
    */
   static async resendVerificationEmail(
@@ -597,7 +721,8 @@ export class AuthService {
     token: string
   ): Promise<void> {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
-    const smtpConfig = AuthService.getSmtpConfig();
+    // includeLegacyEnv=true so EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD are picked up
+    const smtpConfig = AuthService.getSmtpConfig(true);
 
     if (smtpConfig) {
       try {

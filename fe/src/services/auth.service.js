@@ -226,6 +226,23 @@ const authService = {
     }
   },
 
+  /**
+   * Login / register with Google OAuth
+   * @param {Object} data - { accessToken?, credential?, role? }
+   * @returns {Promise} - { success, requiresRole?, data: { profile? | user + accessToken } }
+   */
+  googleLogin: async (data) => {
+    try {
+      const response = await api.post('/auth/google', data);
+      if (response.data.success && response.data.data?.accessToken) {
+        persistAuth(response.data.data);
+      }
+      return response.data;
+    } catch (error) {
+      throw extractErrorMessage(error, 'Đăng nhập Google thất bại');
+    }
+  },
+
   isLoggedIn: () => !!localStorage.getItem(ACCESS_TOKEN),
 
   getAccessToken: () => localStorage.getItem(ACCESS_TOKEN),

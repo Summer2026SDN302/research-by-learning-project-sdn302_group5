@@ -5838,22 +5838,170 @@
 .wt-item h4 { margin: 0; font-size: .9rem; color: #374151; }
 .wt-item p { margin: 2px 0 0; font-size: .8rem; color: #6b7280; }
 
-/* --- Insurance --- */
-.wthr-insurance { padding: 8px 0 32px; }
-.insurance-info-card { background: #fff; border-radius: 14px; padding: 24px; border: 1px solid #e5e7eb; }
-.insurance-info-card h3 { margin: 0 0 8px; font-size: 1.05rem; color: #374151; }
-.ins-desc { margin: 0 0 20px; font-size: .85rem; color: #6b7280; line-height: 1.5; }
-.ins-how { margin-bottom: 20px; }
-.ins-how h4 { margin: 0 0 12px; font-size: .95rem; color: #2e7d32; }
-.ins-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-.ins-step { display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: #f0fdf4; border-radius: 10px; border: 1px solid #c8e6c9; }
-.ins-step-num { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #618968; color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 700; }
-.ins-step h5 { margin: 0 0 3px; font-size: .85rem; color: #1a2e1a; }
-.ins-step p { margin: 0; font-size: .82rem; color: #374151; line-height: 1.4; }
-.ins-fields { margin-bottom: 20px; }
-.ins-fields h4 { margin: 0 0 10px; font-size: .95rem; color: #374151; }
-.ins-fields ul { margin: 0; padding-left: 20px; list-style: disc; }
-.ins-fields li { font-size: .85rem; color: #4b5563; padding: 3px 0; }
+/* --- Insurance (redesign) --- */
+.ins-page { padding: 0 0 32px; }
+
+/* Risk banner */
+.ins-risk-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1.5px solid;
+  margin-bottom: 22px;
+}
+.ins-risk-banner.ins-risk-high   { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.ins-risk-banner.ins-risk-medium { background: #fffbeb; border-color: #fde68a; color: #d97706; }
+.ins-risk-banner.ins-risk-low    { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+
+.ins-risk-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.65);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ins-risk-content { flex: 1; }
+.ins-risk-label { font-size: .78rem; font-weight: 600; opacity: .75; display: block; margin-bottom: 2px; }
+.ins-risk-level { font-size: 1.05rem; font-weight: 800; display: block; margin-bottom: 5px; }
+.ins-risk-desc  { margin: 0 0 8px; font-size: .84rem; color: #374151; line-height: 1.6; }
+
+.ins-weather-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.ins-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .77rem; font-weight: 500; color: #374151;
+  background: rgba(255,255,255,0.7);
+  border-radius: 6px; padding: 3px 9px;
+}
+
+/* Section header */
+.ins-section-header { margin-bottom: 14px; }
+.ins-section-title { margin: 0 0 3px; font-size: 1rem; font-weight: 700; color: #111827; }
+.ins-section-sub   { margin: 0; font-size: .82rem; color: #6b7280; }
+
+/* Program accordion */
+.ins-program-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+.ins-program-card {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.ins-program-card.open {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0,0,0,.07);
+}
+
+.ins-program-header {
+  width: 100%; background: none; border: none;
+  padding: 13px 16px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 12px;
+  text-align: left;
+}
+.ins-program-header:hover { background: #f9fafb; }
+
+.ins-program-icon {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  background: #f3f4f6;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+  border: 1.5px solid #e5e7eb;
+}
+.ins-program-card.open .ins-program-icon { background: color-mix(in srgb, var(--accent) 10%, #fff); border-color: color-mix(in srgb, var(--accent) 30%, #fff); }
+
+.ins-program-info   { flex: 1; min-width: 0; }
+.ins-program-name   { display: block; font-size: .9rem; font-weight: 700; color: #111827; }
+.ins-program-provider { display: block; font-size: .76rem; color: #6b7280; margin-top: 1px; }
+
+.ins-program-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.ins-hotline-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  font-size: .76rem; font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, #fff);
+  border-radius: 7px;
+  text-decoration: none;
+  transition: background .18s;
+  white-space: nowrap;
+}
+.ins-hotline-btn:hover { background: color-mix(in srgb, var(--accent) 16%, #fff); }
+
+.ins-chevron { color: #9ca3af; display: flex; align-items: center; transition: transform .2s; }
+.ins-chevron.open { transform: rotate(180deg); }
+
+/* Expanded body */
+.ins-program-body {
+  border-top: 1px solid #f3f4f6;
+  padding: 14px 16px;
+  background: #fafafa;
+}
+.ins-coverages-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  margin-bottom: 12px;
+}
+.ins-coverages-col { }
+.ins-col-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .77rem; font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 7px;
+}
+.ins-coverage-list {
+  margin: 0; padding: 0; list-style: none;
+}
+.ins-coverage-list li {
+  font-size: .82rem; color: #374151;
+  padding: 3px 0 3px 12px;
+  position: relative;
+  line-height: 1.4;
+}
+.ins-coverage-list li::before {
+  content: "";
+  position: absolute; left: 0; top: 10px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ins-note-row {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: .8rem; color: #4b5563;
+  line-height: 1.6;
+}
+
+/* Government card */
+.ins-govt-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.ins-govt-icon {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  background: #dcfce7;
+  display: flex; align-items: center; justify-content: center;
+  color: #15803d; flex-shrink: 0;
+}
+.ins-govt-body { flex: 1; }
+.ins-govt-title { margin: 0 0 5px; font-size: .9rem; font-weight: 700; color: #15803d; }
+.ins-govt-desc  { margin: 0; font-size: .83rem; color: #374151; line-height: 1.7; }
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
@@ -5870,5 +6018,6 @@
   .ws-tab { padding: 7px 8px; font-size: .78rem; }
   .wthr-map-frame { height: 380px; }
   .wt-grid { grid-template-columns: 1fr; }
-  .ins-steps { grid-template-columns: 1fr; }
+  .ins-coverages-grid { grid-template-columns: 1fr; }
+  .ins-program-actions { flex-direction: column; align-items: flex-end; gap: 5px; }
 }

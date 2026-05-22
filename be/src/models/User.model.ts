@@ -6,6 +6,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'farmer' | 'enterprise' | 'admin';
+  googleId?: string;
+  authProvider?: 'local' | 'google';
   firstName: string;
   lastName: string;
   fullName: string;
@@ -60,6 +62,15 @@ const UserSchema = new Schema<IUser>(
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
+    },
+    googleId: {
+      type: String,
+      select: false,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
     },
     role: {
       type: String,
@@ -173,6 +184,7 @@ const UserSchema = new Schema<IUser>(
         delete ret.refreshToken;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
+        delete ret.googleId;
         delete ret.__v;
         return ret;
       },
