@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { FiBell, FiCloud, FiClock, FiDroplet, FiMap, FiMapPin, FiRefreshCw, FiShield, FiWind, FiZap } from "react-icons/fi";
+import { FiBell, FiCloud, FiClock, FiDroplet, FiMap, FiMapPin, FiRefreshCw, FiShield, FiWind, FiZap, FiCheckCircle, FiAlertTriangle, FiInfo, FiPhone } from "react-icons/fi";
 import { useAuth } from "../../../contexts/AuthContext";
 import { matchProvince, getDistricts } from "../../../data/vn-locations";
 import weatherService from "../../../services/weather.service";
@@ -37,6 +37,212 @@ const PROVINCE_COORDS_FE = {
   "Quang Nam": { lat: 15.5394, lng: 108.019 }, "Quang Ngai": { lat: 15.1214, lng: 108.8044 },
   "Binh Dinh": { lat: 13.782, lng: 109.2197 }, "Phu Yen": { lat: 13.0882, lng: 109.0929 },
 };
+
+/* =========================================
+   INSURANCE SECTION
+   ========================================= */
+const INSURANCE_PROGRAMS = [
+  {
+    id: "agribank",
+    name: "Bảo hiểm nông nghiệp Agribank",
+    provider: "Agribank Insurance (ABIC)",
+    hotline: "1900 55 88 99",
+    color: "#15803d",
+    bg: "#f0fdf4",
+    border: "#bbf7d0",
+    coverages: ["Thiên tai, lũ lụt, hạn hán", "Dịch bệnh cây trồng", "Cháy nổ kho lưu trữ", "Mất mùa do thời tiết cực đoan"],
+    suitable: ["Lúa, ngô, hoa màu", "Cây ăn quả", "Cây công nghiệp"],
+    note: "Hỗ trợ nông dân vùng ĐBSCL và Tây Nguyên theo chương trình nhà nước.",
+  },
+  {
+    id: "vbi",
+    name: "Bảo hiểm cây trồng VBI",
+    provider: "VietinBank Insurance (VBI)",
+    hotline: "1800 588 878",
+    color: "#1d4ed8",
+    bg: "#eff6ff",
+    border: "#bfdbfe",
+    coverages: ["Thiệt hại do bão, lũ", "Sâu bệnh, dịch hại", "Hỏa hoạn, sét đánh", "Rủi ro vận chuyển nông sản"],
+    suitable: ["Cà phê, tiêu, điều", "Rau màu, nấm", "Cây ăn quả cao cấp"],
+    note: "Gói linh hoạt, phí thấp, phù hợp nông hộ nhỏ đến trang trại lớn.",
+  },
+  {
+    id: "bvbh",
+    name: "Bảo hiểm nông sản Bảo Việt",
+    provider: "Bảo Việt Nhân Thọ (BVBH)",
+    hotline: "1800 599 980",
+    color: "#dc2626",
+    bg: "#fef2f2",
+    border: "#fecaca",
+    coverages: ["Thiên tai, mưa đá, sương giá", "Dịch bệnh quy mô lớn", "Mất thu hoạch trên 30%", "Thiệt hại cơ sở hạ tầng nông nghiệp"],
+    suitable: ["Lúa gạo đặc sản", "Thanh long, xoài, sầu riêng", "Cây trồng xuất khẩu"],
+    note: "Phối hợp chương trình hỗ trợ phí bảo hiểm của Nhà nước theo Nghị định 58/2018.",
+  },
+  {
+    id: "mic",
+    name: "Bảo hiểm nông nghiệp MIC",
+    provider: "Military Insurance Corporation (MIC)",
+    hotline: "1900 54 54 52",
+    color: "#7c3aed",
+    bg: "#f5f3ff",
+    border: "#ddd6fe",
+    coverages: ["Rủi ro thời tiết theo mùa vụ", "Đảm bảo thu nhập tối thiểu", "Bảo vệ vốn đầu tư vụ mùa", "Hỗ trợ phục hồi sau thiên tai"],
+    suitable: ["Hoa màu ngắn ngày", "Nông sản ký hợp đồng bao tiêu", "Trang trại kết hợp"],
+    note: "Đặc biệt phù hợp cho nông dân đã ký hợp đồng bao tiêu, bảo vệ đôi bên.",
+  },
+];
+
+function InsuranceSection({ weather, alerts, thresholds }) {
+  const [expanded, setExpanded] = useState(null);
+
+  const riskLevel = useMemo(() => {
+    const criticalAlerts = alerts.filter(a => a.severity === "critical" && !a.isRead);
+    const warningAlerts = alerts.filter(a => a.severity === "warning" && !a.isRead);
+    if (criticalAlerts.length > 0) return { level: "high", label: "Cao", color: "#dc2626", bg: "#fef2f2", border: "#fecaca", icon: "🔴" };
+    if (warningAlerts.length > 0) return { level: "medium", label: "Trung bình", color: "#d97706", bg: "#fffbeb", border: "#fde68a", icon: "🟡" };
+    return { level: "low", label: "Thấp", color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0", icon: "🟢" };
+  }, [alerts]);
+
+  const activeAlertTypes = useMemo(() =>
+    [...new Set(alerts.filter(a => !a.isRead).map(a => a.alertType))],
+    [alerts]
+  );
+
+  const alertTypeLabel = {
+    extreme_heat: "nắng nóng",
+    extreme_cold: "rét đậm",
+    heavy_rain: "mưa lớn",
+    strong_wind: "gió mạnh",
+    drought: "hạn hán",
+  };
+
+  return (
+    <div className="wthr-insurance" style={{ padding: "0 0 32px" }}>
+      {/* Risk assessment */}
+      <div style={{ background: riskLevel.bg, border: `1.5px solid ${riskLevel.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 22, display: "flex", alignItems: "flex-start", gap: 14 }}>
+        <span style={{ fontSize: "2rem", lineHeight: 1 }}>{riskLevel.icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: riskLevel.color }}>Mức rủi ro thời tiết hiện tại: {riskLevel.label}</h3>
+          </div>
+          {activeAlertTypes.length > 0 ? (
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "#374151", lineHeight: 1.6 }}>
+              Đang có cảnh báo: <strong>{activeAlertTypes.map(t => alertTypeLabel[t] || t).join(", ")}</strong>.
+              Khuyến nghị kiểm tra các gói bảo hiểm phù hợp để bảo vệ vụ mùa.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "#374151" }}>
+              Thời tiết ổn định. Đây là thời điểm tốt để cân nhắc tham gia bảo hiểm nông nghiệp với phí thấp.
+            </p>
+          )}
+          {weather && (
+            <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
+                🌡️ {weather.temp?.toFixed(1)}°C
+              </span>
+              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
+                💧 Độ ẩm {weather.humidity}%
+              </span>
+              <span style={{ fontSize: "0.78rem", background: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "3px 8px", color: "#374151" }}>
+                💨 Gió {weather.windSpeed?.toFixed(1)} km/h
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Section title */}
+      <div style={{ marginBottom: 16 }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 700, color: "#111827" }}>Các gói bảo hiểm nông nghiệp</h3>
+        <p style={{ margin: 0, fontSize: "0.83rem", color: "#6b7280" }}>Thông tin tham khảo các chương trình bảo hiểm phổ biến tại Việt Nam</p>
+      </div>
+
+      {/* Insurance cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {INSURANCE_PROGRAMS.map(prog => {
+          const isOpen = expanded === prog.id;
+          return (
+            <div key={prog.id} style={{ background: "#fff", border: `1.5px solid ${isOpen ? prog.border : "#e5e7eb"}`, borderRadius: 12, overflow: "hidden", transition: "border-color 0.2s, box-shadow 0.2s", boxShadow: isOpen ? `0 4px 16px ${prog.border}` : "none" }}>
+              {/* Card header */}
+              <button
+                onClick={() => setExpanded(isOpen ? null : prog.id)}
+                style={{ width: "100%", background: "none", border: "none", padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: prog.bg, border: `1.5px solid ${prog.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <FiShield size={18} color={prog.color} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#111827", fontSize: "0.92rem" }}>{prog.name}</div>
+                    <div style={{ fontSize: "0.78rem", color: "#6b7280" }}>{prog.provider}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <a
+                    href={`tel:${prog.hotline.replace(/\s/g, "")}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: "flex", alignItems: "center", gap: 4, background: prog.bg, color: prog.color, border: `1px solid ${prog.border}`, borderRadius: 8, padding: "4px 10px", fontSize: "0.78rem", fontWeight: 600, textDecoration: "none" }}
+                  >
+                    <FiPhone size={12} /> {prog.hotline}
+                  </a>
+                  <span style={{ color: "#9ca3af", fontSize: "1rem", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
+                </div>
+              </button>
+
+              {/* Expanded content */}
+              {isOpen && (
+                <div style={{ borderTop: `1px solid ${prog.border}`, padding: "14px 18px", background: prog.bg }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 7, display: "flex", alignItems: "center", gap: 5 }}>
+                        <FiCheckCircle size={13} color={prog.color} /> Phạm vi bảo hiểm
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 14, listStyle: "none" }}>
+                        {prog.coverages.map((c, i) => (
+                          <li key={i} style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
+                            <span style={{ color: prog.color, flexShrink: 0 }}>•</span>{c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 7, display: "flex", alignItems: "center", gap: 5 }}>
+                        <FiInfo size={13} color={prog.color} /> Phù hợp với
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 14, listStyle: "none" }}>
+                        {prog.suitable.map((s, i) => (
+                          <li key={i} style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4, display: "flex", gap: 6 }}>
+                            <span style={{ color: prog.color, flexShrink: 0 }}>•</span>{s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.7)", border: `1px solid ${prog.border}`, borderRadius: 8, padding: "8px 12px", display: "flex", gap: 8 }}>
+                    <FiAlertTriangle size={13} color={prog.color} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "#374151", lineHeight: 1.6 }}>{prog.note}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Government program note */}
+      <div style={{ marginTop: 20, background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "14px 18px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <FiShield size={18} color="#15803d" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#15803d", fontSize: "0.88rem" }}>Chương trình hỗ trợ phí bảo hiểm Nhà nước</p>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "#374151", lineHeight: 1.7 }}>
+            Theo <strong>Nghị định 58/2018/NĐ-CP</strong>, nông dân nghèo và cận nghèo được hỗ trợ tới <strong>90%</strong> phí bảo hiểm.
+            Nông dân không thuộc diện nghèo được hỗ trợ <strong>20%</strong>. Liên hệ UBND xã/phường để được hướng dẫn đăng ký.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function FarmerWeatherContent() {
   const { user } = useAuth();
@@ -290,10 +496,7 @@ export default function FarmerWeatherContent() {
           )}
 
           {activeSection === "insurance" && (
-            <div className="wthr-insurance">
-              <h3>Bảo hiểm nông nghiệp</h3>
-              <p>Thông tin bảo hiểm được lưu trữ tham khảo trong hợp đồng.</p>
-            </div>
+            <InsuranceSection weather={weather} alerts={alerts} thresholds={thresholds} />
           )}
         </>
       )}
