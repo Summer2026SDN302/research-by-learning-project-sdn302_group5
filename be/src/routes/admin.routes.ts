@@ -5,6 +5,7 @@ import {
   getUsers,
   getUserDetail,
   toggleUserStatus,
+  deleteUser,
   getAllContracts,
   getContractDetail,
   getAllDisputes,
@@ -26,6 +27,7 @@ router.get('/dashboard', getDashboard);
 router.get('/users', getUsers);
 router.get('/users/:id', getUserDetail);
 router.patch('/users/:id/toggle-status', toggleUserStatus);
+router.delete('/users/:id', deleteUser);
 
 // Contract management
 router.get('/contracts', getAllContracts);

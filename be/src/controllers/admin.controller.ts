@@ -186,6 +186,35 @@ export const toggleUserStatus = asyncHandler(
 );
 
 /**
+ * DELETE /api/v1/admin/users/:id
+ * Xóa vĩnh viễn tài khoản người dùng
+ */
+export const deleteUser = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const user = await User.findById(req.params.id);
+    if (!user) throw new AppError('Người dùng không tồn tại', 404);
+    if (user.role === 'admin') throw new AppError('Không thể xóa tài khoản admin', 403);
+
+    const activeContractCount = await Contract.countDocuments({
+      $or: [{ farmerId: user._id }, { enterpriseId: user._id }],
+      status: { $in: ['pending', 'active'] },
+    });
+    if (activeContractCount > 0) {
+      throw new AppError(
+        `Không thể xóa: tài khoản đang có ${activeContractCount} hợp đồng đang hoạt động`,
+        400
+      );
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.status(200).json(
+      successResponse({ userId: req.params.id }, 'Tài khoản đã được xóa vĩnh viễn')
+    );
+  }
+);
+
+/**
  * GET /api/v1/admin/contracts
  * Danh sách tất cả hợp đồng
  */
