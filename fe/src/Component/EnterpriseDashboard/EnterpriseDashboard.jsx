@@ -18,6 +18,7 @@ import SuppliersContent from "./sections/SuppliersContent";
 import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
 import "./EnterpriseDashboard.css";
+import "./dh-styles.css";
 
 // Tệp này điều phối toàn bộ dashboard doanh nghiệp: điều hướng tab, thống kê, đơn hàng và các thao tác tài chính.
 export default function EnterpriseDashboard() {
