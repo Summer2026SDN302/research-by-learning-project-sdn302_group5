@@ -3,6 +3,8 @@
 Link Paper:
 https://docs.google.com/document/d/1c0uZFdrtcxO9fPHQT59KTG7GFGzE6JNoccEWUOPi7ps/edit?usp=sharing
 
+Link SRS: https://docs.google.com/document/d/1Tj5OEzNoQenEV2w2CK1XjPj6F9mK1ioSr3pd0MpeO1I/edit?usp=sharing
+
 Link Jira : 
 
 https://nguyenxuankhanhphong962018tcv.atlassian.net/jira/core/projects/TEAM/board?filter=&groupBy=status&atlOrigin=eyJpIjoiN2JlMjdlOWZkODhiNDA1YTgxYWEzZWJiMTkxOGM1ZjYiLCJwIjoiaiJ9
