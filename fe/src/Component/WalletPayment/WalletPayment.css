@@ -429,6 +429,7 @@
 .wlt-verify-success  { background: #f0fdf4; border-color: #86efac; }
 .wlt-verify-failed   { background: #fef2f2; border-color: #fca5a5; }
 .wlt-verify-cancelled { background: #f9fafb; border-color: #e5e7eb; }
+.wlt-verify-pending  { background: #fffbeb; border-color: #fcd34d; }
 
 .wlt-verify-banner > div { flex: 1; }
 .wlt-verify-banner strong { font-size: 14px; display: block; margin-bottom: 2px; }
@@ -436,6 +437,7 @@
 .wlt-verify-success  strong { color: #15803d; }
 .wlt-verify-failed   strong { color: #991b1b; }
 .wlt-verify-cancelled strong { color: #374151; }
+.wlt-verify-pending  strong { color: #92400e; }
 .wlt-verify-banner p { font-size: 13px; color: #6b7280; margin: 0; }
 
 .wlt-vspin {

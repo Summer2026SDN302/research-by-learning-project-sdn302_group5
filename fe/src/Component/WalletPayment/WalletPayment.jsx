@@ -130,7 +130,6 @@ export default function WalletPayment({ role }) {
   const verifyTopupOrder = useCallback(async (orderCode) => {
     setReturnOrderCode(String(orderCode));
     setVerifyState("loading");
-    setActiveTab("topup");
 
     try {
       const res = await paymentService.verifyTopup(String(orderCode));
@@ -290,6 +289,17 @@ export default function WalletPayment({ role }) {
 
   return (
     <div className="wlt-container">
+
+      {/* ── VERIFY RESULT BANNER (global, shown on any tab) ── */}
+      {verifyState && (
+        <div className={`wlt-verify-banner wlt-verify-${verifyState}`}>
+          {verifyState === "loading" && <><span className="wlt-vspin" /><div><strong>Đang xác minh thanh toán…</strong><p>Vui lòng chờ trong giây lát</p></div></>}
+          {verifyState === "success" && <><span className="wlt-vicon wlt-vi-ok">✓</span><div><strong>Nạp tiền thành công!</strong><p>Số dư ví đã được cộng{returnOrderCode ? ` — Mã GD: ${returnOrderCode}` : ""}.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
+          {verifyState === "failed"  && <><span className="wlt-vicon wlt-vi-err">✗</span><div><strong>Xác minh thất bại</strong><p>Nếu tiền đã bị trừ, liên hệ hỗ trợ với mã: {returnOrderCode}</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
+          {verifyState === "cancelled" && <><span className="wlt-vicon wlt-vi-warn">!</span><div><strong>Giao dịch đã hủy</strong><p>Bạn đã hủy phiên thanh toán. Không có tiền nào bị trừ.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
+          {verifyState === "pending" && <><span className="wlt-vicon wlt-vi-warn">!</span><div><strong>Chưa xác nhận</strong><p>Giao dịch đang chờ SePay xác nhận chuyển khoản.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
+        </div>
+      )}
 
       {/* ── HERO BALANCE CARD ── */}
       <div className={`wlt-hero ${role === "farmer" ? "wlt-hero-farmer" : "wlt-hero-enterprise"}`}>
@@ -465,16 +475,6 @@ export default function WalletPayment({ role }) {
       {/* ══════════ TAB: TOP-UP ══════════ */}
       {activeTab === "topup" && (
         <div className="wlt-body">
-
-          {/* Verify banner */}
-          {verifyState && (
-            <div className={`wlt-verify-banner wlt-verify-${verifyState}`}>
-              {verifyState === "loading" && <><span className="wlt-vspin" /><div><strong>Đang xác minh thanh toán…</strong><p>Vui lòng chờ trong giây lát</p></div></>}
-              {verifyState === "success" && <><span className="wlt-vicon wlt-vi-ok">✓</span><div><strong>Nạp tiền thành công!</strong><p>Số dư ví đã được cộng{returnOrderCode ? ` — Mã GD: ${returnOrderCode}` : ""}.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
-              {verifyState === "failed"  && <><span className="wlt-vicon wlt-vi-err">✗</span><div><strong>Xác minh thất bại</strong><p>Nếu tiền đã bị trừ, liên hệ hỗ trợ với mã: {returnOrderCode}</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
-              {verifyState === "cancelled" && <><span className="wlt-vicon wlt-vi-warn">!</span><div><strong>Giao dịch đã hủy</strong><p>Bạn đã hủy phiên thanh toán. Không có tiền nào bị trừ.</p></div><button className="wlt-vdismiss" onClick={() => setVerifyState(null)}>✕</button></>}
-            </div>
-          )}
 
           <div className="wlt-topup-layout">
             {/* Left: form */}
