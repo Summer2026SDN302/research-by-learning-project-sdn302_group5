@@ -20,7 +20,9 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && user) {
     if (!allowedRoles.includes(user.role)) {
-      if (user.role === 'farmer') {
+      if (user.role === 'admin') {
+        return <Navigate to={ROUTES.ADMIN} replace />;
+      } else if (user.role === 'farmer') {
         return <Navigate to={ROUTES.FARMER} replace />;
       } else if (user.role === 'enterprise') {
         return <Navigate to={ROUTES.ENTERPRISE} replace />;

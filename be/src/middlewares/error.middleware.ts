@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../utils/logger';
+
+const errorLog = createLogger('Error');
 
 export class AppError extends Error {
   statusCode: number;
@@ -50,7 +53,7 @@ export const errorHandler = (
     message = 'Token expired';
   }
 
-  console.error('❌ Error:', {
+  errorLog.error('Request failed', {
     message: err.message,
     stack: err.stack,
     url: req.originalUrl,

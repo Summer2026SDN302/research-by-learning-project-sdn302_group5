@@ -1,23 +1,27 @@
 import mongoose from 'mongoose';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('DB');
 
 const MONGODB_URI = () => process.env.MONGODB_URI || 'mongodb://localhost:27017/preoonic';
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 8000;
+const SERVER_SELECTION_TIMEOUT_MS = 10_000;
+const SOCKET_TIMEOUT_MS = 45_000;
+const CONNECT_TIMEOUT_MS = 10_000;
+const IPV4_FAMILY = 4;
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 let isConnecting = false;
 let hasConnectedOnce = false;
 
-/**
- * Connect to MongoDB with retry.  Does NOT register a 'disconnected' handler that
- * triggers a new chain — mongoose's own heartbeat will fire 'disconnected' and we
- * handle that separately with a single guarded call.
- */
+// Kết nối MongoDB có cơ chế retry.  Không đăng ký handler 'disconnected' lồng vào chuỗi mới —
+// mongoose tự bắn 'disconnected', ta xử lý riêng bằng handler có guard chống stack.
 export async function connectDB(onConnected?: () => void): Promise<void> {
-  // Register one-time process/event hooks
   mongoose.connection.once('connected', () => {
-    console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
-    console.log(`📊 Database: ${mongoose.connection.name}`);
+    log.info(`MongoDB Connected: ${mongoose.connection.host}`);
+    log.info(`Database: ${mongoose.connection.name}`);
     isConnecting = false;
     hasConnectedOnce = true;
 
@@ -25,18 +29,16 @@ export async function connectDB(onConnected?: () => void): Promise<void> {
       onConnected();
     }
 
-    // Only after a successful connect do we set up the disconnect handler
     mongoose.connection.on('disconnected', onDisconnected);
   });
 
   mongoose.connection.on('error', (err: Error) => {
-    // Log TLS / network errors without crashing
-    console.error('❌ MongoDB error:', err.message);
+    log.error('MongoDB error', err.message);
   });
 
   process.on('SIGINT', async () => {
     await mongoose.connection.close();
-    console.log('MongoDB connection closed through app termination');
+    log.info('MongoDB connection closed through app termination');
     process.exit(0);
   });
 
@@ -52,36 +54,34 @@ export function hasDatabaseConnectedOnce(): boolean {
 }
 
 function onDisconnected() {
-  // Remove so it doesn't stack on each reconnect cycle
   mongoose.connection.off('disconnected', onDisconnected);
-  console.warn('⚠️  MongoDB disconnected — reconnecting...');
+  log.warn('MongoDB disconnected — reconnecting...');
   attempt(1).catch(() => {});
 }
 
 async function attempt(start: number): Promise<void> {
-  if (isConnecting) return; // prevent parallel chains
+  if (isConnecting) return;
   isConnecting = true;
 
   for (let i = start; i <= MAX_RETRIES; i++) {
-    if (i === 0) console.log('🔄 Connecting to MongoDB...');
-    else console.log(`🔄 Reconnecting to MongoDB (attempt ${i}/${MAX_RETRIES})...`);
+    if (i === 0) log.info('Connecting to MongoDB...');
+    else log.info(`Reconnecting to MongoDB (attempt ${i}/${MAX_RETRIES})...`);
 
     try {
       await mongoose.connect(MONGODB_URI(), {
-        serverSelectionTimeoutMS: 10000,
-        socketTimeoutMS: 45000,
-        connectTimeoutMS: 10000,
-        family: 4,
+        serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS,
+        socketTimeoutMS: SOCKET_TIMEOUT_MS,
+        connectTimeoutMS: CONNECT_TIMEOUT_MS,
+        family: IPV4_FAMILY,
       });
-      // 'connected' event fires → logs success, registers disconnect handler, clears flag
       return;
     } catch (err: any) {
-      console.error(`❌ MongoDB connection failed: ${err.message}`);
+      log.error(`MongoDB connection failed: ${err.message}`);
       if (i < MAX_RETRIES) {
-        console.log(`⏳ Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+        log.info(`Retrying in ${RETRY_DELAY_MS / 1000}s...`);
         await sleep(RETRY_DELAY_MS);
       } else {
-        console.error('❌ Max retries reached. Server running without DB — retry manually or fix Atlas IP whitelist.');
+        log.error('Max retries reached. Server running without DB — retry manually or fix Atlas IP whitelist.');
         isConnecting = false;
       }
     }

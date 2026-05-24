@@ -1,8 +1,11 @@
+import crypto from 'crypto';
 import Contract, { IContract } from '../models/Contract.model';
 import Product, { IProduct } from '../models/Product.model';
+import User from '../models/User.model';
 import { AppError } from '../middlewares/error.middleware';
 import { EscrowService } from './escrow.service';
 import { NotificationService } from './notification.service';
+import { sendSignOtpEmail } from './email.service';
 import { CONTRACT_CONFIG, UNIT_TO_KG } from '../constants';
 
 export interface CreateContractBody {
@@ -343,14 +346,51 @@ export class ContractService {
   }
 
   /**
-   * Sign a contract
+   * Generate and send OTP for contract signing (enterprise only).
+   * The OTP hash is stored on the contract; raw OTP is emailed to the enterprise user.
+   */
+  static async requestSignOtp(contractId: string, userId: string): Promise<void> {
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
+
+    if (contract.enterpriseId.toString() !== userId) {
+      throw new AppError('Bạn không phải là doanh nghiệp trong hợp đồng này', 403);
+    }
+    if (contract.signedByEnterprise) {
+      throw new AppError('Hợp đồng này đã được bạn ký rồi', 400);
+    }
+
+    const user = await User.findById(userId).select('email fullName');
+    if (!user) throw new AppError('Không tìm thấy người dùng', 404);
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const hash = crypto.createHash('sha256').update(otp).digest('hex');
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Use $set with select:false fields explicitly
+    await Contract.findByIdAndUpdate(contractId, {
+      signOtpHash: hash,
+      signOtpExpiry: expiry,
+    });
+
+    await sendSignOtpEmail(user.email, user.fullName, otp, contract.contractCode);
+  }
+
+  /**
+   * Sign a contract.
+   * Enterprise role requires a valid OTP; farmer role signs directly.
    */
   static async sign(
     contractId: string,
     userId: string,
-    role: ContractActorRole
+    role: ContractActorRole,
+    otp?: string
   ): Promise<IContract> {
-    const contract = this.ensureContractExists(await Contract.findById(contractId));
+    // For enterprise, fetch OTP fields explicitly (they are select:false)
+    const query = role === 'enterprise'
+      ? Contract.findById(contractId).select('+signOtpHash +signOtpExpiry')
+      : Contract.findById(contractId);
+
+    const contract = this.ensureContractExists(await query);
 
     if (role === 'farmer') {
       if (contract.farmerId.toString() !== userId) {
@@ -361,6 +401,25 @@ export class ContractService {
       if (contract.enterpriseId.toString() !== userId) {
         throw new AppError('Bạn không phải là doanh nghiệp trong hợp đồng này', 403);
       }
+
+      // Verify OTP
+      if (!otp) {
+        throw new AppError('Vui lòng nhập mã OTP để ký hợp đồng', 400);
+      }
+      if (!contract.signOtpHash || !contract.signOtpExpiry) {
+        throw new AppError('Chưa có mã OTP. Vui lòng yêu cầu gửi mã OTP trước', 400);
+      }
+      if (new Date() > contract.signOtpExpiry) {
+        throw new AppError('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới', 400);
+      }
+      const inputHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
+      if (inputHash !== contract.signOtpHash) {
+        throw new AppError('Mã OTP không đúng', 400);
+      }
+
+      // Clear OTP after successful use
+      contract.signOtpHash = undefined;
+      contract.signOtpExpiry = undefined;
       contract.signedByEnterprise = true;
     }
 

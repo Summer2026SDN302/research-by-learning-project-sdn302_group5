@@ -1,21 +1,33 @@
 import { WeatherService } from '../services/weather.service';
 import { NotificationService } from '../services/notification.service';
 import WeatherAlert from '../models/WeatherAlert.model';
+import { createLogger } from '../utils/logger';
 
-/**
- * Weather cron job - runs every 6 hours
- * Checks weather for all users with location data and creates alerts
- */
+const log = createLogger('WeatherCron');
+
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const INITIAL_CATCHUP_DELAY_MS = 30_000;
+const EVERY_SIX_HOURS_CRON = '0 */6 * * *';
+
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  extreme_heat: 'Nang nong cuc dien',
+  extreme_cold: 'Ret dam cuc manh',
+  heavy_rain: 'Mua lon',
+  strong_wind: 'Gio manh / Bao',
+  drought: 'Han han',
+};
+
+// Job định kỳ: kiểm tra thời tiết, tạo alert + dọn dẹp dữ liệu cũ.
 export async function runWeatherCronJob(): Promise<void> {
-  console.log(`[WEATHER CRON] Starting weather check at ${new Date().toISOString()}`);
+  log.info(`Starting weather check at ${new Date().toISOString()}`);
 
   try {
     const alertCount = await WeatherService.runWeatherCheckForAllUsers();
-    console.log(`[WEATHER CRON] Created ${alertCount} weather alerts`);
+    log.info(`Created ${alertCount} weather alerts`);
 
-    // Create in-app notifications for new alerts (created in last 5 minutes)
     if (alertCount > 0) {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const fiveMinutesAgo = new Date(Date.now() - FIVE_MINUTES_MS);
       const newAlerts = await WeatherAlert.find({ createdAt: { $gte: fiveMinutesAgo } });
 
       for (const alert of newAlerts) {
@@ -28,65 +40,49 @@ export async function runWeatherCronJob(): Promise<void> {
             alert.severity as 'warning' | 'critical'
           );
         } catch (notifErr) {
-          console.error(`[WEATHER CRON] Notification creation failed for alert ${alert._id}:`, notifErr);
+          log.error(`Notification creation failed for alert ${alert._id}`, notifErr);
         }
       }
     }
 
-    // Cleanup: delete read alerts older than 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
     const cleanupResult = await WeatherAlert.deleteMany({
       isRead: true,
       createdAt: { $lt: thirtyDaysAgo },
     });
     if (cleanupResult.deletedCount > 0) {
-      console.log(`[WEATHER CRON] Cleaned up ${cleanupResult.deletedCount} old alerts`);
+      log.info(`Cleaned up ${cleanupResult.deletedCount} old alerts`);
     }
 
-    // Cleanup old notifications too
     const notifCleanup = await NotificationService.cleanupOldNotifications();
     if (notifCleanup > 0) {
-      console.log(`[WEATHER CRON] Cleaned up ${notifCleanup} old notifications`);
+      log.info(`Cleaned up ${notifCleanup} old notifications`);
     }
 
-    console.log(`[WEATHER CRON] Completed at ${new Date().toISOString()}`);
+    log.info(`Completed at ${new Date().toISOString()}`);
   } catch (error) {
-    console.error('[WEATHER CRON] Failed:', error);
+    log.error('Weather cron failed', error);
   }
 }
 
-/**
- * Start the weather cron job using node-cron
- * Schedule: every 6 hours at minute 0
- */
 export function startWeatherCron(): void {
   try {
     const cron = require('node-cron');
-
-    // Run every 6 hours: at minute 0 of hours 0, 6, 12, 18
-    cron.schedule('0 */6 * * *', () => {
+    cron.schedule(EVERY_SIX_HOURS_CRON, () => {
       runWeatherCronJob();
     });
 
-    console.log('[WEATHER CRON] Scheduled to run every 6 hours');
+    log.info('Scheduled to run every 6 hours');
 
-    // Also run once 30 seconds after startup (to catch up)
     setTimeout(() => {
-      console.log('[WEATHER CRON] Running initial weather check...');
+      log.info('Running initial weather check...');
       runWeatherCronJob();
-    }, 30000);
-  } catch (error) {
-    console.warn('[WEATHER CRON] node-cron not installed, skipping cron setup. Install with: npm install node-cron');
+    }, INITIAL_CATCHUP_DELAY_MS);
+  } catch {
+    log.warn('node-cron not installed, skipping cron setup. Install with: npm install node-cron');
   }
 }
 
 function getAlertTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    extreme_heat: 'Nang nong cuc dien',
-    extreme_cold: 'Ret dam cuc manh',
-    heavy_rain: 'Mua lon',
-    strong_wind: 'Gio manh / Bao',
-    drought: 'Han han',
-  };
-  return labels[type] || type;
+  return ALERT_TYPE_LABELS[type] || type;
 }

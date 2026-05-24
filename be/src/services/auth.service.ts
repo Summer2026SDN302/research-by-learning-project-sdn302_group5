@@ -18,6 +18,15 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '../constants';
 import { isTruthy, parseFullName } from '../utils/validation.util';
+import {
+  getSmtpConfig,
+  sendEmail,
+  sendVerificationEmail,
+  buildPasswordResetEmailHtml,
+} from './email.service';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('Auth');
 
 type UserTokenPayload = {
   id: string;
@@ -28,15 +37,6 @@ type UserTokenPayload = {
 
 type RefreshTokenPayload = JwtPayload & {
   id: string;
-};
-
-type SmtpConfig = {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  from: string;
 };
 
 export class AuthService {
@@ -94,64 +94,7 @@ export class AuthService {
     }
   }
 
-  private static getSmtpConfig(includeLegacyEnv: boolean = false): SmtpConfig | null {
-    const host = process.env.SMTP_HOST || (includeLegacyEnv ? process.env.EMAIL_HOST : undefined);
-    const user = process.env.SMTP_USER || (includeLegacyEnv ? process.env.EMAIL_USER : undefined);
-    const pass = process.env.SMTP_PASS || (includeLegacyEnv ? process.env.EMAIL_PASSWORD : undefined);
-
-    if (!host || !user || !pass) {
-      return null;
-    }
-
-    return {
-      host,
-      user,
-      pass,
-      port: Number(process.env.SMTP_PORT || (includeLegacyEnv ? process.env.EMAIL_PORT : undefined) || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      from: process.env.SMTP_FROM || `"PreOnic" <${user}>`,
-    };
-  }
-
-  private static async sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: { user: config.user, pass: config.pass },
-    });
-
-    await transporter.sendMail({
-      from: config.from,
-      to,
-      subject,
-      html,
-    });
-  }
-
-  private static buildPasswordResetEmail(fullName: string, resetUrl: string): string {
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #16a34a; color: white; padding: 20px; text-align: center;">
-          <h1 style="margin: 0;">PreOnic</h1>
-          <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
-        </div>
-        <div style="padding: 30px; background: #f9f9f9;">
-          <h2 style="color: #333;">Đặt lại mật khẩu</h2>
-          <p style="color: #555;">Xin chào <strong>${fullName}</strong>,</p>
-          <p style="color: #555;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản PreOnic. Link có hiệu lực trong <strong>10 phút</strong>.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Đặt lại mật khẩu</a>
-          </div>
-          <p style="color: #555; font-size: 13px;">Hoặc dán link: <span style="word-break: break-all; color: #16a34a;">${resetUrl}</span></p>
-          <p style="color: #555;">Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px;">Email tự động từ hệ thống PreOnic. Vui lòng không trả lời.</p>
-        </div>
-      </div>
-    `;
-  }
+  // SMTP/email helpers đã chuyển sang email.service.ts theo nguyên tắc SRP.
 
   private static buildProfileUpdateData(body: UpdateProfileBody): Partial<UpdateProfileBody> {
     const updateData: Partial<UpdateProfileBody> = {};
@@ -259,8 +202,8 @@ export class AuthService {
     // Send email verification (non-blocking — don't fail registration if email fails)
     const verificationToken = user.createEmailVerificationToken();
     await user.save({ validateBeforeSave: false });
-    AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken).catch(
-      (err) => console.error('[Auth] Failed to send verification email after register:', err)
+    sendVerificationEmail(user.email, user.fullName, verificationToken).catch(
+      (err) => log.error('Failed to send verification email after register', err)
     );
 
     AuthService.hideSensitiveFields(user);
@@ -403,15 +346,15 @@ export class AuthService {
 
     // Send password reset email via nodemailer
     const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    const smtpConfig = AuthService.getSmtpConfig(true);
+    const smtpConfig = getSmtpConfig(true);
 
     if (smtpConfig) {
       try {
-        await AuthService.sendEmail(
+        await sendEmail(
           smtpConfig,
           user.email,
           '[PreOnic] Đặt lại mật khẩu của bạn',
-          AuthService.buildPasswordResetEmail(user.fullName, resetURL)
+          buildPasswordResetEmailHtml(user.fullName, resetURL)
         );
       } catch {
         user.passwordResetToken = undefined;
@@ -598,16 +541,23 @@ export class AuthService {
     if (credential) {
       const { OAuth2Client } = require('google-auth-library');
       const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-      let ticket: any;
+      type GoogleTicket = { getPayload: () => { email?: string; name?: string; picture?: string; sub?: string } };
+      let ticket: GoogleTicket | null = null;
       try {
         ticket = await client.verifyIdToken({
           idToken: credential,
           audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        }) as GoogleTicket;
       } catch {
         throw new AppError('Google ID token không hợp lệ', 401);
       }
+      if (!ticket) {
+        throw new AppError('Google ID token không hợp lệ', 401);
+      }
       const payload = ticket.getPayload();
+      if (!payload?.email || !payload?.sub) {
+        throw new AppError('Google trả thiếu thông tin cần thiết', 401);
+      }
       googleEmail = payload.email;
       googleName = payload.name || payload.email;
       googlePicture = payload.picture;
@@ -662,7 +612,7 @@ export class AuthService {
       // Send verification email — user must confirm before first login
       const verificationToken = user.createEmailVerificationToken();
       await user.save({ validateBeforeSave: false });
-      await AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken);
+      await sendVerificationEmail(user.email, user.fullName, verificationToken);
 
       return { requiresVerification: true as const, email: googleEmail };
     } else {
@@ -707,66 +657,9 @@ export class AuthService {
     const verificationToken = user.createEmailVerificationToken();
     await user.save({ validateBeforeSave: false });
 
-    await AuthService.sendVerificationEmail(user.email, user.fullName, verificationToken);
+    await sendVerificationEmail(user.email, user.fullName, verificationToken);
 
     return { message: 'Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư.' };
   }
 
-  /**
-   * Send verification email — uses nodemailer if configured, otherwise logs token
-   */
-  private static async sendVerificationEmail(
-    email: string,
-    fullName: string,
-    token: string
-  ): Promise<void> {
-    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
-    // includeLegacyEnv=true so EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD are picked up
-    const smtpConfig = AuthService.getSmtpConfig(true);
-
-    if (smtpConfig) {
-      try {
-        await AuthService.sendEmail(
-          smtpConfig,
-          email,
-          '[PreOnic] Xác minh địa chỉ email của bạn',
-          `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: #16a34a; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-                <h1 style="margin: 0;">PreOnic</h1>
-                <p style="margin: 5px 0 0;">Nền tảng kết nối nông nghiệp bền vững</p>
-              </div>
-              <div style="padding: 32px; background: #f9f9f9;">
-                <h2 style="color: #333;">Xin chào ${fullName}!</h2>
-                <p style="color: #555; line-height: 1.6;">
-                  Cảm ơn bạn đã đăng ký tài khoản PreOnic. Vui lòng nhấn nút bên dưới để xác minh địa chỉ email của bạn.
-                </p>
-                <div style="text-align: center; margin: 28px 0;">
-                  <a href="${verifyUrl}"
-                    style="background: #16a34a; color: white; padding: 14px 32px; border-radius: 8px;
-                           text-decoration: none; font-weight: bold; font-size: 16px;">
-                    Xác minh email
-                  </a>
-                </div>
-                <p style="color: #777; font-size: 13px;">
-                  Nếu nút không hoạt động, hãy copy đường link này vào trình duyệt:<br/>
-                  <a href="${verifyUrl}" style="color: #16a34a;">${verifyUrl}</a>
-                </p>
-                <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                  Link có hiệu lực trong 24 giờ. Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.
-                </p>
-              </div>
-            </div>
-          `
-        );
-      } catch (error) {
-        console.error('[Auth] Email send failed:', error);
-        // Non-critical: log token so dev can test without SMTP
-        console.log(`[Email MOCK] Verification URL: ${verifyUrl}`);
-      }
-    } else {
-      // Dev mode: log to console so registration still works without SMTP config
-      console.log(`[Email MOCK] Verification URL for ${email}: ${verifyUrl}`);
-    }
-  }
 }

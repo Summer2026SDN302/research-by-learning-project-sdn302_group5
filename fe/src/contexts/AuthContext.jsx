@@ -57,7 +57,12 @@ export const AuthProvider = ({ children }) => {
   const updateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
     if (updatedUser) {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      // Safari private mode / vượt quota → ném SecurityError; nuốt để không gãy auth flow.
+      try {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      } catch {
+        // Bỏ qua: state vẫn cập nhật trong context, chỉ mất khả năng persist qua reload.
+      }
     }
   }, []);
 

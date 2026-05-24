@@ -42,11 +42,24 @@ const contractService = {
   },
 
   /**
-   * Sign a contract
+   * Request OTP for signing (enterprise only)
    */
-  sign: async (id) => {
+  requestSignOtp: async (id) => {
     try {
-      const response = await api.post(`/contracts/${id}/sign`);
+      const response = await api.post(`/contracts/${id}/request-sign-otp`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { success: false, message: 'Gửi mã OTP thất bại' };
+    }
+  },
+
+  /**
+   * Sign a contract. Enterprise must supply otp; farmer can omit it.
+   */
+  sign: async (id, otp) => {
+    try {
+      const body = otp ? { otp } : {};
+      const response = await api.post(`/contracts/${id}/sign`, body);
       return response.data;
     } catch (error) {
       throw error.response?.data || { success: false, message: 'Ký hợp đồng thất bại' };

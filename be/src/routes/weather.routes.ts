@@ -8,11 +8,14 @@ import {
   markAlertAsRead,
   markAllAlertsAsRead,
   getThresholds,
+  getProvinceCoords,
 } from '../controllers/weather.controller';
 
 const router = Router();
 
-// All weather routes require authentication
+// Public route phải khai báo TRƯỚC router.use(protect)
+router.get('/provinces', getProvinceCoords);
+
 router.use(protect);
 
 // ===== WEATHER =====

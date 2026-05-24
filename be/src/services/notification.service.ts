@@ -2,6 +2,9 @@ import Notification, { INotification } from '../models/Notification.model';
 import User from '../models/User.model';
 import { AppError } from '../middlewares/error.middleware';
 import { NotificationType } from '../types';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('Notification');
 
 export class NotificationService {
   /**
@@ -175,13 +178,13 @@ export class NotificationService {
             { emailSent: true }
           );
         } catch (emailErr) {
-          console.error('Email send failed:', emailErr);
+          log.error('Email send failed', emailErr);
         }
       } else {
-        console.log(`[EMAIL MOCK] To: ${user.email} | Subject: ${subject} | Body: ${body}`);
+        log.info(`[MOCK] To: ${user.email} | Subject: ${subject} | Body: ${body}`);
       }
     } catch (error) {
-      console.error('Email notification error:', error);
+      log.error('Email notification error', error);
     }
   }
 }

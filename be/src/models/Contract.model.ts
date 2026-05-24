@@ -46,6 +46,8 @@ export interface IContract extends Document {
   signedByFarmer: boolean;
   signedByEnterprise: boolean;
   signedAt?: Date;
+  signOtpHash?: string;
+  signOtpExpiry?: Date;
   completedAt?: Date;
   cancelledAt?: Date;
   cancelReason?: string;
@@ -158,6 +160,14 @@ const ContractSchema = new Schema<IContract>(
     },
     signedAt: {
       type: Date,
+    },
+    signOtpHash: {
+      type: String,
+      select: false,
+    },
+    signOtpExpiry: {
+      type: Date,
+      select: false,
     },
     completedAt: {
       type: Date,

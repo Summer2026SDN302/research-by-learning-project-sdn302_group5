@@ -4,6 +4,9 @@ import { protect } from '../middlewares/auth.middleware';
 import User from '../models/User.model';
 import { Conversation, Message } from '../models/Message.model';
 import { AuthRequest } from '../types';
+import { createLogger } from '../utils/logger';
+
+const log = createLogger('Messaging');
 
 const router = Router();
 
@@ -31,7 +34,8 @@ router.get('/conversations', async (req: AuthRequest, res: Response) => {
     });
 
     res.json({ success: true, data: result });
-  } catch {
+  } catch (err) {
+    log.error('Failed to load conversations', err);
     res.status(500).json({
       success: false,
       message: 'Khong the tai danh sach cuoc tro chuyen',
@@ -103,7 +107,8 @@ router.post('/conversations', async (req: AuthRequest, res: Response): Promise<v
         lastMessageAt: conversation.lastMessageAt,
       },
     });
-  } catch {
+  } catch (err) {
+    log.error('Failed to create conversation', err);
     res.status(500).json({
       success: false,
       message: 'Khong the tao cuoc tro chuyen',
@@ -150,7 +155,8 @@ router.get('/conversations/:id/messages', async (req: AuthRequest, res: Response
     );
 
     res.json({ success: true, data: messages.reverse() });
-  } catch {
+  } catch (err) {
+    log.error('Failed to load messages', err);
     res.status(500).json({
       success: false,
       message: 'Khong the tai tin nhan',
@@ -205,7 +211,8 @@ router.post('/conversations/:id/messages', async (req: AuthRequest, res: Respons
     await message.populate('sender', 'fullName email role');
 
     res.status(201).json({ success: true, data: message });
-  } catch {
+  } catch (err) {
+    log.error('Failed to send message', err);
     res.status(500).json({
       success: false,
       message: 'Khong the gui tin nhan',

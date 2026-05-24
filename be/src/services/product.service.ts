@@ -184,7 +184,7 @@ export class ProductService {
    */
   static async getSimilar(productId: string, limit: number = 4): Promise<IProduct[]> {
     const product = await Product.findById(productId);
-    if (!product) return [];
+    if (!product) throw new AppError('Sản phẩm không tồn tại', 404);
 
     return Product.find({
       _id: { $ne: productId },

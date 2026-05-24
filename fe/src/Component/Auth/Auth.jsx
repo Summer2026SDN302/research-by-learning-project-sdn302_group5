@@ -165,7 +165,8 @@ const Auth = () => {
         const user = result.data.user;
         toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
         setTimeout(() => {
-          if (user.role === "farmer") navigate(ROUTES.FARMER);
+          if (user.role === "admin") navigate(ROUTES.ADMIN);
+          else if (user.role === "farmer") navigate(ROUTES.FARMER);
           else if (user.role === "enterprise") navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
           else navigate(ROUTES.HOME);
         }, 800);
@@ -220,7 +221,9 @@ const Auth = () => {
           toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
           
           setTimeout(() => {
-            if (user.role === 'farmer') {
+            if (user.role === 'admin') {
+              navigate(ROUTES.ADMIN);
+            } else if (user.role === 'farmer') {
               navigate(ROUTES.FARMER);
             } else if (user.role === 'enterprise') {
               navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });

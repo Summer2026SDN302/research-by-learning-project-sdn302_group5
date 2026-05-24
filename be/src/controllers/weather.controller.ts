@@ -1,8 +1,20 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import { asyncHandler } from '../middlewares/error.middleware';
 import { WeatherService } from '../services/weather.service';
 import { successResponse } from '../utils/response.util';
+import { PROVINCE_COORDS } from '../data/provinces';
+
+/**
+ * @desc    Liệt kê toạ độ tỉnh/thành (public, dùng cho bản đồ FE)
+ * @route   GET /api/v1/weather/provinces
+ * @access  Public
+ */
+export const getProvinceCoords = asyncHandler(
+  async (_req: Request, res: Response, _next: NextFunction) => {
+    res.status(200).json(successResponse(PROVINCE_COORDS, 'Danh sách toạ độ tỉnh/thành'));
+  }
+);
 
 /**
  * @desc    Get current weather for logged-in user's location

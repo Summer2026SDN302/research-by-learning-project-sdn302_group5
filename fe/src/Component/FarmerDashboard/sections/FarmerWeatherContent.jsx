@@ -25,22 +25,12 @@ const VIETNAM_PROVINCES = [
   { value: "Binh Dinh", label: "Bình Định" }, { value: "Phu Yen", label: "Phú Yên" },
 ];
 
-const PROVINCE_COORDS_FE = {
-  "Ha Noi": { lat: 21.0285, lng: 105.8542 }, "Ho Chi Minh": { lat: 10.8231, lng: 106.6297 },
-  "Da Nang": { lat: 16.0544, lng: 108.2022 }, "Hai Phong": { lat: 20.8449, lng: 106.6881 },
-  "Can Tho": { lat: 10.0452, lng: 105.7469 }, "Binh Duong": { lat: 11.3254, lng: 106.477 },
-  "Dong Nai": { lat: 10.9453, lng: 106.8243 }, "Lam Dong": { lat: 11.9404, lng: 108.4583 },
-  "Dak Lak": { lat: 12.71, lng: 108.2378 }, "Gia Lai": { lat: 13.9833, lng: 108.0 },
-  "Long An": { lat: 10.5364, lng: 106.4134 }, "Tien Giang": { lat: 10.3599, lng: 106.3631 },
-  "Ben Tre": { lat: 10.2434, lng: 106.3756 }, "An Giang": { lat: 10.5216, lng: 105.1259 },
-  "Binh Thuan": { lat: 10.9333, lng: 108.1 }, "Khanh Hoa": { lat: 12.2585, lng: 109.0526 },
-  "Tay Ninh": { lat: 11.3635, lng: 106.1016 }, "Thai Nguyen": { lat: 21.5671, lng: 105.825 },
-  "Bac Giang": { lat: 21.2731, lng: 106.1946 }, "Thanh Hoa": { lat: 19.8, lng: 105.7667 },
-  "Nghe An": { lat: 18.6733, lng: 105.6922 }, "Ha Tinh": { lat: 18.3559, lng: 105.8877 },
-  "Quang Binh": { lat: 17.4688, lng: 106.6224 }, "Hue": { lat: 16.4637, lng: 107.5909 },
-  "Quang Nam": { lat: 15.5394, lng: 108.019 }, "Quang Ngai": { lat: 15.1214, lng: 108.8044 },
-  "Binh Dinh": { lat: 13.782, lng: 109.2197 }, "Phu Yen": { lat: 13.0882, lng: 109.0929 },
-};
+// Toạ độ tỉnh được fetch một lần từ BE (xem weatherService.getProvinceCoords) — không hardcode FE nữa.
+
+// Tâm địa lý xấp xỉ của Việt Nam — dùng khi tỉnh chưa có trong bảng coords
+const VIETNAM_CENTER_COORDS = { lat: 16.0, lng: 107.0 };
+const WINDY_ZOOM_DISTRICT = 10;
+const WINDY_ZOOM_PROVINCE = 8;
 
 const INSURANCE_PROGRAMS = [
   {
@@ -256,6 +246,13 @@ export default function FarmerWeatherContent() {
   const [thresholds, setThresholds] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("weather");
+  const [provinceCoords, setProvinceCoords] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    weatherService.getProvinceCoords().then(coords => { if (!cancelled) setProvinceCoords(coords); });
+    return () => { cancelled = true; };
+  }, []);
 
   const districtOptions = useMemo(() => getDistricts(selectedProvince), [selectedProvince]);
 
@@ -333,8 +330,8 @@ export default function FarmerWeatherContent() {
 
   const provinceLabel = VIETNAM_PROVINCES.find(p => p.value === selectedProvince)?.label || selectedProvince;
   const displayLocation = selectedDistrict ? `${selectedDistrict}, ${provinceLabel}` : provinceLabel;
-  const coords = PROVINCE_COORDS_FE[selectedProvince] || { lat: 16.0, lng: 107.0 };
-  const windyZoom = selectedDistrict ? 10 : 8;
+  const coords = provinceCoords[selectedProvince] || VIETNAM_CENTER_COORDS;
+  const windyZoom = selectedDistrict ? WINDY_ZOOM_DISTRICT : WINDY_ZOOM_PROVINCE;
   const windyUrl = `https://embed.windy.com/embed2.html?lat=${coords.lat}&lon=${coords.lng}&detailLat=${coords.lat}&detailLon=${coords.lng}&zoom=${windyZoom}&level=surface&overlay=temp&menu=&message=&marker=true&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`;
 
   const unreadCount = alerts.filter(a => !a.isRead).length;

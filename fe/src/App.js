@@ -27,6 +27,7 @@ import Register from "./Component/Register/Register";
 // DASHBOARDS
 import EnterpriseDashboard from "./Component/EnterpriseDashboard/EnterpriseDashboard";
 import FarmerDashboard from "./Component/FarmerDashboard/FarmerDashboard";
+import AdminDashboard from "./Component/AdminDashboard/AdminDashboard";
 
 // PRODUCTS
 import AllProducts from "./Component/AllProducts/AllProducts";
@@ -87,6 +88,9 @@ function App() {
             {/* Products */}
             <Route path="/products" element={<AllProducts />} />
             <Route path="/products/:id" element={<ProductDetail />} />
+
+            {/* Admin (protected) */}
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
 
             {/* Enterprise (protected) */}
             <Route path="/enterprise" element={<ProtectedRoute allowedRoles={['enterprise']}><EnterpriseDashboard /></ProtectedRoute>} />

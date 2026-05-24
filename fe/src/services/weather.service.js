@@ -1,9 +1,23 @@
 import api from './api';
 
-/**
- * Weather Service - Handle weather API calls
- */
+// Cache trong module: chỉ fetch lần đầu, các call sau dùng lại object đã lưu.
+let provinceCoordsCache = null;
+let provinceCoordsPromise = null;
+
 const weatherService = {
+  // Lấy bảng toạ độ tỉnh từ BE (source of truth chung). Cache trong session để tránh request lặp.
+  getProvinceCoords: async () => {
+    if (provinceCoordsCache) return provinceCoordsCache;
+    if (provinceCoordsPromise) return provinceCoordsPromise;
+    provinceCoordsPromise = api.get('/weather/provinces')
+      .then(res => {
+        provinceCoordsCache = res?.data?.data || {};
+        return provinceCoordsCache;
+      })
+      .catch(() => ({}))
+      .finally(() => { provinceCoordsPromise = null; });
+    return provinceCoordsPromise;
+  },
   /**
    * Get current weather for logged-in user's location
    */

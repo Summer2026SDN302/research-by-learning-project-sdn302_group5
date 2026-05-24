@@ -22,6 +22,11 @@ import {
   validateResetPassword,
   validateUpdatePassword,
 } from '../middlewares/validation.middleware';
+import {
+  authLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+} from '../middlewares/rateLimit.middleware';
 
 const router = Router();
 
@@ -32,42 +37,42 @@ const router = Router();
  * @desc    Register new user (farmer or enterprise)
  * @access  Public
  */
-router.post('/register', validateRegister, register);
+router.post('/register', registerLimiter, validateRegister, register);
 
 /**
  * @route   POST /api/v1/auth/login
  * @desc    Login user with email/phone + password
  * @access  Public
  */
-router.post('/login', validateLogin, login);
+router.post('/login', authLimiter, validateLogin, login);
 
 /**
  * @route   POST /api/v1/auth/refresh-token
  * @desc    Refresh access token using refresh token
  * @access  Public
  */
-router.post('/refresh-token', refreshToken);
+router.post('/refresh-token', authLimiter, refreshToken);
 
 /**
  * @route   POST /api/v1/auth/google
  * @desc    Login or register with Google OAuth
  * @access  Public
  */
-router.post('/google', googleLogin);
+router.post('/google', authLimiter, googleLogin);
 
 /**
  * @route   POST /api/v1/auth/forgot-password
  * @desc    Send password reset token
  * @access  Public
  */
-router.post('/forgot-password', validateForgotPassword, forgotPassword);
+router.post('/forgot-password', passwordResetLimiter, validateForgotPassword, forgotPassword);
 
 /**
  * @route   POST /api/v1/auth/reset-password
  * @desc    Reset password using token
  * @access  Public
  */
-router.post('/reset-password', validateResetPassword, resetPassword);
+router.post('/reset-password', passwordResetLimiter, validateResetPassword, resetPassword);
 
 // ===== PROTECTED ROUTES (require login) =====
 

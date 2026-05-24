@@ -61,6 +61,22 @@ export const listContracts = asyncHandler(
 );
 
 /**
+ * Request OTP for contract signing (enterprise only)
+ * POST /api/v1/contracts/:id/request-sign-otp
+ */
+export const requestSignOtp = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    await ContractService.requestSignOtp(req.params.id, req.user!.id);
+
+    res.status(200).json({
+      success: true,
+      status: 'success',
+      message: 'Mã OTP đã được gửi đến email của bạn',
+    });
+  }
+);
+
+/**
  * Sign a contract
  * POST /api/v1/contracts/:id/sign
  */
@@ -69,7 +85,8 @@ export const signContract = asyncHandler(
     const contract = await ContractService.sign(
       req.params.id,
       req.user!.id,
-      req.user!.role
+      req.user!.role,
+      req.body.otp
     );
 
     res.status(200).json({

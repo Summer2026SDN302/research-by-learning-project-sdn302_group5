@@ -4,6 +4,7 @@ import {
   createContract,
   getContract,
   listContracts,
+  requestSignOtp,
   signContract,
   cancelContract,
   rejectContract,
@@ -18,6 +19,7 @@ router.use(protect);
 router.post('/', createContract);
 router.get('/', listContracts);
 router.get('/:id', getContract);
+router.post('/:id/request-sign-otp', requestSignOtp);
 router.post('/:id/sign', signContract);
 router.post('/:id/cancel', cancelContract);
 router.post('/:id/reject', rejectContract);

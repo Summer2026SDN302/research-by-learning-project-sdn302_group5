@@ -1,17 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { protect } from '../middlewares/auth.middleware';
-import path from 'path';
-import fs from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 
 const router = Router();
 router.use(protect);
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
-
-// Ensure upload directory exists
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // POST /upload — handle file upload via base64
 router.post('/', async (req: Request, res: Response): Promise<void> => {
@@ -23,38 +21,33 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (fileType && !allowedTypes.includes(fileType)) {
       res.status(400).json({ success: false, message: 'Loại file không được hỗ trợ' });
       return;
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
     const buffer = Buffer.from(fileData, 'base64');
+    const maxSize = 5 * 1024 * 1024;
     if (buffer.length > maxSize) {
       res.status(400).json({ success: false, message: 'File quá lớn (tối đa 5MB)' });
       return;
     }
 
-    // Sanitize filename
-    const ext = path.extname(fileName).toLowerCase();
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
-    if (!allowedExtensions.includes(ext)) {
-      res.status(400).json({ success: false, message: 'Phần mở rộng file không hợp lệ' });
-      return;
-    }
+    const resourceType = fileType === 'application/pdf' ? 'raw' : 'image';
+    const dataUri = `data:${fileType || 'image/jpeg'};base64,${fileData}`;
 
-    const safeName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, safeName);
-
-    fs.writeFileSync(filePath, buffer);
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: 'preonic',
+      resource_type: resourceType,
+      use_filename: false,
+      unique_filename: true,
+    });
 
     res.status(201).json({
       success: true,
       data: {
-        url: `/uploads/${safeName}`,
+        url: result.secure_url,
         originalName: fileName,
         size: buffer.length,
       },

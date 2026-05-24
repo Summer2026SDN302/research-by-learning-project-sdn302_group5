@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { FiAlertTriangle, FiPackage, FiTrash2 } from "react-icons/fi";
 import { useToast } from "../../../contexts/ToastContext";
-import { ROUTES, SEARCH_PLACEHOLDERS } from "../../../constants";
 import farmerService from "../../../services/farmer.service";
 import productService from "../../../services/product.service";
 import { formatDate, formatMoney } from "../../../hooks/useApiData";
-import NotificationBell from "../../NotificationBell/NotificationBell";
 
-export default function MuaVuContent({ user, headerSearch = "", setHeaderSearch }) {
-  const navigate = useNavigate();
+export default function MuaVuContent({ user, onNavigate }) {
   const { showToast } = useToast();
   const [dashboardStats, setDashboardStats] = useState(null);
   const [crops, setCrops] = useState([]);
@@ -77,31 +73,10 @@ export default function MuaVuContent({ user, headerSearch = "", setHeaderSearch 
 
   return (
     <>
-      <header className="fd-header">
-        <div className="header-left">
-          <h1>Chào mừng trở lại, {user?.fullName || "Nông dân"}!</h1>
-          <p>Dưới đây là tổng kết các cánh đồng và cam kết hôm nay.</p>
-        </div>
-        <div className="header-actions">
-          <div className="fd-search">
-            <span className="search-input-icon" />
-            <input
-              placeholder={SEARCH_PLACEHOLDERS.FARMER_DASHBOARD}
-              value={headerSearch}
-              onChange={(e) => setHeaderSearch(e.target.value)}
-            />
-          </div>
-          <NotificationBell />
-          <div
-            className="user-profile"
-            onClick={() => navigate(ROUTES.PROFILE)}
-            style={{ cursor: "pointer" }}
-          >
-            <div className="user-avatar">{(user?.fullName || "ND").slice(0, 2).toUpperCase()}</div>
-            <span>{user?.fullName || "Nông dân"}</span>
-          </div>
-        </div>
-      </header>
+      <div className="muavu-welcome">
+        <h1>Chào mừng trở lại, {user?.fullName || "Nông dân"}!</h1>
+        <p>Dưới đây là tổng kết các cánh đồng và cam kết hôm nay.</p>
+      </div>
 
       <div className="fd-stat-row">
         <div className="fd-stat-box">
@@ -131,7 +106,13 @@ export default function MuaVuContent({ user, headerSearch = "", setHeaderSearch 
           <div className="fd-stat-txt">
             <span>Điểm uy tín</span>
             <strong>{dashboardStats?.reputationScore ?? 5}/5</strong>
-            <small className="ok">Điều kiện tốt</small>
+            <small className={
+              (dashboardStats?.reputationScore ?? 5) >= 4 ? "ok" :
+              (dashboardStats?.reputationScore ?? 5) >= 2.5 ? "warn" : "bad"
+            }>
+              {(dashboardStats?.reputationScore ?? 5) >= 4 ? "Điều kiện tốt" :
+               (dashboardStats?.reputationScore ?? 5) >= 2.5 ? "Cần cải thiện" : "Điều kiện xấu"}
+            </small>
           </div>
         </div>
       </div>
@@ -140,7 +121,7 @@ export default function MuaVuContent({ user, headerSearch = "", setHeaderSearch 
         <div className="fd-sec-card">
           <div className="fd-sec-head">
             <h3>Tổng quan mùa vụ</h3>
-            <span style={{ fontSize: 13, color: '#13ec37', cursor: 'pointer', fontWeight: 600 }}>Xem tất cả</span>
+            <span style={{ fontSize: 13, color: '#13ec37', cursor: 'pointer', fontWeight: 600 }} onClick={() => onNavigate?.("dangban")}>Xem tất cả</span>
           </div>
           <div className="fd-sec-body">
             {displayCrops.length === 0 ? (

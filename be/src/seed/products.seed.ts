@@ -453,27 +453,27 @@ const productsData = [
 async function seed() {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/preoonic';
-    console.log('🔌 Connecting to MongoDB:', mongoUri);
+    console.log('Connecting to MongoDB:', mongoUri);
     await mongoose.connect(mongoUri);
-    console.log('✅ Connected to MongoDB');
+    console.log('Connected to MongoDB');
 
     // Clear existing products
     const deleted = await Product.deleteMany({});
-    console.log(`🗑️  Cleared ${deleted.deletedCount} existing products`);
+    console.log(`Cleared ${deleted.deletedCount} existing products`);
 
     // Insert all products
     const result = await Product.insertMany(productsData);
-    console.log(`🌱 Seeded ${result.length} products:`);
+    console.log(`Seeded ${result.length} products:`);
     result.forEach((p, i) => {
       console.log(`   ${i + 1}. ${p.name} (${p.region} - ${p.category})`);
     });
 
-    console.log('\n✅ Seeding completed successfully!');
+    console.log('\nSeeding completed successfully!');
   } catch (error) {
-    console.error('❌ Seeding failed:', error);
+    console.error('Seeding failed:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('🔌 Disconnected from MongoDB');
+    console.log('Disconnected from MongoDB');
     process.exit(0);
   }
 }

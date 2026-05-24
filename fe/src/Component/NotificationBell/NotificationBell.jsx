@@ -114,7 +114,7 @@ export default function NotificationBell() {
                   className={`notif-item ${n.isRead ? "read" : "unread"}`}
                   onClick={() => !n.isRead && handleMarkRead(n._id)}
                 >
-                  <span className="notif-icon">{getIcon(n.type)}</span>
+                  <span className={`notif-icon type-${n.type}`}>{getIcon(n.type)}</span>
                   <div className="notif-content">
                     <p className="notif-title">{n.title || n.message}</p>
                     {n.description && (
@@ -124,6 +124,7 @@ export default function NotificationBell() {
                       {n.createdAt ? formatDate(n.createdAt) : ""}
                     </span>
                   </div>
+                  {!n.isRead && <span className="notif-unread-dot" />}
                 </div>
               ))
             )}

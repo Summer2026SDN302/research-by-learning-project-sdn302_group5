@@ -5,8 +5,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import path from 'path';
-
 // Import routes
 import authRoutes from './routes/auth.routes';
 import farmerRoutes from './routes/farmer.routes';
@@ -20,6 +18,7 @@ import messagingRoutes from './routes/messaging.routes';
 import uploadRoutes from './routes/upload.routes';
 import paymentRoutes from './routes/payment.routes';
 import partnerRatingRoutes from './routes/partner-rating.routes';
+import adminRoutes from './routes/admin.routes';
 import { REQUEST_LIMITS } from './constants';
 
 // Import middlewares
@@ -130,13 +129,9 @@ app.use(`${API_PREFIX}/messaging`, messagingRoutes);
 app.use(`${API_PREFIX}/upload`, uploadRoutes);
 app.use(`${API_PREFIX}/payment`, paymentRoutes);
 app.use(`${API_PREFIX}/partner-ratings`, partnerRatingRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
 
-// Serve uploaded files — use absolute path so it works regardless of CWD
-// Allow cross-origin image requests from the FE dev server
-app.use('/uploads', (_req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-}, express.static(path.join(__dirname, '../uploads')));
+// Images are now served via Cloudinary — no local /uploads route needed
 
 // 404 Handler
 app.all('*', (req: Request, res: Response) => {

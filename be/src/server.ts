@@ -3,6 +3,9 @@ import app from './app';
 import connectDB from './config/database';
 import { startWeatherCron } from './jobs/weather-cron';
 import { startShippingCron } from './jobs/shipping-cron';
+import { createLogger } from './utils/logger';
+
+const log = createLogger('Server');
 
 // Load environment variables
 dotenv.config();
@@ -18,39 +21,28 @@ connectDB(() => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`
-  ╔═══════════════════════════════════════════╗
-  ║                                           ║
-  ║   🌱 PreOnic Backend Server Running 🌱    ║
-  ║                                           ║
-  ║   Environment: ${process.env.NODE_ENV?.padEnd(26) || 'development'.padEnd(26)} ║
-  ║   Port: ${PORT.toString().padEnd(32)} ║
-  ║   API: http://localhost:${PORT}/api/v1 ${''.padEnd(10)} ║
-  ║                                           ║
-  ╚═══════════════════════════════════════════╝
-  `);
-
+  log.info(`PreOnic Backend running on port ${PORT} (env=${process.env.NODE_ENV || 'development'})`);
+  log.info(`API base: http://localhost:${PORT}/api/v1`);
 });
 
-// Handle unhandled promise rejections — log only, do not crash
+// Bắt promise rejection chưa handle — chỉ log, không crash để tránh chết server vì lỗi tạm thời.
 process.on('unhandledRejection', (err: any) => {
-  console.error('⚠️  Unhandled promise rejection (server kept running):');
-  console.error(err?.name ?? 'Error', err?.message ?? err);
+  log.error('Unhandled promise rejection (server kept running)', {
+    name: err?.name ?? 'Error',
+    message: err?.message ?? err,
+  });
 });
 
-// Handle uncaught exceptions — log and exit only for truly fatal errors
 process.on('uncaughtException', (err: Error) => {
-  console.error('❌ UNCAUGHT EXCEPTION:', err.name, err.message);
-  // Only exit if it is not a connection-related transient error
+  log.error('UNCAUGHT EXCEPTION', { name: err.name, message: err.message });
   if (!err.message?.includes('ECONNREFUSED') && !err.message?.includes('connect')) {
     process.exit(1);
   }
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
+  log.info('SIGTERM received. Shutting down gracefully...');
   server.close(() => {
-    console.log('✅ Process terminated!');
+    log.info('Process terminated.');
   });
 });

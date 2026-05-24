@@ -1,7 +1,13 @@
 import Escrow from '../models/Escrow.model';
 import { NotificationService } from '../services/notification.service';
+import { createLogger } from '../utils/logger';
 
-const SHIPPING_NOTIFY_DELAY_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+const log = createLogger('ShippingCron');
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const SHIPPING_NOTIFY_DELAY_MS = 2 * ONE_DAY_MS;
+const NOTIFICATION_DEDUPE_WINDOW_MS = 22 * 60 * 60 * 1000;
+const EVERY_HOUR_CRON = '0 * * * *';
 
 /**
  * Check for shipments that were sent 2+ days ago and notify enterprise.
@@ -12,7 +18,7 @@ const SHIPPING_NOTIFY_DELAY_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
  *   - Notification not already sent (we check by looking for evidence tag)
  */
 export async function runShippingReminderJob(): Promise<void> {
-  console.log(`[SHIPPING CRON] Running shipping reminder check at ${new Date().toISOString()}`);
+  log.info(`Running shipping reminder check at ${new Date().toISOString()}`);
 
   try {
     const cutoffDate = new Date(Date.now() - SHIPPING_NOTIFY_DELAY_MS);
@@ -41,14 +47,14 @@ export async function runShippingReminderJob(): Promise<void> {
         type: 'escrow',
         relatedId: String(escrow._id),
         title: { $regex: 'hàng đã về' },
-        createdAt: { $gte: new Date(Date.now() - 22 * 60 * 60 * 1000) },
+        createdAt: { $gte: new Date(Date.now() - NOTIFICATION_DEDUPE_WINDOW_MS) },
       });
 
       if (recentNotif) continue;
 
       const shippedEvidence = milestone3.evidence || 'không rõ đơn vị vận chuyển';
       const daysSince = Math.floor(
-        (Date.now() - (milestone3.farmerConfirmedAt?.getTime() ?? 0)) / (24 * 60 * 60 * 1000)
+        (Date.now() - (milestone3.farmerConfirmedAt?.getTime() ?? 0)) / ONE_DAY_MS
       );
 
       try {
@@ -75,17 +81,17 @@ export async function runShippingReminderJob(): Promise<void> {
 
         notified++;
       } catch (err) {
-        console.error(`[SHIPPING CRON] Failed to notify for escrow ${escrow._id}:`, err);
+        log.error(`Failed to notify for escrow ${escrow._id}`, err);
       }
     }
 
     if (notified > 0) {
-      console.log(`[SHIPPING CRON] Sent ${notified} shipping reminder(s)`);
+      log.info(`Sent ${notified} shipping reminder(s)`);
     } else {
-      console.log(`[SHIPPING CRON] No pending shipping reminders`);
+      log.info('No pending shipping reminders');
     }
   } catch (error) {
-    console.error('[SHIPPING CRON] Failed:', error);
+    log.error('Shipping cron failed', error);
   }
 }
 
@@ -97,12 +103,12 @@ export function startShippingCron(): void {
     const cron = require('node-cron');
 
     // Run every hour at minute 0
-    cron.schedule('0 * * * *', () => {
+    cron.schedule(EVERY_HOUR_CRON, () => {
       runShippingReminderJob();
     });
 
-    console.log('[SHIPPING CRON] Scheduled to run every hour');
-  } catch (error) {
-    console.warn('[SHIPPING CRON] node-cron not available, skipping cron setup.');
+    log.info('Scheduled to run every hour');
+  } catch {
+    log.warn('node-cron not available, skipping cron setup.');
   }
 }

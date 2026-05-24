@@ -60,19 +60,22 @@ const AllProducts = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
         const res = await productService.getAll({ limit: 200 });
+        if (cancelled) return;
         setProducts(Array.isArray(res?.data?.products) ? res.data.products.map(toUiProduct) : []);
-      } catch (err) {
-        setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
+      } catch {
+        if (!cancelled) setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
+    return () => { cancelled = true; };
   }, []);
 
   const dynamicCategories = useMemo(() => {

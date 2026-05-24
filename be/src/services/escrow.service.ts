@@ -8,40 +8,17 @@ import { AppError } from '../middlewares/error.middleware';
 import { NotificationService } from './notification.service';
 import Product from '../models/Product.model';
 import { getHarvestEligibility } from '../utils/harvest.util';
+import { buildMilestones } from '../utils/milestone.util';
 
-// ===== DYNAMIC MILESTONES BASED ON paymentTerms =====
-function buildMilestones(
-  paymentTerms: '50_50' | '30_70' | '100_delivery' | '100_upfront' | string,
-  depositAmount: number
-): IMilestone[] {
-  // step -> releasePercentage mapping per payment terms
-  const PCT_MAP: Record<string, [number, number, number, number, number]> = {
-    // [step1, step2, step3, step4, step5]
-    '50_50':        [0, 0, 50,  50,  0],
-    '30_70':        [0, 0, 30,  60, 10],
-    '100_delivery': [0, 0, 100,  0,  0],
-    '100_upfront':  [100, 0, 0,  0,  0],
-    'custom':       [0, 0, 40,  50, 10],
-  };
-
-  const pcts = PCT_MAP[paymentTerms] ?? PCT_MAP['custom'];
-
-  const templates = [
-    { step: 1, name: 'Ký quỹ',              description: 'Doanh nghiệp đặt cọc ký quỹ theo giá trị hợp đồng',           requiredBy: 'enterprise' as const },
-    { step: 2, name: 'Chuẩn bị hàng hóa',  description: 'Nông dân chuẩn bị và đóng gói sản phẩm theo yêu cầu',          requiredBy: 'farmer'     as const },
-    { step: 3, name: 'Giao hàng',           description: 'Nông dân xác nhận đã gửi hàng và cung cấp thông tin vận chuyển', requiredBy: 'farmer'     as const },
-    { step: 4, name: 'Kiểm tra chất lượng', description: 'Doanh nghiệp nhận hàng và kiểm tra chất lượng sản phẩm',        requiredBy: 'enterprise' as const },
-    { step: 5, name: 'Hoàn tất',            description: 'Hai bên xác nhận hoàn thành — giải ngân số dư còn lại',         requiredBy: 'system'     as const },
-  ];
-
-  return templates.map((t, i) => ({
-    ...t,
-    status: 'pending' as const,
-    farmerConfirmed: false,
-    enterpriseConfirmed: false,
-    releasePercentage: pcts[i],
-    releaseAmount: (depositAmount * pcts[i]) / 100,
-  }));
+// Sau khi .populate(), ref vốn là ObjectId trở thành document {_id, ...}.
+// Helper này lấy id dưới dạng string cho cả 2 trường hợp, tránh phải cast `any` rải rác.
+function refToId(ref: unknown): string {
+  if (!ref) return '';
+  if (typeof ref === 'object' && ref !== null && '_id' in ref) {
+    const id = (ref as { _id: unknown })._id;
+    return id ? String(id) : '';
+  }
+  return String(ref);
 }
 
 export class EscrowService {
@@ -667,10 +644,8 @@ export class EscrowService {
 
     // Only parties can view
     const isParty =
-      escrow.farmerId.toString() === userId ||
-      escrow.enterpriseId.toString() === userId ||
-      (escrow.farmerId as any)?._id?.toString() === userId ||
-      (escrow.enterpriseId as any)?._id?.toString() === userId;
+      refToId(escrow.farmerId) === userId ||
+      refToId(escrow.enterpriseId) === userId;
 
     if (!isParty) {
       throw new AppError('Bạn không có quyền xem escrow này', 403);
@@ -692,10 +667,8 @@ export class EscrowService {
     }
 
     const isParty =
-      escrow.farmerId.toString() === userId ||
-      escrow.enterpriseId.toString() === userId ||
-      (escrow.farmerId as any)?._id?.toString() === userId ||
-      (escrow.enterpriseId as any)?._id?.toString() === userId;
+      refToId(escrow.farmerId) === userId ||
+      refToId(escrow.enterpriseId) === userId;
 
     if (!isParty) {
       throw new AppError('Bạn không có quyền xem escrow này', 403);
