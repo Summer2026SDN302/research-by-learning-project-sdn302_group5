@@ -24,6 +24,12 @@ const UNIT_TO_KG = {
   thung: 25,
 };
 
+const UNIT_LABELS = {
+  tan: "Tấn",
+  kg: "kg",
+  thung: "Thùng",
+};
+
 const formatQuantityByUnit = (quantity, unit) => {
   const numericValue = Number(quantity) || 0;
   const fractionDigits = unit === "tan" ? 3 : unit === "thung" ? 2 : 0;
@@ -67,10 +73,13 @@ function ContractFlow() {
           unit: p.unit || prev.unit,
           pricePerUnit: prev.pricePerUnit || String(p.priceMin || ""),
           quantity: prev.quantity || "1",
+          farmerName: user?.role === "enterprise"
+            ? (p.farmer?.fullName || p.farmerName || prev.farmerName)
+            : prev.farmerName,
         }));
       })
       .catch(() => { /* ignore */ });
-  }, [productId]);
+  }, [productId, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showInsurance, setShowInsurance] = useState(false);
   const [insurance, setInsurance] = useState({
     insuranceCompany: "",
@@ -119,11 +128,15 @@ function ContractFlow() {
     }
   };
 
+  const harvestDate = selectedProduct?.expectedDate || selectedProduct?.harvestDate || null;
+  const deliveryBeforeHarvest = harvestDate && form.deliveryDate && form.deliveryDate < harvestDate;
+
   const canAdvance = () => {
     if (currentStep === 0) {
       if (!form.productName || !form.quantity || !form.pricePerUnit || !form.deliveryDate) return false;
       if (requestedQuantity <= 0) return false;
       if (selectedProduct && quantityExceedsAvailable) return false;
+      if (deliveryBeforeHarvest) return false;
       if (form.paymentTerms === "custom" && !customDepositValid()) return false;
       return true;
     }
@@ -247,9 +260,9 @@ function ContractFlow() {
                           placeholder="VD: 5"
                         />
                         <select value={form.unit} onChange={e => handleChange("unit", e.target.value)}>
-                          <option value="tan">tan</option>
+                          <option value="tan">Tấn</option>
                           <option value="kg">kg</option>
-                          <option value="thung">thung</option>
+                          <option value="thung">Thùng</option>
                         </select>
                       </div>
                       {selectedProduct && (
@@ -257,8 +270,8 @@ function ContractFlow() {
                           {availableQuantityKg <= 0
                             ? "Sản phẩm này hiện không còn sản lượng khả dụng."
                             : quantityExceedsAvailable
-                              ? `Số lượng vượt mức cho phép. Tối đa còn ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${form.unit}.`
-                              : `Sản lượng còn lại: ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${form.unit}.`}
+                              ? `Số lượng vượt mức cho phép. Tối đa còn ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${UNIT_LABELS[form.unit] || form.unit}.`
+                              : `Sản lượng còn lại: ${formatQuantityByUnit(availableQuantityInSelectedUnit, form.unit)} ${UNIT_LABELS[form.unit] || form.unit}.`}
                         </p>
                       )}
                     </div>
@@ -266,12 +279,27 @@ function ContractFlow() {
 
                   <div className="cf-row">
                     <div className="cf-field">
-                      <label>Giá mỗi {form.unit} (VND) *</label>
+                      <label>Giá mỗi {UNIT_LABELS[form.unit] || form.unit} (VND) *</label>
                       <input type="number" value={form.pricePerUnit} onChange={e => handleChange("pricePerUnit", e.target.value)} placeholder="VD: 15000" />
                     </div>
                     <div className="cf-field">
                       <label>Ngày giao hàng *</label>
-                      <input type="date" value={form.deliveryDate} onChange={e => handleChange("deliveryDate", e.target.value)} />
+                      <input
+                        type="date"
+                        value={form.deliveryDate}
+                        min={harvestDate || undefined}
+                        onChange={e => handleChange("deliveryDate", e.target.value)}
+                      />
+                      {deliveryBeforeHarvest && (
+                        <p className="cf-field-note error">
+                          Ngày giao hàng không được sớm hơn ngày dự kiến thu hoạch ({new Date(harvestDate).toLocaleDateString("vi-VN")}).
+                        </p>
+                      )}
+                      {harvestDate && !deliveryBeforeHarvest && form.deliveryDate && (
+                        <p className="cf-field-note">
+                          Dự kiến thu hoạch: {new Date(harvestDate).toLocaleDateString("vi-VN")}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -319,12 +347,21 @@ function ContractFlow() {
                       )}
                     </div>
                     <div className="cf-field">
-                      <label>Bên đối tác</label>
+                      <label>
+                        {user?.role === "farmer" ? "Doanh nghiệp đối tác" : "Nông dân cung cấp"}
+                      </label>
                       <input
                         value={user?.role === "farmer" ? form.enterpriseName : form.farmerName}
                         onChange={e => handleChange(user?.role === "farmer" ? "enterpriseName" : "farmerName", e.target.value)}
                         placeholder={user?.role === "farmer" ? "Tên doanh nghiệp" : "Tên nông dân / HTX"}
+                        readOnly={user?.role === "enterprise" && !!selectedProduct && !!form.farmerName}
+                        style={user?.role === "enterprise" && !!selectedProduct && !!form.farmerName
+                          ? { background: "#f3f4f6", color: "#374151", cursor: "not-allowed" }
+                          : {}}
                       />
+                      {user?.role === "enterprise" && !!selectedProduct && !!form.farmerName && (
+                        <p className="cf-field-note">Tên nông dân được lấy từ sản phẩm đăng bán.</p>
+                      )}
                     </div>
                   </div>
 

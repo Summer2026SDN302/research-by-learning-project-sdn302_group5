@@ -1,158 +1,140 @@
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiFeather } from "react-icons/fi";
+import { ROUTES } from "../../constants";
 import "./AgricultureBanner.css";
 
-function AgricultureBanner() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2
-      }
-    }
-  };
+const STATS = [
+  { value: "12.5k+", label: "Nông sản đăng bán", sub: "Cập nhật hàng ngày", color: "#4ade80" },
+  { value: "4.2k+",  label: "Nông dân đối tác",  sub: "Trên toàn quốc",    color: "#86efac" },
+  { value: "375 tỷ", label: "Giá trị giao dịch", sub: "VNĐ bảo lãnh escrow", color: "#a7f3d0" },
+  { value: "100%",   label: "Hợp đồng minh bạch", sub: "Chữ ký điện tử",   color: "#6ee7b7" },
+];
 
-  const leftVariants = {
-    hidden: { opacity: 0, x: -50 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
-  };
+const BAR_HEIGHTS = [28, 38, 32, 50, 62, 55, 44, 66, 75, 70, 84, 91];
 
-  const rightVariants = {
-    hidden: { opacity: 0, x: 50 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
-  };
+const fadeUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: i * 0.1, ease: "easeOut" } }),
+};
 
-  const statVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
+export default function AgricultureBanner() {
+  const navigate = useNavigate();
 
   return (
-    <section className="agriculture-banner">
-      <Container>
+    <section className="ab-section">
+      {/* Background decorative blobs */}
+      <div className="ab-blob ab-blob-1" />
+      <div className="ab-blob ab-blob-2" />
+
+      <div className="ab-inner">
+        {/* ── LEFT ── */}
         <motion.div
+          className="ab-left"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={containerVariants}
+          viewport={{ once: true, amount: 0.25 }}
         >
-          <Row className="align-items-center">
-            {/* LEFT CONTENT */}
-            <Col lg={6}>
-              <motion.div className="banner-content" variants={leftVariants}>
-                <h2 className="banner-title">
-                  Thúc đẩy minh bạch trong{" "}
-                  <span className="highlight">Nông nghiệp hiện đại</span>
-                </h2>
-                
-                <p className="banner-description">
-                  PreOnic giúp nông dân kết nối trực tiếp với các thương nhân 
-                  và nhà phân phối, cải thiện sự minh bạch và tăng lợi nhuận 
-                  bền vững. Cùng với các đối tác đáng tin cậy, chúng tôi hỗ trợ 
-                  Hợp tác xã, lên kế hoạch, giám sát và thực hiện các hợp đồng 
-                  nông nghiệp hợp lý, bình đẳng cho các bên tham gia.
-                </p>
+          <motion.div className="ab-badge" variants={fadeUp} custom={0}>
+            <span className="ab-badge-dot" />
+            Nền tảng bao tiêu nông sản số 1 Việt Nam
+          </motion.div>
 
-                {/* STATS */}
-                <Row className="banner-stats">
-                  <Col xs={6}>
-                    <motion.div className="stat-box" variants={statVariants}>
-                      <h3 className="stat-value">12.5k+</h3>
-                      <p className="stat-label">Nông sản trồng</p>
-                      <p className="stat-detail">$45M</p>
-                      <p className="stat-sublabel">Giá trị giao dịch</p>
-                    </motion.div>
-                  </Col>
-                  <Col xs={6}>
-                    <motion.div className="stat-box" variants={statVariants}>
-                      <h3 className="stat-value">4.2k+</h3>
-                      <p className="stat-label">Nông dân đối tác</p>
-                      <p className="stat-detail">100%</p>
-                      <p className="stat-sublabel">Hợp đồng hợp lý</p>
-                    </motion.div>
-                  </Col>
-                </Row>
+          <motion.h2 className="ab-title" variants={fadeUp} custom={1}>
+            Thúc đẩy minh bạch trong{" "}
+            <span className="ab-title-highlight">Nông nghiệp hiện đại</span>
+          </motion.h2>
 
-                <motion.div
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <Button className="banner-cta">
-                    Khám phá nền tảng PreOnic ngay hôm nay
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </Col>
+          <motion.p className="ab-desc" variants={fadeUp} custom={2}>
+            PreOnic kết nối trực tiếp nông dân với doanh nghiệp thu mua — hợp đồng điện tử,
+            ký quỹ an toàn, giải ngân minh bạch. Không qua trung gian, không rủi ro mất tiền.
+          </motion.p>
 
-            {/* RIGHT IMAGE */}
-            <Col lg={6}>
-              <motion.div className="banner-image" variants={rightVariants}>
-                <div className="chart-container">
-                  {/* Growing Chart Illustration */}
-                  <div className="chart-bars">
-                    {[25, 35, 30, 45, 55, 50, 40, 60, 70, 65, 80, 88].map((height, index) => (
-                      <motion.div
-                        key={index}
-                        className="chart-bar"
-                        initial={{ height: 0 }}
-                        whileInView={{ height: `${height}%` }}
-                        transition={{
-                          duration: 0.8,
-                          delay: index * 0.1,
-                          ease: "easeOut"
-                        }}
-                        viewport={{ once: true }}
-                      >
-                        <div className="bar-fill"></div>
-                      </motion.div>
-                    ))}
-                  </div>
-                  
-                  {/* Decorative Plant Icon */}
-                  <motion.div 
-                    className="chart-icon"
-                    animate={{
-                      y: [-5, 5, -5],
-                      rotate: [-2, 2, -2]
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
->
-                    <FiFeather size={32} color="#13ec37" />
-                  </motion.div>
+          {/* Stats grid */}
+          <motion.div className="ab-stats" variants={fadeUp} custom={3}>
+            {STATS.map((s) => (
+              <div key={s.label} className="ab-stat">
+                <span className="ab-stat-val" style={{ color: s.color }}>{s.value}</span>
+                <span className="ab-stat-label">{s.label}</span>
+                <span className="ab-stat-sub">{s.sub}</span>
+              </div>
+            ))}
+          </motion.div>
 
-                  {/* Background Card */}
-                  <div className="chart-card">
-                    <div className="card-content">
-                      <div className="pulse-dot"></div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </Col>
-          </Row>
+          <motion.div className="ab-cta-row" variants={fadeUp} custom={4}>
+            <button className="ab-btn-primary" onClick={() => navigate(ROUTES.AUTH)}>
+              Bắt đầu miễn phí →
+            </button>
+            <button className="ab-btn-outline" onClick={() => navigate(ROUTES.PRODUCTS)}>
+              Xem sản phẩm
+            </button>
+          </motion.div>
         </motion.div>
-      </Container>
+
+        {/* ── RIGHT: Chart card ── */}
+        <motion.div
+          className="ab-right"
+          initial={{ opacity: 0, x: 40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.65, ease: "easeOut", delay: 0.15 }}
+        >
+          <div className="ab-chart-card">
+            <div className="ab-chart-card-header">
+              <div className="ab-chart-card-title">
+                <span className="ab-chart-card-dot" />
+                Giá trị giao dịch qua PreOnic
+              </div>
+              <span className="ab-chart-card-tag">+28% so với tháng trước</span>
+            </div>
+
+            <div className="ab-chart-bars">
+              {BAR_HEIGHTS.map((h, i) => (
+                <div key={i} className="ab-bar-wrap">
+                  <motion.div
+                    className="ab-bar"
+                    initial={{ height: 0 }}
+                    whileInView={{ height: `${h}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: i * 0.06, ease: "easeOut" }}
+                    style={{ opacity: i >= BAR_HEIGHTS.length - 3 ? 1 : 0.65 + i * 0.03 }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="ab-chart-labels">
+              {["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"].map(m => (
+                <span key={m}>{m}</span>
+              ))}
+            </div>
+
+            {/* Floating badges */}
+            <motion.div
+              className="ab-float-badge top-right"
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <span className="ab-float-icon">🔒</span>
+              <div>
+                <strong>Escrow an toàn</strong>
+                <span>Tiền bảo lãnh 100%</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="ab-float-badge bottom-left"
+              animate={{ y: [0, 5, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+            >
+              <span className="ab-float-icon">✍️</span>
+              <div>
+                <strong>Ký hợp đồng điện tử</strong>
+                <span>Có giá trị pháp lý</span>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
     </section>
   );
 }
-
-export default AgricultureBanner;

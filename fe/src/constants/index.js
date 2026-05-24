@@ -135,7 +135,6 @@ export const ENTERPRISE_DASHBOARD_NAV_ITEMS = [
   { key: 'escrow', label: 'Thanh toán trung gian', cls: 'nav-escrow' },
   { key: 'vi', label: 'Ví & Thanh toán', cls: 'nav-wallet' },
   { key: 'nhacc', label: 'Nhà cung cấp', cls: 'nav-contacts' },
-  { key: 'kho', label: 'Kho hàng', cls: 'nav-stock' },
   { key: 'lichsu', label: 'Lịch sử giao dịch', cls: 'nav-warehouse' },
   { key: 'danhgia', label: 'Đánh giá đối tác', cls: 'nav-rating' },
   { key: 'thoitiet', label: 'Thời tiết & Bảo hiểm', cls: 'nav-weather' },

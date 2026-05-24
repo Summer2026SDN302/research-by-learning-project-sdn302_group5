@@ -22,6 +22,7 @@ export default function HopDongContent({ searchQuery = "" }) {
 
   const CONTRACT_STATUS_LABEL = {
     pending: "Chờ ký",
+    approved: "Chờ ký quỹ",
     active: "Đang thực hiện",
     completed: "Hoàn thành",
     cancelled: "Đã hủy",
@@ -36,8 +37,11 @@ export default function HopDongContent({ searchQuery = "" }) {
     custom: "Thoả thuận",
   };
 
-  const getStatusBadge = (s) => {
-    const cls = { pending: "fds-amber", active: "fds-green", completed: "fds-blue", cancelled: "fds-gray", rejected: "fds-red" }[s] || "fds-gray";
+  const getStatusBadge = (s, signedByFarmer) => {
+    if (s === "pending" && signedByFarmer) {
+      return <span className="fds fds-teal">Đã ký — Chờ DN ký</span>;
+    }
+    const cls = { pending: "fds-amber", approved: "fds-teal", active: "fds-green", completed: "fds-blue", cancelled: "fds-gray", rejected: "fds-red" }[s] || "fds-gray";
     return <span className={`fds ${cls}`}>{CONTRACT_STATUS_LABEL[s] || s}</span>;
   };
 
@@ -160,7 +164,7 @@ export default function HopDongContent({ searchQuery = "" }) {
                   <div className="fd-order-partner">{enterpriseName}</div>
                   <div className="fd-order-code">Mã HĐ: {c.contractCode}</div>
                 </div>
-                {getStatusBadge(c.status)}
+                {getStatusBadge(c.status, c.signedByFarmer)}
               </div>
               <div className="fd-order-card-body">
                 <div className="fd-order-info">
@@ -185,7 +189,7 @@ export default function HopDongContent({ searchQuery = "" }) {
                   <button className="fd-btn fd-btn-white fd-btn-sm" onClick={() => setDetailModal(c)}>
                     <FiEye size={13} /> Xem chi tiết
                   </button>
-                  {c.status === "pending" && (
+                  {c.status === "pending" && !c.signedByFarmer && (
                     <>
                       <button
                         className="fd-btn fd-btn-green fd-btn-sm"
@@ -203,6 +207,11 @@ export default function HopDongContent({ searchQuery = "" }) {
                         <FiAlertTriangle size={13} /> Từ chối
                       </button>
                     </>
+                  )}
+                  {c.status === "pending" && c.signedByFarmer && (
+                    <span style={{ fontSize: 12, color: "#0891b2", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                      <FiCheckCircle size={12} /> Bạn đã ký — Chờ doanh nghiệp ký
+                    </span>
                   )}
                   {c.status === "active" && (
                     <button

@@ -15,7 +15,6 @@ import DonHangContent from "./sections/DonHangContent";
 import LichSuGiaoDichContent from "./sections/LichSuGiaoDichContent";
 import EscrowContent from "./sections/EscrowContent";
 import SuppliersContent from "./sections/SuppliersContent";
-import WarehouseContent from "./sections/WarehouseContent";
 import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
 import "./EnterpriseDashboard.css";
@@ -89,7 +88,6 @@ export default function EnterpriseDashboard() {
           {activeNav === "escrow" && <EscrowContent />}
           {activeNav === "vi" && <WalletPayment role="enterprise" />}
           {activeNav === "nhacc" && <SuppliersContent />}
-          {activeNav === "kho" && <WarehouseContent />}
           {activeNav === "lichsu" && <LichSuGiaoDichContent />}
           {activeNav === "danhgia" && <BilateralRating currentRole="enterprise" />}
           {activeNav === "thoitiet" && <WeatherInsuranceContent />}
