@@ -1,5 +1,8 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/YB-_cscJ)
 # SE AI Audit Project Template
+Link Paper:
+https://docs.google.com/document/d/1c0uZFdrtcxO9fPHQT59KTG7GFGzE6JNoccEWUOPi7ps/edit?usp=sharing
+
 Link Jira : 
 
 https://nguyenxuankhanhphong962018tcv.atlassian.net/jira/core/projects/TEAM/board?filter=&groupBy=status&atlOrigin=eyJpIjoiN2JlMjdlOWZkODhiNDA1YTgxYWEzZWJiMTkxOGM1ZjYiLCJwIjoiaiJ9
