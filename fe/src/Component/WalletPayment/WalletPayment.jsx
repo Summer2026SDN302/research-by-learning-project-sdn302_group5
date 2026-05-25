@@ -3,13 +3,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import paymentService from "../../services/payment.service";
 import { formatMoney } from "../../hooks/useApiData";
+import { GATEWAY_MIN_TOPUP, TOPUP_PRESETS } from "../../constants";
 import "./WalletPayment.css";
 
 const TRANSACTION_PAGE_SIZE = 20;
-const GATEWAY_MIN_TOPUP = 10000;
 const DEMO_MIN_TOPUP = 1000;
-
-const TOPUP_PRESETS = [100000000, 500000000, 1000000000, 5000000000, 10000000000, 100000000000];
 
 const WALLET_TABS = [
   { key: "overview", label: "Tổng quan" },

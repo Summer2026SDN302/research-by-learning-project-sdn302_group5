@@ -52,7 +52,7 @@ export const CONTRACT_CONFIG = {
   CODE_SEQUENCE_MIN: 1000,
   CODE_SEQUENCE_SPAN: 9000,
   MAX_CODE_GENERATION_ATTEMPTS: 10,
-  COMMISSION_RATE: 3,
+  COMMISSION_RATE: 3, // % — phải khớp với COMPANY.COMMISSION_RATE trong fe/src/constants/index.js
 } as const;
 
 export const UNIT_TO_KG = {

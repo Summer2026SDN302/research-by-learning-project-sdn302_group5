@@ -75,7 +75,7 @@ export const COMPANY = {
   HOTLINE: '1900 xxxx',
   ADDRESS: 'Hà Nội, Việt Nam',
   COPYRIGHT_YEAR: 2026,
-  COMMISSION_RATE: 3, // % hoa hồng trung gian
+  COMMISSION_RATE: 3, // % hoa hồng trung gian — phải khớp với CONTRACT_CONFIG.COMMISSION_RATE trong be/src/constants/index.ts
 };
 
 // ===== REGIONS =====
@@ -144,6 +144,74 @@ export const DEFAULT_UI_METRICS = {
   PROFILE_REPUTATION_SCORE: 0,
   PROFILE_VIRTUAL_BALANCE: 0,
 };
+
+// ===== INSURANCE PROGRAMS =====
+export const INSURANCE_PROGRAMS = [
+  {
+    id: "agribank",
+    name: "Bảo hiểm nông nghiệp Agribank",
+    provider: "Agribank Insurance (ABIC)",
+    hotline: "1900 55 88 99",
+    accentColor: "#15803d",
+    coverages: [
+      "Thiên tai, lũ lụt, hạn hán",
+      "Dịch bệnh cây trồng",
+      "Cháy nổ kho lưu trữ",
+      "Mất mùa do thời tiết cực đoan",
+    ],
+    suitable: ["Lúa, ngô, hoa màu", "Cây ăn quả", "Cây công nghiệp"],
+    note: "Hỗ trợ nông dân vùng ĐBSCL và Tây Nguyên theo chương trình nhà nước.",
+  },
+  {
+    id: "vbi",
+    name: "Bảo hiểm cây trồng VBI",
+    provider: "VietinBank Insurance (VBI)",
+    hotline: "1800 588 878",
+    accentColor: "#1d4ed8",
+    coverages: [
+      "Thiệt hại do bão, lũ",
+      "Sâu bệnh, dịch hại",
+      "Hỏa hoạn, sét đánh",
+      "Rủi ro vận chuyển nông sản",
+    ],
+    suitable: ["Cà phê, tiêu, điều", "Rau màu, nấm", "Cây ăn quả cao cấp"],
+    note: "Gói linh hoạt, phí thấp, phù hợp nông hộ nhỏ đến trang trại lớn.",
+  },
+  {
+    id: "bvbh",
+    name: "Bảo hiểm nông sản Bảo Việt",
+    provider: "Bảo Việt Nhân Thọ (BVBH)",
+    hotline: "1800 599 980",
+    accentColor: "#dc2626",
+    coverages: [
+      "Thiên tai, mưa đá, sương giá",
+      "Dịch bệnh quy mô lớn",
+      "Mất thu hoạch trên 30%",
+      "Thiệt hại cơ sở hạ tầng",
+    ],
+    suitable: ["Lúa gạo đặc sản", "Thanh long, xoài, sầu riêng", "Cây trồng xuất khẩu"],
+    note: "Phối hợp chương trình hỗ trợ phí bảo hiểm Nhà nước theo Nghị định 58/2018.",
+  },
+  {
+    id: "mic",
+    name: "Bảo hiểm nông nghiệp MIC",
+    provider: "Military Insurance Corporation (MIC)",
+    hotline: "1900 54 54 52",
+    accentColor: "#7c3aed",
+    coverages: [
+      "Rủi ro thời tiết theo mùa vụ",
+      "Đảm bảo thu nhập tối thiểu",
+      "Bảo vệ vốn đầu tư vụ mùa",
+      "Hỗ trợ phục hồi sau thiên tai",
+    ],
+    suitable: ["Hoa màu ngắn ngày", "Nông sản ký hợp đồng bao tiêu", "Trang trại kết hợp"],
+    note: "Đặc biệt phù hợp cho nông dân đã ký hợp đồng bao tiêu, bảo vệ đôi bên.",
+  },
+];
+
+// ===== WALLET / TOPUP =====
+export const GATEWAY_MIN_TOPUP = 10000; // VND
+export const TOPUP_PRESETS = [100_000_000, 500_000_000, 1_000_000_000, 5_000_000_000, 10_000_000_000, 100_000_000_000]; // VND
 
 // ===== FILE UPLOAD =====
 export const FILE_SIZE_LIMIT = 5 * 1024 * 1024; // 5 MB
