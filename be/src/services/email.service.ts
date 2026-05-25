@@ -124,17 +124,12 @@ export async function sendVerificationEmail(email: string, fullName: string, tok
     return;
   }
 
-  try {
-    await sendEmail(
-      smtpConfig,
-      email,
-      '[PreOnic] Xác minh địa chỉ email của bạn',
-      buildVerificationEmailHtml(fullName, verifyUrl)
-    );
-  } catch (error) {
-    log.error('Email send failed; falling back to mock log', error);
-    log.info(`[MOCK] Verification URL: ${verifyUrl}`);
-  }
+  await sendEmail(
+    smtpConfig,
+    email,
+    '[PreOnic] Xác minh địa chỉ email của bạn',
+    buildVerificationEmailHtml(fullName, verifyUrl)
+  );
 }
 
 export async function sendSignOtpEmail(email: string, fullName: string, otp: string, contractCode: string): Promise<void> {
@@ -165,12 +160,7 @@ export async function sendSignOtpEmail(email: string, fullName: string, otp: str
     return;
   }
 
-  try {
-    await sendEmail(smtpConfig, email, `[PreOnic] Mã OTP ký hợp đồng ${contractCode}`, html);
-  } catch (error) {
-    log.error('Sign OTP email send failed; falling back to mock log', error);
-    log.info(`[MOCK] Sign OTP for ${email} (${contractCode}): ${otp}`);
-  }
+  await sendEmail(smtpConfig, email, `[PreOnic] Mã OTP ký hợp đồng ${contractCode}`, html);
 }
 
 export async function sendPasswordResetEmail(email: string, fullName: string, resetUrl: string): Promise<void> {
@@ -179,15 +169,10 @@ export async function sendPasswordResetEmail(email: string, fullName: string, re
     log.info(`[MOCK] Password reset URL for ${email}: ${resetUrl}`);
     return;
   }
-  try {
-    await sendEmail(
-      smtpConfig,
-      email,
-      '[PreOnic] Đặt lại mật khẩu',
-      buildPasswordResetEmailHtml(fullName, resetUrl)
-    );
-  } catch (error) {
-    log.error('Password reset email send failed; falling back to mock log', error);
-    log.info(`[MOCK] Password reset URL: ${resetUrl}`);
-  }
+  await sendEmail(
+    smtpConfig,
+    email,
+    '[PreOnic] Đặt lại mật khẩu',
+    buildPasswordResetEmailHtml(fullName, resetUrl)
+  );
 }
