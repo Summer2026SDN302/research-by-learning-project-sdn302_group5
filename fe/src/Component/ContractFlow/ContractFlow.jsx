@@ -32,7 +32,7 @@ const UNIT_LABELS = {
 
 const formatQuantityByUnit = (quantity, unit) => {
   const numericValue = Number(quantity) || 0;
-  const fractionDigits = unit === "tan" ? 3 : unit === "thung" ? 2 : 0;
+  const fractionDigits = unit === "kg" ? 0 : 2;
   return Number(numericValue.toFixed(fractionDigits)).toLocaleString("vi-VN");
 };
 
@@ -100,11 +100,11 @@ function ContractFlow() {
   const availableQuantityKg = Number(selectedProduct?.remaining ?? selectedProduct?.totalQuantity ?? 0);
   const availableQuantityInSelectedUnit = selectedProduct ? availableQuantityKg / unitFactor : 0;
   const maxQuantityInSelectedUnit = selectedProduct
-    ? Number(availableQuantityInSelectedUnit.toFixed(form.unit === "tan" ? 3 : 2))
+    ? Number(availableQuantityInSelectedUnit.toFixed(form.unit === "kg" ? 0 : 2))
     : undefined;
   const quantityExceedsAvailable =
     !!selectedProduct && requestedQuantity * unitFactor - availableQuantityKg > 1e-9;
-  const quantityInputStep = form.unit === "tan" ? "0.001" : form.unit === "thung" ? "0.1" : "1";
+  const quantityInputStep = form.unit === "kg" ? "1" : "0.01";
   const totalValue = requestedQuantity * (parseFloat(form.pricePerUnit) || 0) * unitFactor;
   const commission = totalValue * COMPANY.COMMISSION_RATE / 100;
 

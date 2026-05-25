@@ -233,8 +233,8 @@ ContractSchema.pre('save', async function (next) {
 ContractSchema.pre('save', function (next) {
   if (this.isModified('quantity') || this.isModified('pricePerUnit')) {
     const unitFactor = UNIT_TO_KG[this.unit as keyof typeof UNIT_TO_KG] ?? 1;
-    this.totalValue = this.quantity * this.pricePerUnit * unitFactor;
-    this.commission = this.totalValue * this.commissionRate / 100;
+    this.totalValue = Math.round(this.quantity * this.pricePerUnit * unitFactor);
+    this.commission = Math.round(this.totalValue * this.commissionRate / 100);
   }
   next();
 });

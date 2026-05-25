@@ -68,9 +68,9 @@ export class ContractService {
   }
 
   private static calculateFinancials(body: CreateContractBody): ContractFinancials {
-    const totalValue = body.quantity * body.pricePerUnit * UNIT_TO_KG[body.unit];
-    const commission = (totalValue * CONTRACT_CONFIG.COMMISSION_RATE) / 100;
-    const depositAmount = (totalValue * body.depositPercentage) / 100;
+    const totalValue = Math.round(body.quantity * body.pricePerUnit * UNIT_TO_KG[body.unit]);
+    const commission = Math.round((totalValue * CONTRACT_CONFIG.COMMISSION_RATE) / 100);
+    const depositAmount = Math.round((totalValue * body.depositPercentage) / 100);
 
     return { totalValue, commission, depositAmount };
   }
@@ -88,7 +88,7 @@ export class ContractService {
     unit: string = 'kg'
   ): string {
     if (unit === 'tan') {
-      return `${Number((quantityKg / UNIT_TO_KG.tan).toFixed(3)).toLocaleString('vi-VN')} tấn`;
+      return `${Number((quantityKg / UNIT_TO_KG.tan).toFixed(2)).toLocaleString('vi-VN')} tấn`;
     }
 
     if (unit === 'thung') {
