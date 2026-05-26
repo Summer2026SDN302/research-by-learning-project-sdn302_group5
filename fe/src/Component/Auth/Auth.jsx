@@ -89,7 +89,7 @@ const floatingVariants = {
 const Auth = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -148,6 +148,7 @@ const Auth = () => {
       const result = await authService.googleLogin({ accessToken });
       if (result.success && result.data?.user) {
         const user = result.data.user;
+        updateUser(user);
         toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
         setTimeout(() => {
           if (user.role === "admin") navigate(ROUTES.ADMIN);
