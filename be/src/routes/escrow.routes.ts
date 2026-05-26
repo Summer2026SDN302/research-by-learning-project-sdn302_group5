@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { protect, restrictTo, requireCompleteProfile } from '../middlewares/auth.middleware';
 import {
   createEscrow,
   deposit,
@@ -27,15 +27,15 @@ router.get('/disputes', listUserDisputes);
 router.post('/disputes/:id/resolve', restrictTo('admin'), resolveDispute);
 
 // ===== ESCROW CRUD =====
-router.post('/', createEscrow);
+router.post('/', requireCompleteProfile, createEscrow);
 router.get('/', listEscrows);
 router.get('/contract/:contractId', getByContract);
 router.get('/:id', getEscrow);
 
 // ===== ESCROW ACTIONS =====
-router.post('/:id/deposit', deposit);
-router.post('/:id/farmer-confirm', farmerConfirm);
-router.post('/:id/enterprise-confirm', enterpriseConfirm);
-router.post('/:id/dispute', raiseDispute);
+router.post('/:id/deposit', requireCompleteProfile, deposit);
+router.post('/:id/farmer-confirm', requireCompleteProfile, farmerConfirm);
+router.post('/:id/enterprise-confirm', requireCompleteProfile, enterpriseConfirm);
+router.post('/:id/dispute', requireCompleteProfile, raiseDispute);
 
 export default router;

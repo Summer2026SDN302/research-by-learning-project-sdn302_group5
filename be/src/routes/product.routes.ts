@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { protect, restrictTo, requireCompleteProfile } from '../middlewares/auth.middleware';
 import {
   getProducts,
   getProduct,
@@ -62,21 +62,21 @@ router.get('/:id/reviews', getProductReviews);
  * @desc    Add a review (Enterprise only)
  * @access  Private
  */
-router.post('/:id/reviews', protect, restrictTo('enterprise'), addProductReview);
+router.post('/:id/reviews', protect, restrictTo('enterprise'), requireCompleteProfile, addProductReview);
 
 /**
  * @route   POST /api/v1/products
  * @desc    Create new product listing
  * @access  Private (Farmer only)
  */
-router.post('/', protect, restrictTo('farmer'), createProduct);
+router.post('/', protect, restrictTo('farmer'), requireCompleteProfile, createProduct);
 
 /**
  * @route   PUT /api/v1/products/:id
  * @desc    Update product
  * @access  Private (Owner only)
  */
-router.put('/:id', protect, updateProduct);
+router.put('/:id', protect, requireCompleteProfile, updateProduct);
 
 /**
  * @route   DELETE /api/v1/products/:id

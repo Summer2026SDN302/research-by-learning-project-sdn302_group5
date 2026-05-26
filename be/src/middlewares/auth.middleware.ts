@@ -61,6 +61,37 @@ export const protect = async (
   }
 };
 
+/**
+ * Yêu cầu user đã hoàn thiện hồ sơ cá nhân trước khi thao tác nghiệp vụ.
+ * Trả về 403 + code 'PROFILE_INCOMPLETE' để FE chuyển hướng người dùng vào trang hồ sơ.
+ */
+export const requireCompleteProfile = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user) {
+    return next(new AppError('Bạn cần đăng nhập để truy cập tài nguyên này', 401));
+  }
+  // Admin được miễn (tài khoản hệ thống)
+  if (req.user.role === 'admin') return next();
+
+  const fullUser = await User.findById(req.user.id);
+  if (!fullUser) {
+    return next(new AppError('Không tìm thấy người dùng', 404));
+  }
+
+  if (!fullUser.isProfileComplete()) {
+    return res.status(403).json({
+      success: false,
+      status: 'error',
+      code: 'PROFILE_INCOMPLETE',
+      message: 'Vui lòng cập nhật đầy đủ hồ sơ cá nhân trước khi thực hiện thao tác này.',
+    });
+  }
+  return next();
+};
+
 export const restrictTo = (...roles: string[]) => {
   return (req: AuthRequest, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {

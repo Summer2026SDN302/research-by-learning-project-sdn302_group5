@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { ROUTES } from "../../constants";
@@ -10,18 +10,36 @@ import "./Profile.css";
 function validate(form, isFarmer) {
   const errors = {};
   if (!form.fullName.trim()) errors.fullName = "Họ tên không được để trống";
-  if (form.phone && !/^[0-9]{10,11}$/.test(form.phone.trim())) errors.phone = "Số điện thoại không hợp lệ (10-11 chữ số)";
-  if (isFarmer && form.farmSize && isNaN(Number(form.farmSize))) errors.farmSize = "Diện tích phải là số";
+  if (!form.phone || !/^[0-9]{10,11}$/.test(form.phone.trim())) errors.phone = "Số điện thoại bắt buộc (10-11 chữ số)";
+  if (!form.address?.trim() && !form.province?.trim()) errors.address = "Vui lòng nhập địa chỉ hoặc tỉnh/thành";
+  if (isFarmer) {
+    if (!form.farmName?.trim()) errors.farmName = "Tên nông trại bắt buộc";
+    if (form.farmSize && isNaN(Number(form.farmSize))) errors.farmSize = "Diện tích phải là số";
+  } else {
+    if (!form.companyName?.trim()) errors.companyName = "Tên công ty bắt buộc";
+    if (!form.taxCode?.trim()) errors.taxCode = "Mã số thuế bắt buộc";
+  }
   return errors;
+}
+
+// Kiểm tra hồ sơ đã đủ chưa — phải khớp logic isProfileComplete bên BE.
+function isProfileComplete(u) {
+  if (!u) return false;
+  if (!u.fullName || !u.phone || !u.province) return false;
+  if (u.role === 'farmer') return !!u.farmName;
+  if (u.role === 'enterprise') return !!u.companyName && !!u.taxCode;
+  return true;
 }
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const incompletePrompt = searchParams.get("incomplete") === "1";
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ fullName: "", phone: "", address: "", farmName: "", farmSize: "", companyName: "", taxCode: "" });
+  const [editing, setEditing] = useState(incompletePrompt);
+  const [form, setForm] = useState({ fullName: "", phone: "", address: "", province: "", farmName: "", farmSize: "", companyName: "", taxCode: "" });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -38,12 +56,12 @@ export default function Profile() {
         if (res?.data?.user) {
           const u = res.data.user;
           setProfile(u);
-          setForm({ fullName: u.fullName || "", phone: u.phone || "", address: u.address || "", farmName: u.farmName || "", farmSize: u.farmSize || "", companyName: u.companyName || "", taxCode: u.taxCode || "" });
+          setForm({ fullName: u.fullName || "", phone: u.phone || "", address: u.address || "", province: u.province || "", farmName: u.farmName || "", farmSize: u.farmSize || "", companyName: u.companyName || "", taxCode: u.taxCode || "" });
         }
       } catch {
         if (user) {
           setProfile(user);
-          setForm({ fullName: user.fullName || "", phone: user.phone || "", address: user.address || "", farmName: user.farmName || "", farmSize: user.farmSize || "", companyName: user.companyName || "", taxCode: user.taxCode || "" });
+          setForm({ fullName: user.fullName || "", phone: user.phone || "", address: user.address || "", province: user.province || "", farmName: user.farmName || "", farmSize: user.farmSize || "", companyName: user.companyName || "", taxCode: user.taxCode || "" });
         }
       }
     };
@@ -76,7 +94,7 @@ export default function Profile() {
   const handleCancelEdit = () => {
     setEditing(false);
     setErrors({});
-    setForm({ fullName: data.fullName || "", phone: data.phone || "", address: data.address || "", farmName: data.farmName || "", farmSize: data.farmSize || "", companyName: data.companyName || "", taxCode: data.taxCode || "" });
+    setForm({ fullName: data.fullName || "", phone: data.phone || "", address: data.address || "", province: data.province || "", farmName: data.farmName || "", farmSize: data.farmSize || "", companyName: data.companyName || "", taxCode: data.taxCode || "" });
   };
 
   const handleSavePassword = async () => {
@@ -119,6 +137,25 @@ export default function Profile() {
       </div>
 
       <div className="profile-container">
+        {!isProfileComplete(data) && (
+          <div style={{
+            background: '#fff7e6', border: '1px solid #f59e0b', color: '#92400e',
+            borderRadius: 10, padding: '14px 18px', marginBottom: 18,
+            display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: 22 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <strong>Hồ sơ chưa hoàn thiện.</strong>{' '}
+              Bạn cần cập nhật đầy đủ thông tin {isFarmer ? 'nông trại' : 'doanh nghiệp'} (tên, địa chỉ, {isFarmer ? 'tên nông trại' : 'mã số thuế'}) trước khi thực hiện các thao tác trên hệ thống.
+            </div>
+            {!editing && (
+              <button className="btn-edit" onClick={() => setEditing(true)}>
+                Bổ sung ngay
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Header Card */}
         <div className="profile-header">
           <div className="profile-avatar">
@@ -173,9 +210,20 @@ export default function Profile() {
               )}
             </div>
             <div className="profile-field">
-              <label>Địa chỉ</label>
+              <label>Tỉnh/Thành phố</label>
               {editing ? (
-                <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Địa chỉ của bạn..." />
+                <input value={form.province} onChange={e => setForm({ ...form, province: e.target.value })} placeholder="VD: Hà Nội, Lâm Đồng..." />
+              ) : (
+                <p className={data.province ? "" : "placeholder"}>{data.province || "Chưa cập nhật"}</p>
+              )}
+            </div>
+            <div className="profile-field">
+              <label>Địa chỉ chi tiết</label>
+              {editing ? (
+                <>
+                  <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className={errors.address ? "error" : ""} placeholder="Địa chỉ của bạn..." />
+                  {errors.address && <span className="field-error">{errors.address}</span>}
+                </>
               ) : (
                 <p className={data.address ? "" : "placeholder"}>{data.address || "Chưa cập nhật"}</p>
               )}
@@ -190,9 +238,12 @@ export default function Profile() {
             {isFarmer ? (
               <>
                 <div className="profile-field">
-                  <label>Tên nông trại</label>
+                  <label>Tên nông trại <span style={{color:'#dc2626'}}>*</span></label>
                   {editing ? (
-                    <input value={form.farmName} onChange={e => setForm({ ...form, farmName: e.target.value })} placeholder="VD: Nông trại Xanh..." />
+                    <>
+                      <input value={form.farmName} onChange={e => setForm({ ...form, farmName: e.target.value })} className={errors.farmName ? "error" : ""} placeholder="VD: Nông trại Xanh..." />
+                      {errors.farmName && <span className="field-error">{errors.farmName}</span>}
+                    </>
                   ) : (
                     <p className={data.farmName ? "" : "placeholder"}>{data.farmName || "Chưa cập nhật"}</p>
                   )}
@@ -212,17 +263,23 @@ export default function Profile() {
             ) : (
               <>
                 <div className="profile-field">
-                  <label>Tên công ty</label>
+                  <label>Tên công ty <span style={{color:'#dc2626'}}>*</span></label>
                   {editing ? (
-                    <input value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} placeholder="VD: Công ty TNHH ABC..." />
+                    <>
+                      <input value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} className={errors.companyName ? "error" : ""} placeholder="VD: Công ty TNHH ABC..." />
+                      {errors.companyName && <span className="field-error">{errors.companyName}</span>}
+                    </>
                   ) : (
                     <p className={data.companyName ? "" : "placeholder"}>{data.companyName || "Chưa cập nhật"}</p>
                   )}
                 </div>
                 <div className="profile-field">
-                  <label>Mã số thuế</label>
+                  <label>Mã số thuế <span style={{color:'#dc2626'}}>*</span></label>
                   {editing ? (
-                    <input value={form.taxCode} onChange={e => setForm({ ...form, taxCode: e.target.value })} placeholder="VD: 0123456789" />
+                    <>
+                      <input value={form.taxCode} onChange={e => setForm({ ...form, taxCode: e.target.value })} className={errors.taxCode ? "error" : ""} placeholder="VD: 0123456789" />
+                      {errors.taxCode && <span className="field-error">{errors.taxCode}</span>}
+                    </>
                   ) : (
                     <p className={data.taxCode ? "" : "placeholder"}>{data.taxCode || "Chưa cập nhật"}</p>
                   )}

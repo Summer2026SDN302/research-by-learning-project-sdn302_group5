@@ -73,13 +73,20 @@ export interface UpdateProfileBody {
   fullName?: string;
   phone?: string;
   avatar?: string;
+  address?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  farmName?: string;
+  farmSize?: number | string;
+  companyName?: string;
+  taxCode?: string;
 }
 
-// Google OAuth login body
+// Google OAuth login body — Google chỉ tạo/đăng nhập tài khoản nông dân.
 export interface GoogleLoginBody {
   accessToken?: string;   // OAuth2 access token from FE useGoogleLogin
   credential?: string;    // ID token from GoogleLogin component
-  role?: 'farmer' | 'enterprise';  // Required only for new users
 }
 
 // Auth response with tokens

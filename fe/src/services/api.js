@@ -3,7 +3,10 @@ import { STORAGE_KEYS } from '../constants';
 
 export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
 const AUTH_REDIRECT_PATH = '/auth';
+const PROFILE_REDIRECT_PATH = '/profile';
 const UNAUTHORIZED_STATUS = 401;
+const FORBIDDEN_STATUS = 403;
+const PROFILE_INCOMPLETE_CODE = 'PROFILE_INCOMPLETE';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -65,6 +68,15 @@ api.interceptors.response.use(
     const isUnauthorized = error.response?.status === UNAUTHORIZED_STATUS;
     const hasNotRetried = !originalRequest?._retry;
     const isRefreshRequest = originalRequest?.url?.includes('/auth/refresh-token');
+
+    // BE trả 403 + code PROFILE_INCOMPLETE → đẩy user về trang hồ sơ để bổ sung.
+    if (
+      error.response?.status === FORBIDDEN_STATUS &&
+      error.response?.data?.code === PROFILE_INCOMPLETE_CODE &&
+      window.location.pathname !== PROFILE_REDIRECT_PATH
+    ) {
+      window.location.href = `${PROFILE_REDIRECT_PATH}?incomplete=1`;
+    }
 
     if (isUnauthorized && hasNotRetried && !isRefreshRequest) {
       originalRequest._retry = true;

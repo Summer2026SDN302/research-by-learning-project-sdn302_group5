@@ -53,6 +53,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(null); // 'terms' | 'privacy'
+  const [verificationSent, setVerificationSent] = useState(null); // email string khi enterprise vừa đăng ký
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -132,8 +133,14 @@ const Register = () => {
       });
 
       if (response.success) {
+        // Doanh nghiệp: BE chưa cấp token, phải xác minh email — hiển thị màn pending.
+        if (response.requiresVerification) {
+          setVerificationSent(response.data?.email || formData.email);
+          toast.success('Vui lòng kiểm tra email để kích hoạt tài khoản doanh nghiệp.', TOAST_DURATION.LONG);
+          return;
+        }
+
         toast.success(`Chào mừng ${formData.fullName}! Tài khoản của bạn đã được tạo thành công.`, TOAST_DURATION.LONG);
-        
         setTimeout(() => {
           navigate(selectedRole === 'farmer' ? ROUTES.FARMER : ROUTES.ENTERPRISE);
         }, 1000);
@@ -163,8 +170,32 @@ const Register = () => {
           initial="initial"
           animate="animate"
         >
+          {verificationSent && (
+            <div style={{
+              background: '#e8f7ee', border: '1px solid #16a34a', color: '#0d5a37',
+              borderRadius: 12, padding: 20, marginBottom: 24, textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>✉️</div>
+              <h3 style={{ margin: '0 0 8px' }}>Hãy xác minh email của bạn</h3>
+              <p style={{ margin: 0, fontSize: 14 }}>
+                Chúng tôi đã gửi link kích hoạt đến <strong>{verificationSent}</strong>.
+                Vui lòng nhấn link trong email (kể cả thư mục Spam) trước khi đăng nhập.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.AUTH)}
+                style={{
+                  marginTop: 14, padding: '10px 20px', background: '#16a34a',
+                  color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600
+                }}
+              >
+                Về trang đăng nhập
+              </button>
+            </div>
+          )}
+
           {/* Header */}
-          <motion.div 
+          <motion.div
             className="register-header"
             variants={itemVariants}
           >

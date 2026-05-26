@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import mongoose from 'mongoose';
-import { protect } from '../middlewares/auth.middleware';
+import { protect, requireCompleteProfile } from '../middlewares/auth.middleware';
 import User from '../models/User.model';
 import { Conversation, Message } from '../models/Message.model';
 import { AuthRequest } from '../types';
@@ -44,7 +44,7 @@ router.get('/conversations', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /messaging/conversations - create or get a conversation with a user
-router.post('/conversations', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/conversations', requireCompleteProfile, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { partnerId } = req.body;
@@ -165,7 +165,7 @@ router.get('/conversations/:id/messages', async (req: AuthRequest, res: Response
 });
 
 // POST /messaging/conversations/:id/messages - send a message
-router.post('/conversations/:id/messages', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/conversations/:id/messages', requireCompleteProfile, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const conversationId = req.params.id;

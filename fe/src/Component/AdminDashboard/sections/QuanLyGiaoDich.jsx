@@ -19,7 +19,7 @@ const STATUS_META = {
 };
 
 const METHOD_LABELS = {
-  sepay: "SePay", payos: "PayOS", internal: "Nội bộ", demo: "Demo",
+  sepay: "SePay", internal: "Nội bộ", demo: "Demo",
 };
 
 const TYPE_OPTIONS = [

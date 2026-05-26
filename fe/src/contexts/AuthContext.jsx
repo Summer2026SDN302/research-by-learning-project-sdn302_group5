@@ -38,10 +38,11 @@ export const AuthProvider = ({ children }) => {
     return response;
   }, []);
 
-  // Register: calls API, persists tokens, updates context state
+  // Register: calls API, persists tokens, updates context state.
+  // Tài khoản doanh nghiệp trả về requiresVerification → chưa cấp token, không setUser.
   const register = useCallback(async (data) => {
     const response = await authService.register(data);
-    if (response.success && response.data?.user) {
+    if (response.success && !response.requiresVerification && response.data?.user) {
       setUser(response.data.user);
     }
     return response;

@@ -35,6 +35,11 @@ export interface IUser extends Document {
   virtualBalance: number;
   reputationScore: number;
   totalRatings: number;
+  // Profile chi tiết theo role — bắt buộc để được phép thao tác trên hệ thống
+  farmName?: string;
+  farmSize?: number;
+  companyName?: string;
+  taxCode?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -42,6 +47,7 @@ export interface IUser extends Document {
   createEmailVerificationToken(): string;
   isLocked(): boolean;
   changedPasswordAfter(jwtTimestamp: number): boolean;
+  isProfileComplete(): boolean;
 }
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -175,6 +181,10 @@ const UserSchema = new Schema<IUser>(
       type: Number,
       default: 0,
     },
+    farmName: { type: String, trim: true },
+    farmSize: { type: Number, min: 0 },
+    companyName: { type: String, trim: true },
+    taxCode: { type: String, trim: true },
   },
   {
     timestamps: true,
@@ -251,6 +261,19 @@ UserSchema.methods.createEmailVerificationToken = function (): string {
   this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   return verificationToken;
+};
+
+// Profile được coi là đầy đủ khi: có phone + có địa chỉ (tỉnh) + đủ trường theo role.
+UserSchema.methods.isProfileComplete = function (): boolean {
+  if (!this.phone || !this.fullName) return false;
+  if (!this.province) return false;
+  if (this.role === 'farmer') {
+    return Boolean(this.farmName && this.farmName.trim());
+  }
+  if (this.role === 'enterprise') {
+    return Boolean(this.companyName && this.companyName.trim() && this.taxCode && this.taxCode.trim());
+  }
+  return true;
 };
 
 // Check if account is locked due to too many failed login attempts

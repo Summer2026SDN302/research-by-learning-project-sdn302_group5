@@ -5,8 +5,7 @@ export interface IPaymentTransaction extends Document {
   type: 'topup' | 'escrow_deposit' | 'escrow_release' | 'refund' | 'commission';
   amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  // Keep 'payos' for legacy records that may already exist in MongoDB.
-  paymentMethod: 'payos' | 'sepay' | 'internal' | 'demo';
+  paymentMethod: 'sepay' | 'internal' | 'demo';
   gatewayRef?: string;
   orderCode?: number;
   description: string;
@@ -42,7 +41,7 @@ const PaymentTransactionSchema = new Schema<IPaymentTransaction>(
     },
     paymentMethod: {
       type: String,
-      enum: ['payos', 'sepay', 'internal', 'demo'],
+      enum: ['sepay', 'internal', 'demo'],
       required: true,
     },
     gatewayRef: { type: String },

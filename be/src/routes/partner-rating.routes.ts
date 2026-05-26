@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect } from '../middlewares/auth.middleware';
+import { protect, requireCompleteProfile } from '../middlewares/auth.middleware';
 import {
   createPartnerRating,
   getEligiblePartners,
@@ -12,6 +12,6 @@ router.use(protect);
 
 router.get('/eligible-partners', getEligiblePartners);
 router.get('/mine', getMyPartnerRatings);
-router.post('/', createPartnerRating);
+router.post('/', requireCompleteProfile, createPartnerRating);
 
 export default router;

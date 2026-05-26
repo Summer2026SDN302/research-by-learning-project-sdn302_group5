@@ -101,11 +101,8 @@ const Auth = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  // Google OAuth role-selection state
+  // Google OAuth — auto đăng nhập thẳng dưới vai trò nông dân, không qua bước chọn role/verify
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleRoleModal, setGoogleRoleModal] = useState(null); // { accessToken, profile }
-  const [roleSelecting, setRoleSelecting] = useState(false);
-  const [googleVerificationPending, setGoogleVerificationPending] = useState(null); // email string
 
   const [formData, setFormData] = useState({
     emailOrPhone: "",
@@ -146,22 +143,10 @@ const Auth = () => {
     setForgotSuccess(false);
   };
 
-  const processGoogleToken = async (accessToken, role) => {
+  const processGoogleToken = async (accessToken) => {
     try {
-      const result = await authService.googleLogin({ accessToken, role });
-
-      if (result.requiresRole) {
-        setGoogleRoleModal({ accessToken, profile: result.data?.profile });
-        return;
-      }
-
-      if (result.requiresVerification) {
-        setGoogleRoleModal(null);
-        setGoogleVerificationPending(result.data?.email || '');
-        return;
-      }
-
-      if (result.success) {
+      const result = await authService.googleLogin({ accessToken });
+      if (result.success && result.data?.user) {
         const user = result.data.user;
         toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
         setTimeout(() => {
@@ -180,7 +165,7 @@ const Auth = () => {
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true);
       try {
-        await processGoogleToken(tokenResponse.access_token, null);
+        await processGoogleToken(tokenResponse.access_token);
       } finally {
         setGoogleLoading(false);
       }
@@ -190,17 +175,6 @@ const Auth = () => {
       setGoogleLoading(false);
     },
   });
-
-  const handleGoogleRoleSelect = async (role) => {
-    if (!googleRoleModal) return;
-    setRoleSelecting(true);
-    try {
-      await processGoogleToken(googleRoleModal.accessToken, role);
-      setGoogleRoleModal(null);
-    } finally {
-      setRoleSelecting(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -610,7 +584,7 @@ const Auth = () => {
                   disabled={googleLoading}
                 >
                   <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3Cpath fill='none' d='M0 0h48v48H0z'/%3E%3C/svg%3E" alt="Google" />
-                  <span>{googleLoading ? "Đang kết nối..." : "Đăng nhập với Google"}</span>
+                  <span>{googleLoading ? "Đang kết nối..." : "Đăng nhập với Google (Nông dân)"}</span>
                 </motion.button>
               </motion.div>
             </form>
@@ -650,109 +624,6 @@ const Auth = () => {
           </motion.div>
         </motion.div>
       </div>
-
-      {/* Google Role Selection Modal */}
-      <AnimatePresence>
-        {googleRoleModal && (
-          <motion.div
-            className="forgot-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="forgot-modal"
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            >
-              <div className="forgot-modal-header">
-                <h3>Chọn loại tài khoản</h3>
-              </div>
-              {googleRoleModal.profile && (
-                <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <p style={{ fontSize: 14, color: "#618968" }}>
-                    Xin chào <strong>{googleRoleModal.profile.name || googleRoleModal.profile.email}</strong>!
-                    <br />Đây là lần đầu đăng nhập. Bạn tham gia PreOnic với tư cách:
-                  </p>
-                </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <motion.button
-                  className="btn-submit-main"
-                  onClick={() => handleGoogleRoleSelect("farmer")}
-                  disabled={roleSelecting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{ background: "#13ec37", color: "#111812" }}
-                >
-                  {roleSelecting ? "Đang tạo tài khoản..." : "Nông dân"}
-                </motion.button>
-                <motion.button
-                  className="btn-submit-main"
-                  onClick={() => handleGoogleRoleSelect("enterprise")}
-                  disabled={roleSelecting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{ background: "#0d5a37", color: "#fff" }}
-                >
-                  {roleSelecting ? "Đang tạo tài khoản..." : "Doanh nghiệp"}
-                </motion.button>
-                <button
-                  className="btn-forgot-cancel"
-                  onClick={() => setGoogleRoleModal(null)}
-                  disabled={roleSelecting}
-                  style={{ width: "100%" }}
-                >
-                  Hủy
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Google Verification Pending Modal */}
-      <AnimatePresence>
-        {googleVerificationPending !== null && (
-          <motion.div
-            className="forgot-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="forgot-modal"
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            >
-              <div className="forgot-modal-header">
-                <h3>Xác minh email của bạn</h3>
-              </div>
-              <div className="forgot-success">
-                <div className="forgot-success-icon">✓</div>
-                <h4>Tài khoản đã được tạo!</h4>
-                <p>
-                  Chúng tôi đã gửi link xác minh đến{" "}
-                  <strong>{googleVerificationPending}</strong>.
-                </p>
-                <p className="forgot-note">
-                  Vui lòng kiểm tra hộp thư (kể cả thư mục Spam) và nhấn link xác minh trước khi đăng nhập.
-                </p>
-                <button
-                  className="btn-forgot-submit"
-                  onClick={() => setGoogleVerificationPending(null)}
-                >
-                  Đã hiểu
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Forgot Password Modal */}
       <AnimatePresence>

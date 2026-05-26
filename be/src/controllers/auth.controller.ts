@@ -45,8 +45,21 @@ const clearRefreshCookie = (res: Response) => {
  */
 export const register = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const { user, tokens } = await AuthService.register(req.body);
-    sendAuthResponse(res, 201, 'Đăng ký tài khoản thành công!', user, tokens);
+    const result = await AuthService.register(req.body);
+
+    if ('requiresVerification' in result) {
+      return res.status(201).json({
+        success: true,
+        status: 'success',
+        requiresVerification: true,
+        message:
+          'Tài khoản doanh nghiệp đã được tạo. Vui lòng kiểm tra email để nhấn link kích hoạt trước khi đăng nhập.',
+        data: { email: result.email },
+      });
+    }
+
+    const { user, tokens } = result;
+    return sendAuthResponse(res, 201, 'Đăng ký tài khoản thành công!', user, tokens);
   }
 );
 
@@ -234,28 +247,7 @@ export const deactivateAccount = asyncHandler(
  */
 export const googleLogin = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const result = await AuthService.googleLogin(req.body);
-
-    if ('requiresRole' in result) {
-      return res.status(200).json({
-        success: true,
-        status: 'success',
-        requiresRole: true,
-        data: { profile: result.profile },
-      });
-    }
-
-    if ('requiresVerification' in result) {
-      return res.status(200).json({
-        success: true,
-        status: 'success',
-        requiresVerification: true,
-        message: 'Tài khoản đã được tạo! Vui lòng kiểm tra email để xác minh trước khi đăng nhập.',
-        data: { email: result.email },
-      });
-    }
-
-    const { user, tokens } = result;
+    const { user, tokens } = await AuthService.googleLogin(req.body);
     return sendAuthResponse(res, 200, 'Đăng nhập Google thành công!', user, tokens);
   }
 );

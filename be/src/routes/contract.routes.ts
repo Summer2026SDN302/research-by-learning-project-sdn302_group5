@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect } from '../middlewares/auth.middleware';
+import { protect, requireCompleteProfile } from '../middlewares/auth.middleware';
 import {
   createContract,
   getContract,
@@ -16,11 +16,11 @@ const router = Router();
 router.use(protect);
 
 // ===== CONTRACT CRUD =====
-router.post('/', createContract);
+router.post('/', requireCompleteProfile, createContract);
 router.get('/', listContracts);
 router.get('/:id', getContract);
-router.post('/:id/request-sign-otp', requestSignOtp);
-router.post('/:id/sign', signContract);
+router.post('/:id/request-sign-otp', requireCompleteProfile, requestSignOtp);
+router.post('/:id/sign', requireCompleteProfile, signContract);
 router.post('/:id/cancel', cancelContract);
 router.post('/:id/reject', rejectContract);
 

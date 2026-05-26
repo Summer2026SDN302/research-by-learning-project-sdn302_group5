@@ -45,7 +45,10 @@ const authService = {
   register: async (data) => {
     try {
       const response = await api.post('/auth/register', data);
-      if (response.data.success) persistAuth(response.data.data);
+      // Enterprise cần xác minh email trước → BE không trả accessToken; chỉ persist khi có.
+      if (response.data.success && !response.data.requiresVerification) {
+        persistAuth(response.data.data);
+      }
       return response.data;
     } catch (error) {
       throw extractErrorMessage(error, 'Đăng ký thất bại');

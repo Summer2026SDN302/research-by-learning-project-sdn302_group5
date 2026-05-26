@@ -120,6 +120,22 @@ export class AuthService {
     if (body.avatar !== undefined) {
       updateData.avatar = body.avatar;
     }
+    // Profile mở rộng: địa chỉ + trường nghiệp vụ theo role.
+    const passthrough: (keyof UpdateProfileBody)[] = [
+      'address', 'province', 'district', 'ward',
+      'farmName', 'companyName', 'taxCode',
+    ];
+    for (const key of passthrough) {
+      if (body[key] !== undefined) {
+        (updateData as Record<string, unknown>)[key] = body[key];
+      }
+    }
+    if (body.farmSize !== undefined && body.farmSize !== '') {
+      const num = typeof body.farmSize === 'number' ? body.farmSize : Number(body.farmSize);
+      if (!Number.isNaN(num)) {
+        (updateData as Record<string, unknown>).farmSize = num;
+      }
+    }
 
     return updateData;
   }
@@ -155,7 +171,12 @@ export class AuthService {
    * Maps to FE Register.jsx: formData { fullName, email, phone, password, confirmPassword }
    * and selectedRole ('farmer' | 'enterprise')
    */
-  static async register(body: RegisterBody): Promise<{ user: IUser; tokens: AuthTokens }> {
+  static async register(
+    body: RegisterBody
+  ): Promise<
+    | { user: IUser; tokens: AuthTokens }
+    | { requiresVerification: true; email: string }
+  > {
     const { fullName, email, phone, password, confirmPassword, role, agreeTerms, province, district, ward } = body;
 
     AuthService.ensurePasswordsMatch(password, confirmPassword, 'Mật khẩu xác nhận không khớp');
@@ -178,7 +199,9 @@ export class AuthService {
 
     const { firstName, lastName } = parseFullName(fullName);
 
-    // Create user
+    // Tài khoản doanh nghiệp chỉ được kích hoạt sau khi xác minh email; nông dân được vào ngay.
+    const isEnterprise = role === 'enterprise';
+
     const user = await User.create({
       email: email.toLowerCase(),
       password,
@@ -187,27 +210,30 @@ export class AuthService {
       lastName,
       fullName: fullName.trim(),
       phone,
+      isVerified: !isEnterprise,
       ...(province && { province }),
       ...(district && { district }),
       ...(ward && { ward }),
     });
 
-    // Generate tokens
-    const tokens = AuthService.generateTokens(user);
+    if (isEnterprise) {
+      // Không cấp token cho enterprise — yêu cầu click link xác minh trước.
+      const verificationToken = user.createEmailVerificationToken();
+      await user.save({ validateBeforeSave: false });
+      try {
+        await sendVerificationEmail(user.email, user.fullName, verificationToken);
+      } catch (err) {
+        log.error('Failed to send verification email after enterprise register', err);
+      }
+      return { requiresVerification: true as const, email: user.email };
+    }
 
-    // Save refresh token
+    // Farmer (đăng ký gốc): vẫn cấp token + gửi mail xác minh thông tin (không bắt buộc).
+    const tokens = AuthService.generateTokens(user);
     user.refreshToken = tokens.refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    // Send email verification (non-blocking — don't fail registration if email fails)
-    const verificationToken = user.createEmailVerificationToken();
-    await user.save({ validateBeforeSave: false });
-    sendVerificationEmail(user.email, user.fullName, verificationToken).catch(
-      (err) => log.error('Failed to send verification email after register', err)
-    );
-
     AuthService.hideSensitiveFields(user);
-
     return { user, tokens };
   }
 
@@ -243,6 +269,14 @@ export class AuthService {
     // Block Google-only accounts from password login
     if (user.authProvider === 'google') {
       throw new AppError('Tài khoản này đăng nhập bằng Google. Vui lòng dùng nút "Đăng nhập bằng Google".', 400);
+    }
+
+    // Doanh nghiệp phải xác minh email trước khi đăng nhập được.
+    if (user.role === 'enterprise' && !user.isVerified) {
+      throw new AppError(
+        'Tài khoản doanh nghiệp chưa được xác minh. Vui lòng kiểm tra email để nhấn link kích hoạt.',
+        403
+      );
     }
 
     if (user.isLocked()) {
@@ -515,18 +549,14 @@ export class AuthService {
   }
 
   /**
-   * GOOGLE LOGIN - Authenticate with Google OAuth
-   * Accepts access_token (from useGoogleLogin hook) or credential (ID token from GoogleLogin component)
-   * Returns { requiresRole: true, profile } when new user hasn't selected a role yet
+   * GOOGLE LOGIN - Đăng nhập/đăng ký bằng Google.
+   * Tài khoản Google luôn mặc định role = farmer; không hỗ trợ tạo enterprise qua Google.
+   * Tài khoản tạo qua Google được xác minh ngay (không gửi email verify).
    */
   static async googleLogin(
     body: GoogleLoginBody
-  ): Promise<
-    | { user: IUser; tokens: AuthTokens }
-    | { requiresRole: true; profile: { email: string; name: string; picture?: string } }
-    | { requiresVerification: true; email: string }
-  > {
-    const { accessToken, credential, role } = body;
+  ): Promise<{ user: IUser; tokens: AuthTokens }> {
+    const { accessToken, credential } = body;
 
     if (!accessToken && !credential) {
       throw new AppError('Google token không hợp lệ', 400);
@@ -581,42 +611,35 @@ export class AuthService {
       throw new AppError('Không lấy được email từ Google', 400);
     }
 
-    // Find existing user by googleId or email
+    // Tìm user theo googleId hoặc email
     let user = await User.findOne({
       $or: [{ googleId: googleSub }, { email: googleEmail.toLowerCase() }],
     }).select('+googleId');
 
     if (!user) {
-      // New user — require role selection
-      if (!role) {
-        return {
-          requiresRole: true as const,
-          profile: { email: googleEmail, name: googleName, picture: googlePicture },
-        };
-      }
-
+      // Tạo tài khoản farmer mới — đăng nhập thẳng, không qua xác minh email.
       const { firstName, lastName } = parseFullName(googleName);
       user = await User.create({
         email: googleEmail.toLowerCase(),
         password: crypto.randomBytes(32).toString('hex'),
-        role,
+        role: 'farmer',
         firstName,
         lastName,
         fullName: googleName.trim(),
         avatar: googlePicture,
         googleId: googleSub,
         authProvider: 'google',
-        isVerified: false,
+        isVerified: true,
       });
-
-      // Send verification email — user must confirm before first login
-      const verificationToken = user.createEmailVerificationToken();
-      await user.save({ validateBeforeSave: false });
-      await sendVerificationEmail(user.email, user.fullName, verificationToken);
-
-      return { requiresVerification: true as const, email: googleEmail };
     } else {
-      // Existing user — update googleId if not linked yet
+      // User đã tồn tại — chặn nếu là tài khoản doanh nghiệp đã đăng ký bằng đường thường,
+      // tránh trường hợp doanh nghiệp lách qua Google để bỏ bước xác minh.
+      if (user.role === 'enterprise') {
+        throw new AppError(
+          'Tài khoản doanh nghiệp không được phép đăng nhập bằng Google. Vui lòng dùng email và mật khẩu.',
+          403
+        );
+      }
       if (!user.googleId) {
         user.googleId = googleSub;
         if (googlePicture && !user.avatar) user.avatar = googlePicture;
@@ -624,9 +647,6 @@ export class AuthService {
       }
       if (!user.isActive) {
         throw new AppError('Tài khoản đã bị vô hiệu hóa. Liên hệ hỗ trợ.', 403);
-      }
-      if (!user.isVerified) {
-        throw new AppError('Email chưa được xác minh. Vui lòng kiểm tra hộp thư và nhấn link xác minh.', 403);
       }
     }
 
