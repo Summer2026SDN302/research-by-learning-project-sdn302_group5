@@ -1,198 +1,207 @@
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import {
+  FiCheck,
+  FiTrendingUp,
+  FiShield,
+  FiActivity,
+  FiUser,
+  FiBriefcase,
+  FiMonitor,
+  FiArrowRight,
+  FiMessageCircle,
+  FiHeart,
+  FiLock,
+} from "react-icons/fi";
 import Navbar from "../Navbar/Navbar";
+import Footer from "../Footer/Footer";
 import { ROUTES } from "../../constants";
 import "./Solutions.css";
 
-// Animation variants
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.5 } }
-};
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1920&q=80&auto=format&fit=crop";
+const CTA_IMAGE =
+  "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80&auto=format&fit=crop";
 
-const heroVariants = {
-  initial: { opacity: 0, y: 30 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, staggerChildren: 0.2 }
-  }
-};
+const trustBadges = [
+  { icon: <FiTrendingUp />, title: "Hiệu quả vượt trội", desc: "Tối ưu quy trình" },
+  { icon: <FiShield />, title: "An toàn & minh bạch", desc: "Truy xuất nguồn gốc" },
+  { icon: <FiActivity />, title: "Phát triển bền vững", desc: "Gia tăng giá trị" },
+];
 
-const itemVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-};
-
-const cardVariants = {
-  initial: { opacity: 0, y: 50, scale: 0.95 },
-  animate: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1,
-    transition: { type: "spring", stiffness: 200, damping: 20 }
+const solutions = [
+  {
+    id: 1,
+    title: "Giải pháp cho Nông dân",
+    subtitle: "Cam kết hỗ trợ tối đa nông dân",
+    icon: <FiUser />,
+    accent: "#16a34a",
+    bg: "rgba(22, 163, 74, 0.12)",
+    features: [
+      "Ký hợp đồng bao tiêu trước mùa vụ",
+      "Giá cả cam kết công khai minh bạch",
+      "Hỗ trợ kỹ thuật canh tác",
+      "Thanh toán nhanh chóng, an toàn",
+    ],
   },
-  hover: {
-    y: -10,
-    boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-    transition: { type: "spring", stiffness: 400, damping: 20 }
-  }
-};
+  {
+    id: 2,
+    title: "Giải pháp cho Doanh nghiệp",
+    subtitle: "Nguồn cung ổn định, chất lượng đảm bảo",
+    icon: <FiBriefcase />,
+    accent: "#2563eb",
+    bg: "rgba(37, 99, 235, 0.12)",
+    features: [
+      "Nguồn cung ổn định theo yêu cầu",
+      "Truy xuất nguồn gốc 100%",
+      "Quản lý hợp đồng số hóa",
+      "Phân tích dữ liệu thị trường",
+    ],
+  },
+  {
+    id: 3,
+    title: "Nền tảng Công nghệ",
+    subtitle: "Số hóa toàn diện chuỗi cung ứng",
+    icon: <FiMonitor />,
+    accent: "#8b5cf6",
+    bg: "rgba(139, 92, 246, 0.12)",
+    features: [
+      "Blockchain cho truy xuất nguồn gốc",
+      "IoT giám sát chất lượng",
+      "AI dự báo giá và sản lượng",
+      "Dashboard quản lý thời gian thực",
+    ],
+  },
+];
 
-const featureVariants = {
-  initial: { opacity: 0, x: -10 },
-  animate: { opacity: 1, x: 0 }
-};
-
-const ctaVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { duration: 0.5 }
-  }
-};
-
-const buttonVariants = {
-  hover: { scale: 1.05, boxShadow: "0 10px 30px rgba(19, 236, 55, 0.3)" },
-  tap: { scale: 0.95 }
-};
+const ctaMicro = [
+  { icon: <FiMessageCircle />, label: "Tư vấn miễn phí" },
+  { icon: <FiHeart />, label: "Hỗ trợ tận tâm" },
+  { icon: <FiLock />, label: "Bảo mật thông tin" },
+];
 
 const Solutions = () => {
   const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
 
-  const solutions = [
-    {
-      id: 1,
-      title: "Giải pháp cho Nông dân",
-      subtitle: "Cam kết bao tiêu, Giá cả minh bạch",
-      features: [
-        "Ký hợp đồng bao tiêu trước mùa vụ",
-        "Giá cả cam kết công khai minh bạch",
-        "Hỗ trợ kỹ thuật canh tác",
-        "Thanh toán nhanh chóng, an toàn",
-      ],
-      icon: "farmer",
-      color: "#13ec37",
-    },
-    {
-      id: 2,
-      title: "Giải pháp cho Doanh nghiệp",
-      subtitle: "Nguồn cung ổn định, Chất lượng đảm bảo",
-      features: [
-        "Nguồn nông sản ổn định theo yêu cầu",
-        "Truy xuất nguồn gốc 100%",
-        "Quản lý hợp đồng số hóa",
-        "Phân tích dữ liệu thị trường",
-      ],
-      icon: "enterprise",
-      color: "#2563eb",
-    },
-    {
-      id: 3,
-      title: "Nền tảng Công nghệ",
-      subtitle: "Số hóa toàn diện chuỗi cung ứng",
-      features: [
-        "Blockchain cho truy xuất nguồn gốc",
-        "IoT giám sát chất lượng",
-        "AI dự báo giá và sản lượng",
-        "Dashboard quản lý thời gian thực",
-      ],
-      icon: "tech",
-      color: "#8b5cf6",
-    },
-  ];
+  const handleCtaSubmit = (e) => {
+    e.preventDefault();
+    navigate(ROUTES.CONTACT);
+  };
 
   return (
-    <motion.div 
-      className="solutions-page"
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-    >
-      {/* NAVBAR */}
+    <div className="solutions-page-v2">
       <Navbar />
 
       {/* HERO */}
-      <section className="sol-hero">
-        <Container>
-          <motion.div 
-            className="sol-hero-content"
-            variants={heroVariants}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
+      <section
+        className="solv2-hero"
+        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+      >
+        <div className="solv2-hero-overlay" />
+        <Container className="solv2-hero-inner">
+          <motion.div
+            className="solv2-hero-content"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <motion.h1 variants={itemVariants}>Giải pháp toàn diện</motion.h1>
-            <motion.h2 variants={itemVariants}>Kết nối Nông dân - Doanh nghiệp</motion.h2>
-            <motion.p variants={itemVariants}>
+            <span className="solv2-badge">
+              <span className="solv2-badge-dot" />
+              GIẢI PHÁP TOÀN DIỆN
+            </span>
+            <h1 className="solv2-hero-title">
+              Kết nối <span>Nông dân</span> –<br />
+              Phát triển <span className="solv2-hero-accent">Doanh nghiệp</span>
+            </h1>
+            <p className="solv2-hero-desc">
               Nền tảng số hóa chuỗi cung ứng nông sản với công nghệ tiên tiến,
+              <br />
               mang lại lợi ích cho tất cả các bên tham gia.
-            </motion.p>
+            </p>
+
+            <div className="solv2-trust-row">
+              {trustBadges.map((b, idx) => (
+                <motion.div
+                  className="solv2-trust"
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 + idx * 0.1 }}
+                >
+                  <span className="solv2-trust-icon">{b.icon}</span>
+                  <div>
+                    <div className="solv2-trust-title">{b.title}</div>
+                    <div className="solv2-trust-desc">{b.desc}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </Container>
+        <svg className="solv2-wave" viewBox="0 0 1440 90" preserveAspectRatio="none">
+          <path
+            d="M0,60 C360,90 1080,0 1440,60 L1440,90 L0,90 Z"
+            fill="#f7faf8"
+          />
+        </svg>
       </section>
 
-      {/* SOLUTIONS */}
-      <section className="sol-content">
+      {/* CARDS */}
+      <section className="solv2-cards-section">
         <Container>
-          <Row>
-            {solutions.map((solution, index) => (
-              <Col lg={4} md={6} key={solution.id} className="mb-4">
+          <Row className="g-4">
+            {solutions.map((sol, index) => (
+              <Col lg={4} md={6} key={sol.id}>
                 <motion.div
-                  variants={cardVariants}
-                  initial="initial"
-                  whileInView="animate"
-                  whileHover="hover"
+                  className="solv2-card"
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -8 }}
                   viewport={{ once: true, margin: "-50px" }}
-                  transition={{ delay: index * 0.15 }}
+                  transition={{ duration: 0.5, delay: index * 0.12 }}
                 >
-                  <Card className="solution-card">
-                    <motion.div
-                      className={`solution-icon icon-${solution.icon}`}
-                      style={{ backgroundColor: solution.color + "20" }}
-                      whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <div
-                        className={`icon-svg icon-${solution.icon}-svg`}
-                        style={{ filter: `drop-shadow(0 0 8px ${solution.color})` }}
-                      ></div>
-                    </motion.div>
-                    <Card.Body>
-                      <motion.h3
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        {solution.title}
-                      </motion.h3>
-                      <motion.p 
-                        className="subtitle"
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        {solution.subtitle}
-                      </motion.p>
-                      <ul className="feature-list">
-                        {solution.features.map((feature, idx) => (
-                          <motion.li 
-                            key={idx}
-                            variants={featureVariants}
-                            initial="initial"
-                            whileInView="animate"
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.4 + idx * 0.1 }}
-                          >
-                            <span className="check-icon"></span>
-                            {feature}
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </Card.Body>
-                  </Card>
+                  <div
+                    className="solv2-card-icon"
+                    style={{ background: sol.bg, color: sol.accent }}
+                  >
+                    {sol.icon}
+                  </div>
+                  <h3 className="solv2-card-title">{sol.title}</h3>
+                  <p className="solv2-card-subtitle">{sol.subtitle}</p>
+                  <ul className="solv2-feature-list">
+                    {sol.features.map((f, i) => (
+                      <li key={i}>
+                        <span
+                          className="solv2-feature-check"
+                          style={{ color: sol.accent }}
+                        >
+                          <FiCheck />
+                        </span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <svg
+                    className="solv2-card-leaf"
+                    viewBox="0 0 100 100"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z"
+                      fill={sol.accent}
+                      opacity="0.08"
+                    />
+                    <path
+                      d="M85,15 Q50,50 15,85"
+                      stroke={sol.accent}
+                      strokeOpacity="0.15"
+                      strokeWidth="1.5"
+                      fill="none"
+                    />
+                  </svg>
                 </motion.div>
               </Col>
             ))}
@@ -201,133 +210,61 @@ const Solutions = () => {
       </section>
 
       {/* CTA */}
-      <section className="sol-cta">
+      <section className="solv2-cta-section">
         <Container>
-          <motion.div 
-            className="cta-box"
-            variants={ctaVariants}
-            initial="initial"
-            whileInView="animate"
+          <motion.div
+            className="solv2-cta-box"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+            <div
+              className="solv2-cta-image"
+              style={{ backgroundImage: `url(${CTA_IMAGE})` }}
             >
-              Sẵn sàng bắt đầu?
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              Tham gia cùng hàng nghìn nông dân và doanh nghiệp đã tin dùng PreOnic
-            </motion.p>
-            <motion.div 
-              className="cta-buttons"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <motion.button 
-                className="btn-primary" 
-                onClick={() => navigate(ROUTES.CONTACT)}
-                variants={buttonVariants}
-                whileHover="hover"
-                whileTap="tap"
-              >
-                Liên hệ ngay
-              </motion.button>
-              <motion.button 
-                className="btn-secondary" 
-                onClick={() => navigate(ROUTES.CONTACT)}
-                variants={buttonVariants}
-                whileHover="hover"
-                whileTap="tap"
-              >
-                Liên hệ tư vấn
-              </motion.button>
-            </motion.div>
+              <div className="solv2-cta-image-overlay" />
+            </div>
+
+            <div className="solv2-cta-content">
+              <div className="solv2-cta-top">
+                <div>
+                  <h2 className="solv2-cta-title">Sẵn sàng bắt đầu?</h2>
+                  <p className="solv2-cta-desc">
+                    Tham gia cùng hàng nghìn nông dân và doanh nghiệp
+                    <br />
+                    đã tin dùng PreOnic
+                  </p>
+                </div>
+                <form className="solv2-cta-form" onSubmit={handleCtaSubmit}>
+                  <input
+                    type="tel"
+                    placeholder="Nhập số điện thoại của bạn"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="solv2-cta-input"
+                  />
+                  <button type="submit" className="solv2-cta-btn">
+                    Liên hệ tư vấn <FiArrowRight />
+                  </button>
+                </form>
+              </div>
+
+              <div className="solv2-cta-micros">
+                {ctaMicro.map((m, idx) => (
+                  <div className="solv2-cta-micro" key={idx}>
+                    <span className="solv2-cta-micro-icon">{m.icon}</span>
+                    {m.label}
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
         </Container>
       </section>
 
-      {/* FOOTER */}
-      <motion.footer 
-        className="sol-footer"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
-        <Container>
-          <Row>
-            <Col md={4}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <h4>PreOnic</h4>
-                <p>Nền tảng kết nối và bao tiêu nông sản hàng đầu Việt Nam</p>
-              </motion.div>
-            </Col>
-            <Col md={4}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h4>Liên kết</h4>
-                <ul>
-                  <motion.li 
-                    onClick={() => navigate(ROUTES.HOME)}
-                    whileHover={{ x: 5, color: "#13ec37" }}
-                  >
-                    Trang chủ
-                  </motion.li>
-                  <motion.li 
-                    onClick={() => navigate(ROUTES.SOLUTIONS)}
-                    whileHover={{ x: 5, color: "#13ec37" }}
-                  >
-                    Giải pháp
-                  </motion.li>
-                  <motion.li 
-                    onClick={() => navigate(ROUTES.CONTACT)}
-                    whileHover={{ x: 5, color: "#13ec37" }}
-                  >
-                    Liên hệ
-                  </motion.li>
-                </ul>
-              </motion.div>
-            </Col>
-            <Col md={4}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h4>Liên hệ</h4>
-                <ul>
-                  <li>Email: contact@preonic.vn</li>
-                  <li>Hotline: 1900 xxxx</li>
-                  <li>Địa chỉ: Hà Nội, Việt Nam</li>
-                </ul>
-              </motion.div>
-            </Col>
-          </Row>
-          <motion.div 
-            className="footer-bottom"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <p>&copy; 2026 PreOnic. All rights reserved.</p>
-          </motion.div>
-        </Container>
-      </motion.footer>
-    </motion.div>
+      <Footer />
+    </div>
   );
 };
 
