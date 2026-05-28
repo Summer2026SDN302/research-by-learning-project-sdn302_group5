@@ -327,12 +327,12 @@ const Contact = () => {
         </Container>
       </section>
 
-      {/* Wave transition into dark footer */}
+      {/* Wave transition into footer */}
       <div className="ctv2-footer-wave">
         <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
           <path
             d="M0,20 C360,80 1080,0 1440,40 L1440,80 L0,80 Z"
-            fill="#0a3520"
+            fill="#f6fbef"
           />
         </svg>
       </div>
