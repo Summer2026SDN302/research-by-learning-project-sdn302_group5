@@ -105,8 +105,27 @@
 
 /* ---------- CONTENT ---------- */
 .ctv2-content {
-  padding: 40px 0 80px;
+  padding: 40px 0 40px;
   background: #f7faf8;
+}
+
+/* Curved wave flowing into dark footer */
+.ctv2-footer-wave {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 80px;
+  margin-bottom: -1px;
+  background: #f7faf8;
+}
+
+.ctv2-footer-wave svg {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ----- Form card ----- */

@@ -130,8 +130,44 @@
 
 /* ---------- CARDS ---------- */
 .solv2-cards-section {
+  position: relative;
   padding: 60px 0 40px;
   background: #f7faf8;
+  overflow: hidden;
+}
+
+.solv2-cards-section::before,
+.solv2-cards-section::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.7;
+}
+
+.solv2-cards-section::before {
+  width: 180px;
+  height: 180px;
+  top: 40px;
+  left: -40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z' fill='%2316a34a' opacity='0.06'/%3E%3C/svg%3E");
+  transform: rotate(-20deg);
+}
+
+.solv2-cards-section::after {
+  width: 220px;
+  height: 220px;
+  bottom: -40px;
+  right: -50px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z' fill='%2316a34a' opacity='0.06'/%3E%3C/svg%3E");
+  transform: rotate(160deg);
+}
+
+.solv2-cards-section .container {
+  position: relative;
+  z-index: 1;
 }
 
 .solv2-card {
@@ -221,8 +257,44 @@
 
 /* ---------- CTA ---------- */
 .solv2-cta-section {
-  padding: 40px 0 80px;
+  position: relative;
+  padding: 40px 0 30px;
   background: #f7faf8;
+  overflow: hidden;
+}
+
+.solv2-cta-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 30%, rgba(22, 163, 74, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 88% 70%, rgba(34, 197, 94, 0.05) 0%, transparent 45%);
+  pointer-events: none;
+}
+
+.solv2-cta-section .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Curved wave flowing into dark footer */
+.solv2-footer-wave {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 80px;
+  margin-bottom: -1px;
+  background: #f7faf8;
+}
+
+.solv2-footer-wave svg {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .solv2-cta-box {
