@@ -146,84 +146,75 @@ const Footer = () => {
         {/* LANDSCAPE ILLUSTRATION */}
         <div className="footer-v3-landscape">
           <svg
-            viewBox="0 0 1440 360"
-            preserveAspectRatio="xMidYMax slice"
+            viewBox="0 0 1440 180"
+            preserveAspectRatio="none"
             aria-hidden="true"
           >
             {/* Sun */}
-            <circle cx="1180" cy="80" r="46" fill="#fef3c7" opacity="0.7" />
-            <circle cx="1180" cy="80" r="32" fill="#fde68a" opacity="0.85" />
+            <circle cx="1200" cy="40" r="22" fill="#fef3c7" opacity="0.75" />
+            <circle cx="1200" cy="40" r="16" fill="#fde68a" opacity="0.9" />
 
             {/* Birds */}
             <g fill="none" stroke="#5b8a72" strokeWidth="2" strokeLinecap="round">
-              <path d="M 240 90 q 9 -9 18 0 q 9 -9 18 0" />
-              <path d="M 320 120 q 7 -7 14 0 q 7 -7 14 0" />
-              <path d="M 200 150 q 6 -6 12 0 q 6 -6 12 0" />
-              <path d="M 1080 140 q 9 -9 18 0 q 9 -9 18 0" />
-              <path d="M 1020 180 q 7 -7 14 0 q 7 -7 14 0" />
+              <path d="M 240 50 q 9 -9 18 0 q 9 -9 18 0" />
+              <path d="M 320 72 q 7 -7 14 0 q 7 -7 14 0" />
+              <path d="M 200 92 q 6 -6 12 0 q 6 -6 12 0" />
+              <path d="M 1060 70 q 9 -9 18 0 q 9 -9 18 0" />
+              <path d="M 1000 95 q 7 -7 14 0 q 7 -7 14 0" />
             </g>
 
             {/* Far hills */}
             <path
-              d="M0,210 C200,170 400,225 600,195 C800,165 1000,215 1200,185 C1300,170 1440,200 1440,200 L1440,360 L0,360 Z"
+              d="M0,90 C200,65 400,100 600,80 C800,60 1000,95 1200,75 C1300,65 1440,85 1440,85 L1440,180 L0,180 Z"
               fill="#cdebbf"
               opacity="0.85"
             />
 
             {/* Mid hills */}
             <path
-              d="M0,250 C180,220 380,260 600,235 C800,210 1000,255 1200,230 C1320,215 1440,245 1440,245 L1440,360 L0,360 Z"
+              d="M0,115 C180,95 380,125 600,105 C800,85 1000,120 1200,100 C1320,90 1440,110 1440,110 L1440,180 L0,180 Z"
               fill="#a4d989"
               opacity="0.9"
             />
 
             {/* Front hills */}
             <path
-              d="M0,295 C200,265 400,305 700,275 C900,255 1100,305 1440,275 L1440,360 L0,360 Z"
+              d="M0,140 C200,118 400,148 700,125 C900,108 1100,148 1440,125 L1440,180 L0,180 Z"
               fill="#7cc265"
             />
 
             {/* Tree clusters */}
             <g>
-              <ellipse cx="120" cy="290" rx="22" ry="18" fill="#3f8d3a" />
-              <ellipse cx="140" cy="282" rx="18" ry="14" fill="#4ea24a" />
-              <rect x="128" y="290" width="4" height="14" fill="#5b3a1f" />
+              <ellipse cx="120" cy="138" rx="14" ry="11" fill="#3f8d3a" />
+              <ellipse cx="134" cy="133" rx="11" ry="9" fill="#4ea24a" />
+              <rect x="126" y="138" width="3" height="9" fill="#5b3a1f" />
             </g>
             <g>
-              <ellipse cx="880" cy="298" rx="20" ry="16" fill="#3f8d3a" />
-              <ellipse cx="900" cy="290" rx="16" ry="12" fill="#4ea24a" />
-              <rect x="888" y="298" width="4" height="14" fill="#5b3a1f" />
+              <ellipse cx="880" cy="143" rx="13" ry="10" fill="#3f8d3a" />
+              <ellipse cx="894" cy="138" rx="10" ry="8" fill="#4ea24a" />
+              <rect x="886" y="143" width="3" height="9" fill="#5b3a1f" />
             </g>
 
             {/* Farmer figure with watering can */}
-            <g transform="translate(1300, 268)">
-              {/* hat */}
-              <ellipse cx="0" cy="-2" rx="14" ry="4" fill="#d97706" />
-              <path d="M -7 -3 Q 0 -12 7 -3 Z" fill="#d97706" />
-              {/* body */}
-              <rect x="-5" y="1" width="10" height="18" fill="#dbeafe" />
-              {/* legs */}
-              <rect x="-5" y="19" width="4" height="14" fill="#1f3a2e" />
-              <rect x="1" y="19" width="4" height="14" fill="#1f3a2e" />
-              {/* arm + watering can */}
-              <rect x="5" y="6" width="14" height="3" fill="#dbeafe" />
-              <path
-                d="M 19 4 L 26 4 L 28 12 L 17 12 Z"
-                fill="#16a34a"
-              />
-              <path d="M 28 6 L 32 4 L 32 8 Z" fill="#16a34a" />
-              {/* water drops */}
-              <circle cx="30" cy="14" r="1.2" fill="#3b82f6" opacity="0.7" />
-              <circle cx="33" cy="18" r="1.2" fill="#3b82f6" opacity="0.7" />
-              <circle cx="36" cy="22" r="1.2" fill="#3b82f6" opacity="0.7" />
+            <g transform="translate(1310, 126)">
+              <ellipse cx="0" cy="-1" rx="10" ry="3" fill="#d97706" />
+              <path d="M -5 -2 Q 0 -8 5 -2 Z" fill="#d97706" />
+              <rect x="-3" y="1" width="6" height="12" fill="#dbeafe" />
+              <rect x="-3" y="13" width="2.5" height="9" fill="#1f3a2e" />
+              <rect x="0.5" y="13" width="2.5" height="9" fill="#1f3a2e" />
+              <rect x="3" y="4" width="10" height="2" fill="#dbeafe" />
+              <path d="M 13 3 L 19 3 L 20.5 9 L 11.5 9 Z" fill="#16a34a" />
+              <path d="M 20.5 4.5 L 23 3 L 23 6 Z" fill="#16a34a" />
+              <circle cx="22" cy="10" r="0.9" fill="#3b82f6" opacity="0.7" />
+              <circle cx="24" cy="13" r="0.9" fill="#3b82f6" opacity="0.7" />
             </g>
 
-            {/* Rice rows in the front */}
+            {/* Rice rows */}
             <g stroke="#5fa450" strokeWidth="1" opacity="0.5">
-              <line x1="50" y1="335" x2="350" y2="335" />
-              <line x1="100" y1="345" x2="450" y2="345" />
-              <line x1="700" y1="338" x2="1100" y2="338" />
-              <line x1="800" y1="348" x2="1200" y2="348" />
+              <line x1="50" y1="162" x2="350" y2="162" />
+              <line x1="100" y1="170" x2="450" y2="170" />
+              <line x1="700" y1="164" x2="1100" y2="164" />
+              <line x1="800" y1="172" x2="1200" y2="172" />
             </g>
           </svg>
         </div>

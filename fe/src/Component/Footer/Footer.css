@@ -6,7 +6,7 @@
   position: relative;
   background: linear-gradient(180deg, #f6fbef 0%, #ebf6dd 100%);
   color: #38483c;
-  padding: 64px 0 0;
+  padding: 44px 0 0;
   overflow: hidden;
 }
 
@@ -16,7 +16,7 @@
 }
 
 .footer-v3-top {
-  padding-bottom: 16px;
+  padding-bottom: 8px;
 }
 
 /* ----- BRAND ----- */
@@ -135,29 +135,30 @@
 /* ----- LANDSCAPE ILLUSTRATION ----- */
 .footer-v3-landscape {
   position: relative;
-  width: calc(100% + 48px);
-  margin-left: -24px;
-  margin-top: 24px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: 8px;
   margin-bottom: 0;
   pointer-events: none;
+  line-height: 0;
 }
 
 .footer-v3-landscape svg {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 320px;
+  height: 150px;
 }
 
 /* ----- LEGAL ----- */
 .footer-v3-legal {
   position: relative;
   border-top: 1px solid rgba(31, 58, 37, 0.12);
-  padding: 22px 0 20px;
+  padding: 16px 0 14px;
   text-align: left;
   color: #4a5b50;
   font-size: 12.5px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .footer-v3-legal p {
@@ -178,13 +179,13 @@
 /* ----- RESPONSIVE ----- */
 @media (max-width: 991px) {
   .footer-v3 {
-    padding: 50px 0 0;
+    padding: 36px 0 0;
   }
   .footer-v3-brand {
     max-width: 100%;
   }
   .footer-v3-landscape svg {
-    max-height: 220px;
+    height: 110px;
   }
 }
 
@@ -193,10 +194,10 @@
     margin-bottom: 12px;
   }
   .footer-v3-list li {
-    margin-bottom: 9px;
+    margin-bottom: 8px;
   }
   .footer-v3-landscape svg {
-    max-height: 160px;
+    height: 80px;
   }
   .footer-v3-legal {
     font-size: 12px;
