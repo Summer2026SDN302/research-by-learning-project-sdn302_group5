@@ -12,8 +12,6 @@ import ProtectedRoute from "./Component/ProtectedRoute/ProtectedRoute";
 // HOME PAGE SECTIONS
 import Navbar from "./Component/Navbar/Navbar";
 import Hero from "./Component/Hero/Hero";
-import CompanyIntro from "./Component/CompanyIntro/CompanyIntro";
-import Process from "./Component/Process/Process";
 import Campaigns from "./Component/Campaigns/Campaigns";
 import AgricultureBanner from "./Component/AgricultureBanner/AgricultureBanner";
 import Footer from "./Component/Footer/Footer";
@@ -46,22 +44,12 @@ import VerifyEmail from "./Component/VerifyEmail/VerifyEmail";
 import PaymentResult from "./Component/PaymentResult/PaymentResult";
 
 function HomePage() {
-  const homeShowcaseStyle = {
-    backgroundImage: `linear-gradient(180deg, rgba(6, 14, 10, 0.44) 0%, rgba(6, 14, 10, 0.58) 100%), url(${process.env.PUBLIC_URL}/BG1.jpg)`,
-  };
-
   return (
     <>
       <Navbar />
       <Hero />
-      <div className="home-showcase" style={homeShowcaseStyle}>
-        <div className="home-showcase-overlay" />
-        <div className="home-showcase-pattern" />
-        <div className="home-showcase-content">
-          <CompanyIntro />
-          <Campaigns />
-          <Process />
-        </div>
+      <div className="home-mid">
+        <Campaigns />
       </div>
       <AgricultureBanner />
       <Footer />

@@ -1,80 +1,48 @@
-.home-showcase {
+/* ============================================
+   HOME MID — sạch, light, đồng bộ design system
+   ============================================ */
+
+.home-mid {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  margin-top: -28px;
-  padding-top: 28px;
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(180deg, #f7faf8 0%, #ebf6dd 100%);
+  padding: 20px 0;
 }
 
-.home-showcase::before {
+.home-mid::before {
   content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  pointer-events: none;
-  z-index: 2;
-  background: linear-gradient(180deg, rgba(4, 11, 7, 0.86) 0%, rgba(4, 11, 7, 0.42) 56%, transparent 100%);
-}
-
-.home-showcase::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 96px;
-  pointer-events: none;
-  z-index: 2;
-  background: linear-gradient(180deg, transparent 0%, rgba(4, 11, 7, 0.48) 100%);
-}
-
-.home-showcase-overlay {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+  z-index: 0;
   background:
-    radial-gradient(circle at 20% 12%, rgba(76, 255, 137, 0.14), transparent 42%),
-    radial-gradient(circle at 86% 84%, rgba(63, 221, 255, 0.08), transparent 38%);
-  pointer-events: none;
-  z-index: 1;
+    radial-gradient(circle at 15% 25%, rgba(22, 163, 74, 0.07) 0%, transparent 38%),
+    radial-gradient(circle at 85% 75%, rgba(34, 197, 94, 0.06) 0%, transparent 42%);
 }
 
-.home-showcase-pattern {
+.home-mid::after {
+  content: "";
   position: absolute;
-  inset: 0;
+  bottom: 30px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
   pointer-events: none;
-  z-index: 1;
-  opacity: 0.2;
-  background-image: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0.08) 1px,
-    transparent 1px
-  );
-  background-size: 56px 56px;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z' fill='%2316a34a' opacity='0.06'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transform: rotate(140deg);
 }
 
-.home-showcase-content {
+.home-mid > * {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 @media (max-width: 991px) {
-  .home-showcase {
-    margin-top: -18px;
-    padding-top: 18px;
-    background-attachment: scroll;
-  }
-
-  .home-showcase::before {
-    height: 88px;
-  }
-
-  .home-showcase::after {
-    height: 72px;
+  .home-mid {
+    padding: 12px 0;
   }
 }
