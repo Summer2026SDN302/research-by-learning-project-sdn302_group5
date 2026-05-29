@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   FiArrowRight,
-  FiPlay,
   FiTrendingUp,
   FiShoppingCart,
 } from "react-icons/fi";
@@ -100,15 +99,6 @@ function Hero() {
                 </button>
               </motion.div>
 
-              <motion.div className="hero-v2-video" variants={itemVariants}>
-                <span className="hero-v2-video-play">
-                  <FiPlay />
-                </span>
-                <div>
-                  <div className="hero-v2-video-title">Xem video giới thiệu</div>
-                  <div className="hero-v2-video-duration">02:45 phút</div>
-                </div>
-              </motion.div>
             </motion.div>
           </Col>
 
