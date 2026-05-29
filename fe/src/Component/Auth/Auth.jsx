@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiAlertTriangle } from "react-icons/fi";
+import {
+  FiAlertTriangle,
+  FiMail,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiArrowLeft,
+  FiArrowRight,
+  FiCheckCircle,
+  FiShield,
+  FiUsers,
+  FiTrendingUp,
+} from "react-icons/fi";
+import { LuLeaf } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../contexts/AuthContext";
@@ -9,108 +22,45 @@ import { ROUTES, TOAST_DURATION } from "../../constants";
 import authService from "../../services/auth.service";
 import "./Auth.css";
 
-// Animation variants
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 }
-};
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1400&q=85&auto=format&fit=crop";
 
-const heroVariants = {
-  initial: { x: -100, opacity: 0 },
-  animate: { 
-    x: 0, 
-    opacity: 1,
-    transition: { duration: 0.8, ease: "easeOut" }
-  }
-};
-
-const formSideVariants = {
-  initial: { x: 100, opacity: 0 },
-  animate: { 
-    x: 0, 
-    opacity: 1,
-    transition: { duration: 0.8, ease: "easeOut", delay: 0.2 }
-  }
-};
-
-const formContainerVariants = {
-  initial: { opacity: 0, y: 30 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      staggerChildren: 0.1,
-      delayChildren: 0.3
-    }
-  }
-};
-
-const itemVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.4 }
-  }
-};
-
-const buttonVariants = {
-  initial: { scale: 1 },
-  hover: { 
-    scale: 1.02,
-    boxShadow: "0 8px 25px rgba(19, 236, 55, 0.3)"
+const HIGHLIGHTS = [
+  {
+    icon: <FiShield />,
+    title: "Bảo mật tuyệt đối",
+    desc: "Mã hóa SSL 256-bit, OAuth chuẩn Google.",
   },
-  tap: { scale: 0.98 }
-};
-
-const socialButtonVariants = {
-  initial: { scale: 1 },
-  hover: { 
-    scale: 1.05,
-    y: -2,
-    boxShadow: "0 5px 20px rgba(0,0,0,0.1)"
+  {
+    icon: <FiUsers />,
+    title: "Cộng đồng 5,000+",
+    desc: "Hàng ngàn nông dân và doanh nghiệp đã tin tưởng.",
   },
-  tap: { scale: 0.95 }
-};
-
-const floatingVariants = {
-  animate: {
-    y: [-10, 10, -10],
-    transition: {
-      duration: 4,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
+  {
+    icon: <FiTrendingUp />,
+    title: "Giao dịch minh bạch",
+    desc: "Escrow bảo lãnh, hợp đồng điện tử có pháp lý.",
+  },
+];
 
 const Auth = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { login, updateUser } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Forgot password modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  // Google OAuth — auto đăng nhập thẳng dưới vai trò nông dân, không qua bước chọn role/verify
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
-    name: "",
-    phone: "",
-    email: "",
-    confirmPassword: "",
     rememberMe: false,
   });
 
@@ -129,7 +79,10 @@ const Auth = () => {
     try {
       await authService.forgotPassword({ email: forgotEmail.trim() });
       setForgotSuccess(true);
-      toast.success("Hướng dẫn đặt lại mật khẩu đã được gửi!", TOAST_DURATION.DEFAULT);
+      toast.success(
+        "Hướng dẫn đặt lại mật khẩu đã được gửi!",
+        TOAST_DURATION.DEFAULT
+      );
     } catch (err) {
       toast.error(err?.message || "Không tìm thấy tài khoản với email này.");
     } finally {
@@ -149,16 +102,22 @@ const Auth = () => {
       if (result.success && result.data?.user) {
         const user = result.data.user;
         updateUser(user);
-        toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
+        toast.success(
+          `Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`,
+          TOAST_DURATION.DEFAULT
+        );
         setTimeout(() => {
           if (user.role === "admin") navigate(ROUTES.ADMIN);
           else if (user.role === "farmer") navigate(ROUTES.FARMER);
-          else if (user.role === "enterprise") navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
+          else if (user.role === "enterprise")
+            navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
           else navigate(ROUTES.HOME);
         }, 800);
       }
     } catch (err) {
-      toast.error(err?.message || "Đăng nhập Google thất bại. Vui lòng thử lại.");
+      toast.error(
+        err?.message || "Đăng nhập Google thất bại. Vui lòng thử lại."
+      );
     }
   };
 
@@ -183,36 +142,33 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const response = await login({
-          emailOrPhone: formData.emailOrPhone,
-          password: formData.password,
-          rememberMe: formData.rememberMe,
-        });
+      const response = await login({
+        emailOrPhone: formData.emailOrPhone,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
 
-        if (response.success) {
-          const user = response.data.user;
-          
-          toast.success(`Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`, TOAST_DURATION.DEFAULT);
-          
-          setTimeout(() => {
-            if (user.role === 'admin') {
-              navigate(ROUTES.ADMIN);
-            } else if (user.role === 'farmer') {
-              navigate(ROUTES.FARMER);
-            } else if (user.role === 'enterprise') {
-              navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
-            } else {
-              navigate(ROUTES.HOME);
-            }
-          }, 800);
-        }
-      } else {
-        // Inline register (redirect to full register page)
-        navigate(ROUTES.REGISTER);
+      if (response.success) {
+        const user = response.data.user;
+        toast.success(
+          `Chào mừng ${user.fullName || user.email}! Đăng nhập thành công.`,
+          TOAST_DURATION.DEFAULT
+        );
+        setTimeout(() => {
+          if (user.role === "admin") {
+            navigate(ROUTES.ADMIN);
+          } else if (user.role === "farmer") {
+            navigate(ROUTES.FARMER);
+          } else if (user.role === "enterprise") {
+            navigate(ROUTES.ENTERPRISE, { state: { activeNav: "sanpham" } });
+          } else {
+            navigate(ROUTES.HOME);
+          }
+        }, 800);
       }
     } catch (err) {
-      const errorMessage = err.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
+      const errorMessage =
+        err.message || "Đăng nhập thất bại. Vui lòng thử lại.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -221,460 +177,287 @@ const Auth = () => {
   };
 
   return (
-    <motion.div 
-      className="auth-page-v2"
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
-      <div className="auth-container-split">
-        {/* LEFT SIDE - HERO */}
-        <motion.div 
-          className="auth-hero"
-          variants={heroVariants}
-          initial="initial"
-          animate="animate"
+    <div className="auth-v3-page">
+      <div className="auth-v3-grid">
+        {/* LEFT — HERO */}
+        <motion.aside
+          className="auth-v3-hero"
+          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <div className="hero-overlay"></div>
-          
-          {/* Floating decorative elements */}
-          <motion.div 
-            className="auth-float-element auth-float-1"
-            variants={floatingVariants}
-            animate="animate"
-          />
-          <motion.div 
-            className="auth-float-element auth-float-2"
-            variants={floatingVariants}
-            animate="animate"
-            style={{ animationDelay: "1s" }}
-          />
-          
-          <motion.div 
-            className="hero-content"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-          >
-            <motion.div 
-              className="hero-brand"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="brand-icon"></div>
-              <h2>PreOnic</h2>
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-            >
-              Chào mừng bạn trở lại với PreOnic
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            >
-              Nền tảng nông nghiệp hiện đại, kết nối công nghệ và tương lai xanh.
-            </motion.p>
-          </motion.div>
-        </motion.div>
+          <div className="auth-v3-hero-overlay" />
 
-        {/* RIGHT SIDE - FORM */}
-        <motion.div 
-          className="auth-form-side"
-          variants={formSideVariants}
-          initial="initial"
-          animate="animate"
-        >
-          <motion.div 
-            className="auth-form-container"
-            variants={formContainerVariants}
-            initial="initial"
-            animate="animate"
-          >
-            {/* Mobile Logo */}
-            <motion.div 
-              className="mobile-brand"
-              variants={itemVariants}
+          <div className="auth-v3-hero-inner">
+            <button
+              className="auth-v3-back"
+              onClick={() => navigate(ROUTES.HOME)}
             >
-              <div className="brand-icon-mobile"></div>
-              <h2>PreOnic</h2>
-            </motion.div>
+              <FiArrowLeft /> Quay lại trang chủ
+            </button>
 
-            {/* Header */}
-            <motion.div 
-              className="auth-form-header"
-              variants={itemVariants}
-            >
-              <AnimatePresence mode="wait">
-                <motion.h2
-                  key={isLogin ? "login" : "register"}
-                  initial={{ opacity: 0, y: -10 }}
+            <div className="auth-v3-hero-mid">
+              <div className="auth-v3-brand">
+                <span className="auth-v3-brand-icon">
+                  <LuLeaf />
+                </span>
+                <span className="auth-v3-brand-text">PreOnic</span>
+              </div>
+              <h1>
+                Chào mừng bạn
+                <br />
+                <span>trở lại với PreOnic</span>
+              </h1>
+              <p>
+                Nền tảng nông nghiệp số kết nối nông dân và doanh nghiệp —
+                minh bạch, an toàn, bền vững.
+              </p>
+            </div>
+
+            <div className="auth-v3-highlights">
+              {HIGHLIGHTS.map((h, i) => (
+                <motion.div
+                  className="auth-v3-highlight"
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ delay: 0.4 + i * 0.1, duration: 0.4 }}
                 >
-                  {isLogin ? "Đăng nhập" : "Đăng ký tài khoản"}
-                </motion.h2>
-              </AnimatePresence>
-              <p>{isLogin ? "Vui lòng nhập thông tin tài khoản của bạn" : "Tạo tài khoản mới để bắt đầu"}</p>
-            </motion.div>
+                  <span className="auth-v3-highlight-icon">{h.icon}</span>
+                  <div>
+                    <div className="auth-v3-highlight-title">{h.title}</div>
+                    <div className="auth-v3-highlight-desc">{h.desc}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.aside>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="auth-form-main">
-              {/* Error Message */}
+        {/* RIGHT — FORM */}
+        <motion.main
+          className="auth-v3-form-wrap"
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <div className="auth-v3-card">
+            {/* Mobile brand */}
+            <div className="auth-v3-brand auth-v3-brand-mobile">
+              <span className="auth-v3-brand-icon">
+                <LuLeaf />
+              </span>
+              <span className="auth-v3-brand-text">PreOnic</span>
+            </div>
+
+            <div className="auth-v3-header">
+              <span className="auth-v3-badge">
+                <LuLeaf /> Đăng nhập
+              </span>
+              <h2>Chào mừng quay lại</h2>
+              <p>Đăng nhập để tiếp tục với nền tảng PreOnic.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="auth-v3-form">
               {error && (
-                <motion.div 
-                  className="error-message"
-                  initial={{ opacity: 0, y: -10 }}
+                <motion.div
+                  className="auth-v3-error"
+                  initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    backgroundColor: '#ffe6e6',
-                    border: '1px solid #ff4444',
-                    color: '#cc0000',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    marginBottom: '20px',
-                    fontSize: '14px'
-                  }}
                 >
-                  <FiAlertTriangle size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />{error}
+                  <FiAlertTriangle /> {error}
                 </motion.div>
               )}
 
-              <AnimatePresence mode="wait">
-                {isLogin ? (
-                  <motion.div
-                    key="login-fields"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
+              <div className="auth-v3-field">
+                <label>Email hoặc Số điện thoại</label>
+                <div className="auth-v3-input-wrap">
+                  <FiMail className="auth-v3-input-icon" />
+                  <input
+                    type="text"
+                    name="emailOrPhone"
+                    value={formData.emailOrPhone}
+                    onChange={handleChange}
+                    placeholder="Nhập email hoặc số điện thoại"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="auth-v3-field">
+                <label>Mật khẩu</label>
+                <div className="auth-v3-input-wrap">
+                  <FiLock className="auth-v3-input-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Nhập mật khẩu"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="auth-v3-eye"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label="Toggle password"
                   >
-                    {/* Login Fields */}
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <label>Email hoặc Số điện thoại</label>
-                      <motion.input
-                        type="text"
-                        name="emailOrPhone"
-                        value={formData.emailOrPhone}
-                        onChange={handleChange}
-                        placeholder="Nhập email hoặc số điện thoại"
-                        required
-                        className="form-input"
-                        whileFocus={{ scale: 1.01, borderColor: "#13ec37" }}
-                      />
-                    </motion.div>
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </div>
 
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <label>Mật khẩu</label>
-                      <div className="password-input-wrapper">
-                        <motion.input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Nhập mật khẩu"
-                          required
-                          className="form-input"
-                          whileFocus={{ scale: 1.01 }}
-                        />
-                        <motion.button
-                          type="button"
-                          className="toggle-password"
-                          onClick={() => setShowPassword(!showPassword)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <span className={`icon-eye ${showPassword ? "active" : ""}`}></span>
-                        </motion.button>
-                      </div>
-                    </motion.div>
+              <div className="auth-v3-extras">
+                <label className="auth-v3-remember">
+                  <input
+                    type="checkbox"
+                    name="rememberMe"
+                    checked={formData.rememberMe}
+                    onChange={handleChange}
+                  />
+                  <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <button
+                  type="button"
+                  className="auth-v3-forgot"
+                  onClick={() => setShowForgotModal(true)}
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
 
-                    <motion.div 
-                      className="form-extras"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      <label className="remember-me">
-                        <input
-                          type="checkbox"
-                          name="rememberMe"
-                          checked={formData.rememberMe}
-                          onChange={handleChange}
-                        />
-                        <span>Ghi nhớ đăng nhập</span>
-                      </label>
-                      <motion.a 
-                        href="#" 
-                        className="forgot-password"
-                        onClick={(e) => { e.preventDefault(); setShowForgotModal(true); }}
-                        whileHover={{ color: "#13ec37", x: 3 }}
-                      >
-                        Quên mật khẩu?
-                      </motion.a>
-                    </motion.div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="register-fields"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Register Fields */}
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <label>Họ và tên</label>
-                      <div className="input-with-icon">
-                        <span className="input-icon icon-person"></span>
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          placeholder="Nguyễn Văn A"
-                          required
-                        />
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                    >
-                      <label>Email</label>
-                      <div className="input-with-icon">
-                        <span className="input-icon icon-email"></span>
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="email@example.com"
-                          required
-                        />
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <label>Số điện thoại</label>
-                      <div className="input-with-icon">
-                        <span className="input-icon icon-phone"></span>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="0987654321"
-                          required
-                        />
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                    >
-                      <label>Mật khẩu</label>
-                      <div className="input-with-icon">
-                        <span className="input-icon icon-lock"></span>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Tối thiểu 8 ký tự"
-                          required
-                        />
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="form-group"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      <label>Xác nhận mật khẩu</label>
-                      <div className="input-with-icon">
-                        <span className="input-icon icon-lock"></span>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          placeholder="Nhập lại mật khẩu"
-                          required
-                        />
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <motion.button 
-                type="submit" 
-                className="btn-submit-main"
-                variants={buttonVariants}
-                initial="initial"
-                whileHover="hover"
-                whileTap="tap"
+              <motion.button
+                type="submit"
+                className="auth-v3-btn-primary"
                 disabled={loading}
-                style={{
-                  opacity: loading ? 0.7 : 1,
-                  cursor: loading ? 'not-allowed' : 'pointer'
-                }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
               >
-                {loading ? "Đang xử lý..." : (isLogin ? "Đăng nhập" : "Đăng ký ngay")}
+                {loading ? "Đang xử lý..." : "Đăng nhập"}{" "}
+                {!loading && <FiArrowRight />}
               </motion.button>
 
-              {/* Divider */}
-              <motion.div 
-                className="divider"
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                <span>Hoặc đăng nhập với</span>
-              </motion.div>
+              <div className="auth-v3-divider">
+                <span>Hoặc</span>
+              </div>
 
-              {/* Social Login */}
-              <motion.div
-                className="social-buttons"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+              <button
+                type="button"
+                className="auth-v3-btn-google"
+                onClick={() => {
+                  setGoogleLoading(true);
+                  googleLogin();
+                }}
+                disabled={googleLoading}
               >
-                <motion.button
+                <img
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E"
+                  alt="Google"
+                />
+                <span>
+                  {googleLoading
+                    ? "Đang kết nối..."
+                    : "Đăng nhập với Google (Nông dân)"}
+                </span>
+              </button>
+
+              <p className="auth-v3-register-link">
+                Chưa có tài khoản?{" "}
+                <button
                   type="button"
-                  className="social-btn social-btn-google"
-                  variants={socialButtonVariants}
-                  initial="initial"
-                  whileHover="hover"
-                  whileTap="tap"
-                  onClick={() => { setGoogleLoading(true); googleLogin(); }}
-                  disabled={googleLoading}
+                  onClick={() => navigate(ROUTES.REGISTER)}
                 >
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3Cpath fill='none' d='M0 0h48v48H0z'/%3E%3C/svg%3E" alt="Google" />
-                  <span>{googleLoading ? "Đang kết nối..." : "Đăng nhập với Google (Nông dân)"}</span>
-                </motion.button>
-              </motion.div>
-            </form>
-
-            {/* Footer */}
-            <motion.div 
-              className="auth-footer"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p>
-                {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}
-                <motion.button 
-                  type="button" 
-                  onClick={() => isLogin ? navigate(ROUTES.REGISTER) : setIsLogin(true)} 
-                  className="toggle-mode"
-                  whileHover={{ color: "#13ec37", scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
-                </motion.button>
+                  Đăng ký ngay
+                </button>
               </p>
-            </motion.div>
-
-            {/* Back to Home */}
-            <motion.button 
-              className="back-home" 
-              onClick={() => navigate(ROUTES.HOME)}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 }}
-              whileHover={{ x: -5, color: "#13ec37" }}
-            >
-              ← Quay lại trang chủ
-            </motion.button>
-          </motion.div>
-        </motion.div>
+            </form>
+          </div>
+        </motion.main>
       </div>
 
       {/* Forgot Password Modal */}
       <AnimatePresence>
         {showForgotModal && (
           <motion.div
-            className="forgot-modal-overlay"
+            className="auth-v3-modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeForgotModal}
           >
             <motion.div
-              className="forgot-modal"
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="auth-v3-modal"
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="forgot-modal-header">
-                <h3>Quên mật khẩu</h3>
-                <button className="modal-close-btn" onClick={closeForgotModal}>×</button>
+              <div className="auth-v3-modal-header">
+                <h3>
+                  {forgotSuccess ? "Đã gửi hướng dẫn" : "Quên mật khẩu"}
+                </h3>
+                <button
+                  className="auth-v3-modal-close"
+                  onClick={closeForgotModal}
+                >
+                  ✕
+                </button>
               </div>
 
               {forgotSuccess ? (
-                <div className="forgot-success">
-                  <div className="forgot-success-icon">✓</div>
-                  <h4>Đã gửi hướng dẫn!</h4>
-                  <p>Kiểm tra email <strong>{forgotEmail}</strong> để nhận link đặt lại mật khẩu.</p>
-                  <p className="forgot-note">Nếu bạn không thấy email, hãy kiểm tra thư mục Spam.</p>
-                  <button className="btn-forgot-submit" onClick={closeForgotModal}>Đóng</button>
+                <div className="auth-v3-forgot-success">
+                  <div className="auth-v3-success-icon">
+                    <FiCheckCircle />
+                  </div>
+                  <p>
+                    Kiểm tra email <strong>{forgotEmail}</strong> để nhận link
+                    đặt lại mật khẩu.
+                  </p>
+                  <p className="auth-v3-note">
+                    Nếu không thấy email, vui lòng kiểm tra thư mục Spam.
+                  </p>
+                  <button
+                    className="auth-v3-btn-primary"
+                    onClick={closeForgotModal}
+                  >
+                    Đóng
+                  </button>
                 </div>
               ) : (
-                <form onSubmit={handleForgotPassword} className="forgot-form">
-                  <p className="forgot-desc">Nhập email đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</p>
-                  <div className="form-group">
+                <form onSubmit={handleForgotPassword} className="auth-v3-form">
+                  <p className="auth-v3-forgot-desc">
+                    Nhập email đăng ký. Chúng tôi sẽ gửi hướng dẫn đặt lại
+                    mật khẩu trong vài phút.
+                  </p>
+                  <div className="auth-v3-field">
                     <label>Email</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      required
-                      autoFocus
-                    />
+                    <div className="auth-v3-input-wrap">
+                      <FiMail className="auth-v3-input-icon" />
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="email@example.com"
+                        required
+                        autoFocus
+                      />
+                    </div>
                   </div>
-                  <div className="forgot-modal-footer">
-                    <button type="button" className="btn-forgot-cancel" onClick={closeForgotModal}>Hủy</button>
-                    <button type="submit" className="btn-forgot-submit" disabled={forgotLoading || !forgotEmail.trim()}>
+                  <div className="auth-v3-modal-actions">
+                    <button
+                      type="button"
+                      className="auth-v3-btn-ghost"
+                      onClick={closeForgotModal}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="auth-v3-btn-primary"
+                      disabled={forgotLoading || !forgotEmail.trim()}
+                    >
                       {forgotLoading ? "Đang gửi..." : "Gửi hướng dẫn"}
                     </button>
                   </div>
@@ -684,7 +467,7 @@ const Auth = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
