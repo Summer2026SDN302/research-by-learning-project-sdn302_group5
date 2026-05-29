@@ -178,10 +178,13 @@
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 24px;
-  padding: 28px 28px 20px;
+  border-radius: 28px;
+  padding: 40px 40px 32px;
   width: 100%;
-  max-width: 440px;
+  max-width: 100%;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
 }
 
@@ -189,32 +192,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 36px;
 }
 .ab-chart-card-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  gap: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
 }
 .ab-chart-card-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #4ade80;
-  box-shadow: 0 0 8px #4ade80;
+  box-shadow: 0 0 10px #4ade80;
   flex-shrink: 0;
 }
 .ab-chart-card-tag {
-  font-size: 0.74rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #4ade80;
   background: rgba(74, 222, 128, 0.15);
   border: 1px solid rgba(74, 222, 128, 0.3);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 5px 14px;
   white-space: nowrap;
 }
 
@@ -222,9 +225,10 @@
 .ab-chart-bars {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  height: 120px;
-  padding-bottom: 4px;
+  gap: 10px;
+  flex: 1;
+  min-height: 340px;
+  padding-bottom: 8px;
 }
 .ab-bar-wrap {
   flex: 1;
@@ -235,60 +239,22 @@
 .ab-bar {
   width: 100%;
   background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
-  border-radius: 5px 5px 2px 2px;
-  box-shadow: 0 -2px 8px rgba(74, 222, 128, 0.25);
-  min-height: 4px;
+  border-radius: 8px 8px 3px 3px;
+  box-shadow: 0 -3px 14px rgba(74, 222, 128, 0.3);
+  min-height: 6px;
 }
 
 /* Month labels */
 .ab-chart-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  padding: 0 1px;
+  margin-top: 14px;
+  padding: 0 2px;
 }
 .ab-chart-labels span {
-  font-size: 0.64rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
-}
-
-/* Floating badges */
-.ab-float-badge {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 14px;
-  padding: 10px 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-}
-.ab-float-badge.top-right {
-  top: -18px;
-  right: -16px;
-}
-.ab-float-badge.bottom-left {
-  bottom: -18px;
-  left: -16px;
-}
-.ab-float-badge strong {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #064e3b;
-  line-height: 1.2;
-}
-.ab-float-badge span {
-  display: block;
-  font-size: 0.7rem;
-  color: #6b7280;
-  line-height: 1.2;
-}
-.ab-float-icon {
-  font-size: 1.3rem;
-  flex-shrink: 0;
 }
 
 /* ── Responsive ── */
@@ -314,14 +280,11 @@
   }
   .ab-chart-card {
     max-width: 100%;
+    min-height: 360px;
+    padding: 28px 24px 22px;
   }
-  .ab-float-badge.top-right {
-    top: -12px;
-    right: 8px;
-  }
-  .ab-float-badge.bottom-left {
-    bottom: -12px;
-    left: 8px;
+  .ab-chart-bars {
+    min-height: 220px;
   }
   .ab-stats {
     grid-template-columns: 1fr 1fr;

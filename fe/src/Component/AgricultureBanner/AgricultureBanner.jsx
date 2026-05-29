@@ -107,31 +107,6 @@ export default function AgricultureBanner() {
                 <span key={m}>{m}</span>
               ))}
             </div>
-
-            {/* Floating badges */}
-            <motion.div
-              className="ab-float-badge top-right"
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <span className="ab-float-icon">🔒</span>
-              <div>
-                <strong>Escrow an toàn</strong>
-                <span>Tiền bảo lãnh 100%</span>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="ab-float-badge bottom-left"
-              animate={{ y: [0, 5, 0] }}
-              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            >
-              <span className="ab-float-icon">✍️</span>
-              <div>
-                <strong>Ký hợp đồng điện tử</strong>
-                <span>Có giá trị pháp lý</span>
-              </div>
-            </motion.div>
           </div>
         </motion.div>
       </div>
