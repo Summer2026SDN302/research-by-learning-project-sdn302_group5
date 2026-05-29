@@ -147,7 +147,7 @@ const Footer = () => {
         <div className="footer-v3-landscape">
           <svg
             viewBox="0 0 1440 180"
-            preserveAspectRatio="none"
+            preserveAspectRatio="xMidYMax meet"
             aria-hidden="true"
           >
             {/* Sun */}
@@ -219,32 +219,6 @@ const Footer = () => {
           </svg>
         </div>
 
-        <motion.div
-          className="footer-v3-legal"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <p>
-            Cơ quan chủ quản: <strong>Công ty PreOnic Việt Nam</strong> – Nền
-            tảng kết nối và bao tiêu nông sản
-          </p>
-          <p>
-            GCN ĐKKD: 0100109106-478 – Cấp lần đầu: 06/06/2025, Cơ quan cấp: Sở
-            Kế hoạch và Đầu tư TP Hà Nội
-          </p>
-          <p>
-            Trụ sở chính:{" "}
-            <strong>
-              Số 01, phố Giảng Văn Minh, Phường Giảng Võ, Thành phố Hà Nội,
-              Việt Nam
-            </strong>
-          </p>
-          <p className="footer-v3-copyright">
-            © {COMPANY.COPYRIGHT_YEAR} PreOnic. All rights reserved.
-          </p>
-        </motion.div>
       </Container>
     </motion.footer>
   );
