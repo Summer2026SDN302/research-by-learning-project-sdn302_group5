@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Navbar, Nav, Container, Button } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { FiArrowRight } from "react-icons/fi";
+import { LuLeaf } from "react-icons/lu";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { NAV_ITEMS, ROUTES, TOAST_DURATION } from "../../constants";
@@ -106,7 +108,7 @@ const NavbarComponent = () => {
                       className="navbar-dashboard-btn farmer-dash-btn"
                       onClick={() => navigate(ROUTES.FARMER)}
                     >
-                      Trang Nông dân
+                      Trang Nông dân <LuLeaf className="dash-btn-icon" />
                     </Button>
                   )}
                   {user?.role === "enterprise" && (
@@ -114,14 +116,14 @@ const NavbarComponent = () => {
                       className="navbar-dashboard-btn enterprise-dash-btn"
                       onClick={() => navigate(ROUTES.ENTERPRISE)}
                     >
-                      Trang Doanh nghiệp
+                      Trang Doanh nghiệp <FiArrowRight className="dash-btn-icon" />
                     </Button>
                   )}
                   <span className="navbar-user-name">
                     {user?.fullName || user?.email}
                   </span>
                   <Button className="navbar-logout-btn" onClick={handleLogout}>
-                    Đăng xuất
+                    Đăng xuất <FiArrowRight className="logout-arrow" />
                   </Button>
                 </>
               ) : (
