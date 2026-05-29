@@ -20,10 +20,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { ROUTES, TOAST_DURATION } from "../../constants";
 import authService from "../../services/auth.service";
+import BrandLogo from "../BrandLogo/BrandLogo";
 import "./Auth.css";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1400&q=85&auto=format&fit=crop";
+  "https://images.unsplash.com/photo-1530507629858-e4977d930e95?w=1400&q=85&auto=format&fit=crop";
 
 const HIGHLIGHTS = [
   {
@@ -199,10 +200,7 @@ const Auth = () => {
 
             <div className="auth-v3-hero-mid">
               <div className="auth-v3-brand">
-                <span className="auth-v3-brand-icon">
-                  <LuLeaf />
-                </span>
-                <span className="auth-v3-brand-text">PreOnic</span>
+                <BrandLogo size="lg" className="auth-v3-brandlogo" />
               </div>
               <h1>
                 Chào mừng bạn
@@ -244,11 +242,8 @@ const Auth = () => {
         >
           <div className="auth-v3-card">
             {/* Mobile brand */}
-            <div className="auth-v3-brand auth-v3-brand-mobile">
-              <span className="auth-v3-brand-icon">
-                <LuLeaf />
-              </span>
-              <span className="auth-v3-brand-text">PreOnic</span>
+            <div className="auth-v3-brand-mobile">
+              <BrandLogo size="md" />
             </div>
 
             <div className="auth-v3-header">

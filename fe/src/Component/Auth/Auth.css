@@ -3,20 +3,55 @@
    ============================================ */
 
 .auth-v3-page {
+  position: relative;
   min-height: 100vh;
   background: linear-gradient(180deg, #f6fbef 0%, #ebf6dd 100%);
   display: flex;
-  padding: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  overflow: hidden;
+}
+
+.auth-v3-page::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  left: 8%;
+  width: 180px;
+  height: 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z' fill='%2316a34a' opacity='0.06'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transform: rotate(-30deg);
+  pointer-events: none;
+}
+
+.auth-v3-page::after {
+  content: "";
+  position: absolute;
+  bottom: 8%;
+  right: 6%;
+  width: 220px;
+  height: 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M85,15 C60,15 25,40 15,85 C55,85 90,55 85,15 Z' fill='%2316a34a' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transform: rotate(150deg);
+  pointer-events: none;
 }
 
 .auth-v3-grid {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1180px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  gap: 24px;
   align-items: stretch;
+  min-height: 720px;
 }
 
 /* ============ LEFT HERO ============ */
@@ -26,18 +61,17 @@
   overflow: hidden;
   background-size: cover;
   background-position: center;
-  min-height: 660px;
-  box-shadow: 0 20px 50px rgba(15, 47, 28, 0.18);
+  box-shadow: 0 24px 60px rgba(15, 47, 28, 0.22);
 }
 
 .auth-v3-hero-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    155deg,
-    rgba(8, 38, 22, 0.86) 0%,
-    rgba(15, 80, 50, 0.7) 50%,
-    rgba(22, 163, 74, 0.55) 100%
+    160deg,
+    rgba(5, 30, 18, 0.88) 0%,
+    rgba(8, 50, 32, 0.78) 45%,
+    rgba(15, 80, 50, 0.7) 100%
   );
 }
 
@@ -48,9 +82,8 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 36px 40px 40px;
+  padding: 32px 36px 36px;
   color: #ffffff;
-  min-height: 660px;
 }
 
 .auth-v3-back {
@@ -79,53 +112,39 @@
 .auth-v3-brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.auth-v3-brand-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(74, 222, 128, 0.22);
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  color: #4ade80;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  backdrop-filter: blur(8px);
+/* BrandLogo trên hero: wordmark trắng sáng */
+.auth-v3-brandlogo .brand-logo-symbol {
+  filter: drop-shadow(0 6px 20px rgba(74, 222, 128, 0.6)) brightness(1.1);
 }
 
-.auth-v3-brand-text {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #ffffff;
+.auth-v3-brandlogo .brand-logo-wordmark {
+  filter: brightness(1.85) drop-shadow(0 3px 10px rgba(0, 0, 0, 0.4));
 }
 
 .auth-v3-brand-mobile {
   display: none;
-  margin-bottom: 20px;
-}
-
-.auth-v3-brand-mobile .auth-v3-brand-icon {
-  background: rgba(22, 163, 74, 0.15);
-  border-color: rgba(22, 163, 74, 0.35);
-  color: #16a34a;
-}
-
-.auth-v3-brand-mobile .auth-v3-brand-text {
-  color: #15803d;
+  justify-content: center;
+  margin-bottom: 22px;
 }
 
 /* ----- Hero mid ----- */
+.auth-v3-hero-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 30px 0;
+}
+
 .auth-v3-hero-mid h1 {
-  font-size: 38px;
+  font-size: 40px;
   font-weight: 800;
-  line-height: 1.18;
-  margin: 0 0 14px;
-  letter-spacing: -0.02em;
+  line-height: 1.16;
+  margin: 0 0 16px;
+  letter-spacing: -0.025em;
 }
 
 .auth-v3-hero-mid h1 span {
@@ -147,19 +166,19 @@
 .auth-v3-highlights {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 24px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .auth-v3-highlight {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 14px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .auth-v3-highlight-icon {
@@ -197,10 +216,14 @@
 .auth-v3-card {
   background: #ffffff;
   border-radius: 28px;
-  padding: 44px;
+  padding: 48px;
   width: 100%;
-  box-shadow: 0 20px 50px rgba(15, 47, 28, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 47, 28, 0.1);
   border: 1px solid rgba(22, 163, 74, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
 }
 
 .auth-v3-header {
@@ -599,6 +622,7 @@
 @media (max-width: 1024px) {
   .auth-v3-grid {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
   .auth-v3-hero {
     min-height: 280px;
@@ -612,6 +636,9 @@
   }
   .auth-v3-hero-mid h1 {
     font-size: 30px;
+  }
+  .auth-v3-card {
+    padding: 36px 32px;
   }
 }
 
