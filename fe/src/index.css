@@ -1,3 +1,13 @@
+:root {
+  /* Hệ thống font theo vị trí — không khoá cứng một font duy nhất:
+     - base: chữ thân/UI (dễ đọc, tối ưu tiếng Việt)
+     - heading: tiêu đề mục, card
+     - display: tiêu đề lớn marketing (hero, banner) */
+  --font-base: 'Be Vietnam Pro', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  --font-display: 'Sora', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +15,19 @@
 }
 
 body {
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-base);
   background-color: #f8f9fa;
   color: #212529;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tiêu đề dùng font heading cho cảm giác hiện đại, tương phản với thân chữ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Tiêu đề lớn marketing (hero/banner) — dùng class .display-font để chọn font display */
+.display-font {
+  font-family: var(--font-display);
 }

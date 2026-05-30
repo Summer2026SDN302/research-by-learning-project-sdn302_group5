@@ -8,7 +8,7 @@
   display: flex;
   min-height: 100vh;
   background: #f6f8f6;
-  font-family: 'Work Sans', system-ui, sans-serif;
+  font-family: var(--font-base);
 }
 
 /* ==================== */
@@ -3960,7 +3960,7 @@
   border: 1px solid #dbe6dd;
   border-radius: 8px;
   font-size: 14px;
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-heading);
   color: #111812;
   background: white;
   transition: all 0.2s;
@@ -4337,7 +4337,7 @@
   border: 1.5px solid #dbe6dd;
   border-radius: 10px;
   font-size: 14px;
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-heading);
   color: #111812;
   background: #fff;
   transition: border-color 0.2s, box-shadow 0.2s;

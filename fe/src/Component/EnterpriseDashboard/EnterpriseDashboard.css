@@ -8,7 +8,7 @@
   display: flex;
   min-height: 100vh;
   background: #f6f8f6;
-  font-family: 'Work Sans', system-ui, sans-serif;
+  font-family: var(--font-base);
 }
 
 /* ==================== */
