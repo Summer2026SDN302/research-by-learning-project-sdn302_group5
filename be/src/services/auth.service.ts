@@ -187,6 +187,12 @@ export class AuthService {
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
+      if (!existingUser.isVerified && existingUser.role === 'enterprise') {
+        throw new AppError(
+          'Email này đã đăng ký nhưng chưa xác minh. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.',
+          400
+        );
+      }
       throw new AppError('Email đã được sử dụng', 400);
     }
 

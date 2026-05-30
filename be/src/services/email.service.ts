@@ -49,6 +49,9 @@ export async function sendEmail(config: SmtpConfig, to: string, subject: string,
     port: config.port,
     secure: config.secure,
     auth: { user: config.user, pass: config.pass },
+    connectionTimeout: 8000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
   });
 
   await transporter.sendMail({
