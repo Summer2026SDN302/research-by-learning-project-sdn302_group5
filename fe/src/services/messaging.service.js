@@ -22,6 +22,12 @@ const messagingService = {
     const response = await api.post(`/messaging/conversations/${conversationId}/messages`, { text });
     return response.data;
   },
+
+  // Tổng số tin chưa đọc + các cuộc trò chuyện có tin mới (cho chuông Tin nhắn).
+  getUnreadCount: async () => {
+    const response = await api.get('/messaging/unread-count');
+    return response.data;
+  },
 };
 
 export default messagingService;

@@ -64,6 +64,7 @@ function Messaging() {
 
   const currentUserId = getCurrentUserId(user);
   const initialPartnerId = searchParams.get("partnerId");
+  const initialConversationId = searchParams.get("conversationId");
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,7 +119,14 @@ function Messaging() {
 
         if (!cancelled) {
           setConversations(nextConvs);
-          setActiveChat((prev) => prev || nextConvs[0]?.id || null);
+          // Ưu tiên mở thẳng cuộc trò chuyện được deep-link từ chuông Tin nhắn.
+          const targetId = initialConversationId && nextConvs.some((c) => c.id === initialConversationId)
+            ? initialConversationId
+            : null;
+          setActiveChat((prev) => targetId || prev || nextConvs[0]?.id || null);
+          if (initialConversationId) {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
         }
       } catch {
         if (!cancelled) {
@@ -132,7 +140,7 @@ function Messaging() {
 
     bootstrap();
     return () => { cancelled = true; };
-  }, [currentUserId, initialPartnerId]);
+  }, [currentUserId, initialPartnerId, initialConversationId]);
 
   useEffect(() => {
     if (!activeChat) return undefined;

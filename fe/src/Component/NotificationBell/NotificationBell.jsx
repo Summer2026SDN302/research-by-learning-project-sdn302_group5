@@ -1,10 +1,32 @@
 import { useState, useEffect, useRef } from "react";
-import { FiFileText, FiDollarSign, FiPackage, FiCloud, FiBell } from "react-icons/fi";
+import { FiFileText, FiDollarSign, FiPackage, FiCloud, FiBell, FiShield } from "react-icons/fi";
 import notificationService from "../../services/notification.service";
 import { formatDate } from "../../hooks/useApiData";
 import "./NotificationBell.css";
 
-export default function NotificationBell() {
+// Bản đồ: loại thông báo / model liên quan → mục (tab) cần điều hướng đến trong dashboard.
+// Các key tab này tồn tại ở CẢ FarmerDashboard lẫn EnterpriseDashboard.
+const SECTION_BY_TYPE = {
+  contract: "hopdong",
+  escrow: "escrow",
+  weather_alert: "thoitiet",
+  insurance: "thoitiet",
+  order: "donhang",
+  system: null,
+};
+const SECTION_BY_MODEL = {
+  Contract: "hopdong",
+  Escrow: "escrow",
+  WeatherAlert: "thoitiet",
+  Dispute: "hopdong",
+};
+
+function resolveSection(n) {
+  return SECTION_BY_MODEL[n.relatedModel] || SECTION_BY_TYPE[n.type] || null;
+}
+
+// onNavigate(sectionKey): do dashboard cha truyền vào để chuyển tab khi bấm thông báo.
+export default function NotificationBell({ onNavigate }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,30 +53,22 @@ export default function NotificationBell() {
         setNotifications(res.data);
         setUnreadCount(res.data.filter((n) => !n.isRead).length);
       }
-    } catch {
-      /* silent */
-    }
+    } catch { /* silent */ }
   };
 
   const loadUnreadCount = async () => {
     try {
       const res = await notificationService.getUnreadCount();
       if (res?.data?.count != null) setUnreadCount(res.data.count);
-    } catch {
-      /* silent */
-    }
+    } catch { /* silent */ }
   };
 
-  const handleMarkRead = async (id) => {
+  const markRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      /* silent */
-    }
+    } catch { /* silent */ }
   };
 
   const handleMarkAllRead = async () => {
@@ -62,8 +76,16 @@ export default function NotificationBell() {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch {
-      /* silent */
+    } catch { /* silent */ }
+  };
+
+  // Bấm vào thông báo: đánh dấu đã đọc + điều hướng đến mục liên quan.
+  const handleClickNotif = (n) => {
+    if (!n.isRead) markRead(n._id);
+    const section = resolveSection(n);
+    if (section && onNavigate) {
+      onNavigate(section);
+      setOpen(false);
     }
   };
 
@@ -73,7 +95,7 @@ export default function NotificationBell() {
       escrow: <FiDollarSign size={16} />,
       order: <FiPackage size={16} />,
       weather_alert: <FiCloud size={16} />,
-      insurance: <FiFileText size={16} />,
+      insurance: <FiShield size={16} />,
       system: <FiBell size={16} />,
     };
     return icons[type] || <FiBell size={16} />;
@@ -83,15 +105,11 @@ export default function NotificationBell() {
     <div className="notif-bell-wrapper" ref={ref}>
       <button
         className="notification-btn"
-        onClick={() => {
-          setOpen(!open);
-          if (!open) loadNotifications();
-        }}
+        title="Thông báo"
+        onClick={() => { setOpen(!open); if (!open) loadNotifications(); }}
       >
         <FiBell size={18} />
-        {unreadCount > 0 && (
-          <span className="notif-dot">{unreadCount > 9 ? "9+" : unreadCount}</span>
-        )}
+        {unreadCount > 0 && <span className="notif-dot">{unreadCount > 9 ? "9+" : unreadCount}</span>}
       </button>
 
       {open && (
@@ -99,34 +117,37 @@ export default function NotificationBell() {
           <div className="notif-dropdown-header">
             <h4>Thông báo</h4>
             {unreadCount > 0 && (
-              <button className="mark-all-btn" onClick={handleMarkAllRead}>
-                Đọc tất cả
-              </button>
+              <button className="mark-all-btn" onClick={handleMarkAllRead}>Đọc tất cả</button>
             )}
           </div>
           <div className="notif-dropdown-list">
             {notifications.length === 0 ? (
               <p className="notif-empty">Không có thông báo mới</p>
             ) : (
-              notifications.map((n) => (
-                <div
-                  key={n._id}
-                  className={`notif-item ${n.isRead ? "read" : "unread"}`}
-                  onClick={() => !n.isRead && handleMarkRead(n._id)}
-                >
-                  <span className={`notif-icon type-${n.type}`}>{getIcon(n.type)}</span>
-                  <div className="notif-content">
-                    <p className="notif-title">{n.title || n.message}</p>
-                    {n.description && (
-                      <p className="notif-desc">{n.description}</p>
-                    )}
-                    <span className="notif-time">
-                      {n.createdAt ? formatDate(n.createdAt) : ""}
+              notifications.map((n) => {
+                const navigable = !!resolveSection(n);
+                return (
+                  <div
+                    key={n._id}
+                    className={`notif-item ${n.isRead ? "read" : "unread"}`}
+                    style={navigable ? { cursor: "pointer" } : undefined}
+                    onClick={() => handleClickNotif(n)}
+                  >
+                    <span className={`notif-icon type-${n.type}${n.severity === "critical" ? " sev-critical" : ""}`}>
+                      {getIcon(n.type)}
                     </span>
+                    <div className="notif-content">
+                      <p className="notif-title">{n.title || n.message}</p>
+                      {n.message && n.title && <p className="notif-desc">{n.message}</p>}
+                      <span className="notif-time">
+                        {n.createdAt ? formatDate(n.createdAt) : ""}
+                        {navigable && <span className="notif-cta"> · Xem chi tiết →</span>}
+                      </span>
+                    </div>
+                    {!n.isRead && <span className="notif-unread-dot" />}
                   </div>
-                  {!n.isRead && <span className="notif-unread-dot" />}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

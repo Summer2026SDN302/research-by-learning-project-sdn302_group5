@@ -15,6 +15,7 @@ import FarmerFinanceContent from "./sections/FarmerFinanceContent";
 import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
 import NotificationBell from "../NotificationBell/NotificationBell";
+import MessageBell from "../MessageBell/MessageBell";
 import "./FarmerDashboard.css";
 
 // Tệp này điều phối toàn bộ dashboard nông dân: điều hướng tab, dữ liệu tổng quan và các thao tác nghiệp vụ chính.
@@ -67,7 +68,8 @@ export default function FarmerDashboard() {
             <input type="text" placeholder="Tìm kiếm hợp đồng, đơn hàng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="fd-header-actions">
-            <NotificationBell />
+            <MessageBell />
+            <NotificationBell onNavigate={setActiveTab} />
             <div className="divider" />
             <div className="fd-user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
               <div className="fd-user-info">

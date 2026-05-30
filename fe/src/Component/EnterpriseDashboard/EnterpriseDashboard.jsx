@@ -7,6 +7,7 @@ import {
   SEARCH_PLACEHOLDERS,
 } from "../../constants";
 import NotificationBell from "../NotificationBell/NotificationBell";
+import MessageBell from "../MessageBell/MessageBell";
 import TongQuanContent from "./sections/TongQuanContent";
 import SanPhamContent from "./sections/SanPhamContent";
 import WeatherInsuranceContent from "./sections/WeatherInsuranceContent";
@@ -69,7 +70,8 @@ export default function EnterpriseDashboard() {
             <input type="text" placeholder={SEARCH_PLACEHOLDERS.ENTERPRISE_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="header-actions">
-            <NotificationBell />
+            <MessageBell />
+            <NotificationBell onNavigate={setActiveNav} />
             <div className="divider"></div>
             <div className="user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
               <div className="user-info">

@@ -11,11 +11,11 @@ const INITIAL_CATCHUP_DELAY_MS = 30_000;
 const EVERY_SIX_HOURS_CRON = '0 */6 * * *';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
-  extreme_heat: 'Nang nong cuc dien',
-  extreme_cold: 'Ret dam cuc manh',
-  heavy_rain: 'Mua lon',
-  strong_wind: 'Gio manh / Bao',
-  drought: 'Han han',
+  extreme_heat: 'Nắng nóng cực điểm',
+  extreme_cold: 'Rét đậm cực mạnh',
+  heavy_rain: 'Mưa lớn',
+  strong_wind: 'Gió mạnh / Bão',
+  drought: 'Hạn hán',
 };
 
 // Job định kỳ: kiểm tra thời tiết, tạo alert + dọn dẹp dữ liệu cũ.
@@ -35,7 +35,7 @@ export async function runWeatherCronJob(): Promise<void> {
           await NotificationService.createWeatherAlertNotification(
             alert.userId.toString(),
             String(alert._id),
-            `Canh bao thoi tiet: ${getAlertTypeLabel(alert.alertType)}`,
+            `Cảnh báo thời tiết: ${getAlertTypeLabel(alert.alertType)}`,
             alert.message,
             alert.severity as 'warning' | 'critical'
           );

@@ -221,6 +221,28 @@
   color: #a0bba4;
 }
 
+.notif-icon.type-insurance {
+  background: #ecfeff;
+  color: #0891b2;
+}
+
+.notif-icon.type-message {
+  background: #eef7f0;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notif-icon.sev-critical {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+}
+
+.notif-cta {
+  color: #16a34a;
+  font-weight: 600;
+}
+
 /* Unread dot indicator */
 .notif-unread-dot {
   width: 7px;

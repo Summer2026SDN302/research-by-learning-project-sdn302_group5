@@ -12,6 +12,28 @@ const router = Router();
 
 router.use(protect);
 
+// Đếm số tin nhắn chưa đọc theo từng cuộc trò chuyện cho 1 user.
+// Trả về map { conversationId: count }.
+async function getUnreadCountMap(
+  userId: string,
+  conversationIds: mongoose.Types.ObjectId[]
+): Promise<Record<string, number>> {
+  if (conversationIds.length === 0) return {};
+  const rows = await Message.aggregate([
+    {
+      $match: {
+        conversationId: { $in: conversationIds },
+        sender: { $ne: new mongoose.Types.ObjectId(userId) },
+        readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+      },
+    },
+    { $group: { _id: '$conversationId', count: { $sum: 1 } } },
+  ]);
+  const map: Record<string, number> = {};
+  rows.forEach((r: any) => { map[r._id.toString()] = r.count; });
+  return map;
+}
+
 // GET /messaging/conversations - list user's conversations
 router.get('/conversations', async (req: AuthRequest, res: Response) => {
   try {
@@ -19,6 +41,11 @@ router.get('/conversations', async (req: AuthRequest, res: Response) => {
     const conversations = await Conversation.find({ participants: userId })
       .populate('participants', 'fullName email role')
       .sort({ lastMessageAt: -1 });
+
+    const unreadMap = await getUnreadCountMap(
+      userId,
+      conversations.map((c) => c._id as mongoose.Types.ObjectId)
+    );
 
     const result = conversations.map((conversation) => {
       const otherParticipant = conversation.participants.find(
@@ -30,6 +57,7 @@ router.get('/conversations', async (req: AuthRequest, res: Response) => {
         partner: otherParticipant || null,
         lastMessage: conversation.lastMessage,
         lastMessageAt: conversation.lastMessageAt,
+        unreadCount: unreadMap[(conversation._id as mongoose.Types.ObjectId).toString()] || 0,
       };
     });
 
@@ -38,8 +66,49 @@ router.get('/conversations', async (req: AuthRequest, res: Response) => {
     log.error('Failed to load conversations', err);
     res.status(500).json({
       success: false,
-      message: 'Khong the tai danh sach cuoc tro chuyen',
+      message: 'Không thể tải danh sách cuộc trò chuyện',
     });
+  }
+});
+
+// GET /messaging/unread-count - tổng số tin chưa đọc + các cuộc trò chuyện có tin mới
+// Phục vụ chuông thông báo Tin nhắn (deep-link thẳng vào cuộc trò chuyện).
+router.get('/unread-count', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const conversations = await Conversation.find({ participants: userId })
+      .populate('participants', 'fullName email role')
+      .sort({ lastMessageAt: -1 });
+
+    const unreadMap = await getUnreadCountMap(
+      userId,
+      conversations.map((c) => c._id as mongoose.Types.ObjectId)
+    );
+
+    let total = 0;
+    const items = conversations
+      .map((conversation) => {
+        const cid = (conversation._id as mongoose.Types.ObjectId).toString();
+        const count = unreadMap[cid] || 0;
+        total += count;
+        const partner = conversation.participants.find(
+          (p: any) => p._id.toString() !== userId
+        ) as any;
+        return {
+          conversationId: cid,
+          partnerName: partner?.fullName || 'Người dùng',
+          partnerRole: partner?.role || 'farmer',
+          lastMessage: conversation.lastMessage || '',
+          lastMessageAt: conversation.lastMessageAt,
+          unreadCount: count,
+        };
+      })
+      .filter((c) => c.unreadCount > 0);
+
+    res.json({ success: true, data: { total, conversations: items } });
+  } catch (err) {
+    log.error('Failed to load unread count', err);
+    res.status(500).json({ success: false, message: 'Không thể tải số tin chưa đọc' });
   }
 });
 
