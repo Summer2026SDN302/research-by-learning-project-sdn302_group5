@@ -1,4 +1,5 @@
 // Tách từ FarmerDashboard.jsx theo SRP: quản lý hợp đồng của nông dân.
+// Dùng chung giao diện chi tiết với Doanh nghiệp qua <ContractDetailView />.
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FiCalendar, FiCheckCircle, FiAlertTriangle, FiFileText, FiEye, FiClock,
@@ -7,18 +8,16 @@ import { useToast } from "../../../contexts/ToastContext";
 import farmerService from "../../../services/farmer.service";
 import contractService from "../../../services/contract.service";
 import { formatDate } from "../../../hooks/useApiData";
-import ContractDetailModal from "../components/ContractDetailModal";
+import ContractDetailView from "../../ContractDetailView/ContractDetailView";
 
 export default function HopDongContent({ searchQuery = "" }) {
   const { showToast } = useToast();
   const [contracts, setContracts] = useState(null);
   const [statusFilter, setStatusFilter] = useState("tatca");
-  const [detailModal, setDetailModal] = useState(null);
+  const [selectedContract, setSelectedContract] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
-  const [cancelModal, setCancelModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [cancelReason, setCancelReason] = useState("");
 
   const CONTRACT_STATUS_LABEL = {
     pending: "Chờ ký",
@@ -78,19 +77,6 @@ export default function HopDongContent({ searchQuery = "" }) {
       c.productId?.name?.toLowerCase().includes(normalizedSearch)
     );
 
-  const handleSign = async (contract) => {
-    setActionLoading(contract._id);
-    try {
-      await contractService.sign(contract._id);
-      showToast("Đã ký hợp đồng thành công!", "success");
-      await loadContracts();
-    } catch (err) {
-      showToast(err?.message || "Ký hợp đồng thất bại", "error");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleReject = async () => {
     if (!rejectModal) return;
     setActionLoading(rejectModal._id);
@@ -107,21 +93,26 @@ export default function HopDongContent({ searchQuery = "" }) {
     }
   };
 
-  const handleCancel = async () => {
-    if (!cancelModal) return;
-    setActionLoading(cancelModal._id);
+  // Mở giao diện chi tiết (full-page, dùng chung với Doanh nghiệp).
+  const openDetail = async (contract) => {
+    setSelectedContract(contract);
     try {
-      await contractService.cancel(cancelModal._id, cancelReason);
-      showToast("Đã hủy hợp đồng.", "success");
-      setCancelModal(null);
-      setCancelReason("");
-      await loadContracts();
-    } catch (err) {
-      showToast(err?.message || "Hủy hợp đồng thất bại", "error");
-    } finally {
-      setActionLoading(null);
-    }
+      const res = await contractService.getById(contract._id);
+      if (res?.data?.contract) setSelectedContract(res.data.contract);
+    } catch { /* dùng dữ liệu danh sách */ }
   };
+
+  // ===== CHI TIẾT (dùng chung) =====
+  if (selectedContract) {
+    return (
+      <ContractDetailView
+        contract={selectedContract}
+        role="farmer"
+        onBack={() => setSelectedContract(null)}
+        onChanged={loadContracts}
+      />
+    );
+  }
 
   return (
     <>
@@ -186,7 +177,7 @@ export default function HopDongContent({ searchQuery = "" }) {
                   <FiClock size={12} /> Tạo: {new Date(c.createdAt).toLocaleDateString("vi-VN")}
                 </span>
                 <div className="fd-order-actions">
-                  <button className="fd-btn fd-btn-white fd-btn-sm" onClick={() => setDetailModal(c)}>
+                  <button className="fd-btn fd-btn-white fd-btn-sm" onClick={() => openDetail(c)}>
                     <FiEye size={13} /> Xem chi tiết
                   </button>
                   {c.status === "pending" && !c.signedByFarmer && (
@@ -194,9 +185,9 @@ export default function HopDongContent({ searchQuery = "" }) {
                       <button
                         className="fd-btn fd-btn-green fd-btn-sm"
                         disabled={isLoading}
-                        onClick={() => handleSign(c)}
+                        onClick={() => openDetail(c)}
                       >
-                        {isLoading ? "Đang ký..." : <><FiCheckCircle size={13} /> Ký hợp đồng</>}
+                        <FiCheckCircle size={13} /> Ký hợp đồng
                       </button>
                       <button
                         className="fd-btn fd-btn-sm"
@@ -217,7 +208,7 @@ export default function HopDongContent({ searchQuery = "" }) {
                     <button
                       className="fd-btn fd-btn-sm"
                       disabled={isLoading}
-                      onClick={() => { setCancelModal(c); setCancelReason(""); }}
+                      onClick={() => openDetail(c)}
                       style={{ background: "#fef3c7", color: "#d97706", border: "none" }}
                     >
                       Hủy hợp đồng
@@ -229,16 +220,6 @@ export default function HopDongContent({ searchQuery = "" }) {
           );
         })}
       </div>
-
-      {/* ===== DETAIL MODAL ===== */}
-      {detailModal && (
-        <ContractDetailModal
-          contract={detailModal}
-          onClose={() => setDetailModal(null)}
-          PAYMENT_TERMS_LABEL={PAYMENT_TERMS_LABEL}
-          getStatusBadge={getStatusBadge}
-        />
-      )}
 
       {/* ===== REJECT MODAL ===== */}
       {rejectModal && (
@@ -274,49 +255,6 @@ export default function HopDongContent({ searchQuery = "" }) {
                 style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: actionLoading === rejectModal._id ? "#d1d5db" : "#ef4444", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: actionLoading === rejectModal._id ? "not-allowed" : "pointer" }}
               >
                 {actionLoading === rejectModal._id ? "Đang xử lý..." : "Xác nhận từ chối"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== CANCEL MODAL ===== */}
-      {cancelModal && (
-        <div onClick={() => setCancelModal(null)} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
-            <div style={{ background: "linear-gradient(135deg, #f59e0b, #b45309)", padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <FiAlertTriangle size={20} color="#fff" />
-                <div>
-                  <h3 style={{ margin: 0, color: "#fff", fontSize: "1.05rem", fontWeight: 700 }}>Hủy hợp đồng</h3>
-                  <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: "0.78rem" }}>{cancelModal.contractCode}</p>
-                </div>
-              </div>
-              <button onClick={() => setCancelModal(null)} style={{ background: "rgba(255,255,255,0.15)", border: "none", cursor: "pointer", width: 32, height: 32, borderRadius: "50%", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>✕</button>
-            </div>
-            <div style={{ padding: "20px 24px" }}>
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10 }}>
-                <FiAlertTriangle size={16} color="#92400e" style={{ flexShrink: 0, marginTop: 2 }} />
-                <p style={{ margin: 0, fontSize: "0.82rem", color: "#92400e", lineHeight: 1.6 }}>
-                  Hủy hợp đồng có thể ảnh hưởng đến điểm uy tín của bạn. Vui lòng liên hệ doanh nghiệp trước khi hủy.
-                </p>
-              </div>
-              <textarea
-                value={cancelReason}
-                onChange={e => setCancelReason(e.target.value)}
-                placeholder="Lý do hủy hợp đồng..."
-                rows={3}
-                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "2px solid #e5e7eb", fontSize: "0.9rem", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }}
-              />
-            </div>
-            <div style={{ padding: "16px 24px", borderTop: "1px solid #f3f4f6", display: "flex", gap: 10, justifyContent: "flex-end", background: "#fafafa" }}>
-              <button onClick={() => setCancelModal(null)} style={{ padding: "10px 22px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>Đóng</button>
-              <button
-                onClick={handleCancel}
-                disabled={actionLoading === cancelModal._id}
-                style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: actionLoading === cancelModal._id ? "#d1d5db" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: actionLoading === cancelModal._id ? "not-allowed" : "pointer" }}
-              >
-                {actionLoading === cancelModal._id ? "Đang xử lý..." : "Xác nhận hủy"}
               </button>
             </div>
           </div>

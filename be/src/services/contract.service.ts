@@ -381,49 +381,32 @@ export class ContractService {
 
   /**
    * Sign a contract.
-   * Enterprise role requires a valid OTP; farmer role signs directly.
+   * Cả hai vai trò ký trực tiếp với xác nhận điều khoản (không còn dùng OTP).
+   * Việc xác thực đã được đảm bảo qua phiên đăng nhập (JWT) + checkbox đồng ý ở FE.
    */
   static async sign(
     contractId: string,
     userId: string,
     role: ContractActorRole,
-    otp?: string
+    _otp?: string
   ): Promise<IContract> {
-    // For enterprise, fetch OTP fields explicitly (they are select:false)
-    const query = role === 'enterprise'
-      ? Contract.findById(contractId).select('+signOtpHash +signOtpExpiry')
-      : Contract.findById(contractId);
-
-    const contract = this.ensureContractExists(await query);
+    const contract = this.ensureContractExists(await Contract.findById(contractId));
 
     if (role === 'farmer') {
       if (contract.farmerId.toString() !== userId) {
         throw new AppError('Bạn không phải là nông dân trong hợp đồng này', 403);
+      }
+      if (contract.signedByFarmer) {
+        throw new AppError('Bạn đã ký hợp đồng này rồi', 400);
       }
       contract.signedByFarmer = true;
     } else {
       if (contract.enterpriseId.toString() !== userId) {
         throw new AppError('Bạn không phải là doanh nghiệp trong hợp đồng này', 403);
       }
-
-      // Verify OTP
-      if (!otp) {
-        throw new AppError('Vui lòng nhập mã OTP để ký hợp đồng', 400);
+      if (contract.signedByEnterprise) {
+        throw new AppError('Bạn đã ký hợp đồng này rồi', 400);
       }
-      if (!contract.signOtpHash || !contract.signOtpExpiry) {
-        throw new AppError('Chưa có mã OTP. Vui lòng yêu cầu gửi mã OTP trước', 400);
-      }
-      if (new Date() > contract.signOtpExpiry) {
-        throw new AppError('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới', 400);
-      }
-      const inputHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
-      if (inputHash !== contract.signOtpHash) {
-        throw new AppError('Mã OTP không đúng', 400);
-      }
-
-      // Clear OTP after successful use
-      contract.signOtpHash = undefined;
-      contract.signOtpExpiry = undefined;
       contract.signedByEnterprise = true;
     }
 
