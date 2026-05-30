@@ -952,3 +952,30 @@
   .wlt-hist-row span:nth-child(n+4) { display: none; }
   .wlt-filter-row { overflow-x: auto; flex-wrap: nowrap; }
 }
+
+/* ===== Rút tiền (WithdrawTab) ===== */
+.wd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .wd-grid { grid-template-columns: 1fr; } }
+.wd-form { padding: 20px; }
+.wd-balance-box { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin: 12px 0 18px; }
+.wd-balance-box span { font-size: 12.5px; color: #15803d; }
+.wd-balance-box strong { display: block; font-size: 22px; color: #15803d; font-weight: 800; margin-top: 2px; }
+.wd-pending-note { margin: 6px 0 0; font-size: 12px; color: #b45309; }
+.wd-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin: 12px 0 5px; }
+.wd-label span { color: #ef4444; }
+.wd-input { width: 100%; padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; box-sizing: border-box; font-family: inherit; resize: vertical; }
+.wd-input:focus { outline: none; border-color: #16a34a; }
+.wd-submit { width: 100%; margin-top: 18px; background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; border: none; border-radius: 10px; padding: 13px; font-weight: 700; font-size: 14.5px; cursor: pointer; transition: all .2s; }
+.wd-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(22,163,74,0.35); }
+.wd-submit:disabled { background: #d1d5db; cursor: not-allowed; }
+.wd-hint { font-size: 12px; color: #9ca3af; margin: 12px 0 0; line-height: 1.5; }
+.wd-history { padding: 20px; }
+.wd-empty { color: #9ca3af; font-size: 13.5px; text-align: center; padding: 30px 0; }
+.wd-list { display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; }
+.wd-item { border: 1px solid #eef0f2; border-radius: 12px; padding: 13px 15px; background: #fafafa; }
+.wd-item-top { display: flex; align-items: center; justify-content: space-between; }
+.wd-item-top strong { font-size: 16px; color: #111827; }
+.wd-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.wd-item-bank { margin: 7px 0 2px; font-size: 12.5px; color: #4b5563; }
+.wd-item-date { margin: 0; font-size: 11.5px; color: #9ca3af; }
+.wd-item-note { margin: 7px 0 0; font-size: 12px; color: #b45309; background: #fffbeb; border-radius: 6px; padding: 6px 9px; }

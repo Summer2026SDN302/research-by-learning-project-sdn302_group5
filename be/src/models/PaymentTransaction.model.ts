@@ -2,10 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPaymentTransaction extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'topup' | 'escrow_deposit' | 'escrow_release' | 'refund' | 'commission';
+  type: 'topup' | 'escrow_deposit' | 'escrow_release' | 'refund' | 'commission' | 'withdrawal';
   amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  paymentMethod: 'sepay' | 'internal' | 'demo';
+  paymentMethod: 'sepay' | 'internal' | 'demo' | 'bank_transfer';
   gatewayRef?: string;
   orderCode?: number;
   description: string;
@@ -26,7 +26,7 @@ const PaymentTransactionSchema = new Schema<IPaymentTransaction>(
     },
     type: {
       type: String,
-      enum: ['topup', 'escrow_deposit', 'escrow_release', 'refund', 'commission'],
+      enum: ['topup', 'escrow_deposit', 'escrow_release', 'refund', 'commission', 'withdrawal'],
       required: true,
     },
     amount: {
@@ -41,7 +41,7 @@ const PaymentTransactionSchema = new Schema<IPaymentTransaction>(
     },
     paymentMethod: {
       type: String,
-      enum: ['sepay', 'internal', 'demo'],
+      enum: ['sepay', 'internal', 'demo', 'bank_transfer'],
       required: true,
     },
     gatewayRef: { type: String },

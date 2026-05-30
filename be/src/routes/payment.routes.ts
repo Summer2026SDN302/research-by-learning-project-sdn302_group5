@@ -9,6 +9,10 @@ import {
   getTransactions,
   cancelTopup,
 } from '../controllers/payment.controller';
+import {
+  createWithdrawal,
+  getMyWithdrawals,
+} from '../controllers/withdrawal.controller';
 
 const router = Router();
 
@@ -24,5 +28,9 @@ router.post('/topup', createTopup);
 router.post('/topup/verify', verifyTopup);
 router.post('/demo-topup', demoTopup);
 router.post('/cancel', cancelTopup);
+
+// Rút tiền (user)
+router.get('/withdrawals', getMyWithdrawals);
+router.post('/withdrawals', createWithdrawal);
 
 export default router;

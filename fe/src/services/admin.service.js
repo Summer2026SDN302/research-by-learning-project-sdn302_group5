@@ -66,6 +66,22 @@ const adminService = {
     const response = await api.get('/admin/transactions', { params });
     return response.data;
   },
+
+  // Withdrawal requests
+  getWithdrawals: async (params = {}) => {
+    const response = await api.get('/admin/withdrawals', { params });
+    return response.data;
+  },
+
+  completeWithdrawal: async (id, adminNote = '') => {
+    const response = await api.patch(`/admin/withdrawals/${id}/complete`, { adminNote });
+    return response.data;
+  },
+
+  rejectWithdrawal: async (id, adminNote = '') => {
+    const response = await api.patch(`/admin/withdrawals/${id}/reject`, { adminNote });
+    return response.data;
+  },
 };
 
 export default adminService;

@@ -4,6 +4,7 @@ import { useToast } from "../../contexts/ToastContext";
 import paymentService from "../../services/payment.service";
 import { formatMoney } from "../../hooks/useApiData";
 import { GATEWAY_MIN_TOPUP, TOPUP_PRESETS } from "../../constants";
+import WithdrawTab from "./WithdrawTab";
 import "./WalletPayment.css";
 
 const TRANSACTION_PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ const DEMO_MIN_TOPUP = 1000;
 const WALLET_TABS = [
   { key: "overview", label: "Tổng quan" },
   { key: "topup", label: "Nạp tiền" },
+  { key: "withdraw", label: "Rút tiền" },
   { key: "history", label: "Lịch sử" },
 ];
 
@@ -357,12 +359,18 @@ export default function WalletPayment({ role }) {
             <span className="wlt-tab-icon">
               {t.key === "overview" && <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 15, height: 15 }}><path d="M3 3h6v6H3zm8 0h6v6h-6zM3 11h6v6H3zm8 0h6v6h-6z"/></svg>}
               {t.key === "topup"    && <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ width: 15, height: 15 }}><path d="M10 4v12M4 10h12" strokeLinecap="round"/></svg>}
+              {t.key === "withdraw" && <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ width: 15, height: 15 }}><path d="M10 16V4M4 10l6-6 6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               {t.key === "history"  && <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 15, height: 15 }}><circle cx="10" cy="10" r="7"/><path d="M10 7v3l3 2" strokeLinecap="round"/></svg>}
             </span>
             {t.label}
           </button>
         ))}
       </div>
+
+      {/* ══════════ TAB: WITHDRAW ══════════ */}
+      {activeTab === "withdraw" && (
+        <WithdrawTab onChanged={loadWallet} />
+      )}
 
       {/* ══════════ TAB: OVERVIEW ══════════ */}
       {activeTab === "overview" && (

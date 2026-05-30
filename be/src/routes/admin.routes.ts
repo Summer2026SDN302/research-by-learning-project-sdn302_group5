@@ -13,6 +13,11 @@ import {
   resolveDisputeAdmin,
   getAllTransactions,
 } from '../controllers/admin.controller';
+import {
+  adminListWithdrawals,
+  adminCompleteWithdrawal,
+  adminRejectWithdrawal,
+} from '../controllers/withdrawal.controller';
 
 const router = Router();
 
@@ -40,5 +45,10 @@ router.post('/disputes/:id/resolve', resolveDisputeAdmin);
 
 // Transaction overview
 router.get('/transactions', getAllTransactions);
+
+// Withdrawal request management
+router.get('/withdrawals', adminListWithdrawals);
+router.patch('/withdrawals/:id/complete', adminCompleteWithdrawal);
+router.patch('/withdrawals/:id/reject', adminRejectWithdrawal);
 
 export default router;

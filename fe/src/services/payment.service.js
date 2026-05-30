@@ -26,6 +26,12 @@ const paymentService = {
   /** Cancel a pending top-up */
   cancelTopup: (orderCode) =>
     api.post('/payment/cancel', { orderCode }),
+
+  /** Lấy danh sách đơn rút tiền của chính user + số dư khả dụng */
+  getWithdrawals: () => api.get('/payment/withdrawals'),
+
+  /** Gửi đơn xin rút tiền */
+  createWithdrawal: (data) => api.post('/payment/withdrawals', data),
 };
 
 export default paymentService;
