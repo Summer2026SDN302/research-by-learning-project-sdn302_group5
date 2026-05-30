@@ -57,6 +57,7 @@ export const CONTRACT_CONFIG = {
 
 export const UNIT_TO_KG = {
   kg: 1,
+  ta: 100,
   tan: 1000,
   thung: 25,
 } as const;

@@ -16,7 +16,7 @@ export interface CreateContractBody {
   productName: string;
   productId?: string;
   quantity: number;
-  unit: 'tan' | 'kg' | 'thung';
+  unit: 'tan' | 'ta' | 'kg' | 'thung';
   pricePerUnit: number;
   depositPercentage: number;
   paymentTerms: '50_50' | '30_70' | '100_delivery' | '100_upfront';
@@ -89,6 +89,10 @@ export class ContractService {
   ): string {
     if (unit === 'tan') {
       return `${Number((quantityKg / UNIT_TO_KG.tan).toFixed(2)).toLocaleString('vi-VN')} tấn`;
+    }
+
+    if (unit === 'ta') {
+      return `${Number((quantityKg / UNIT_TO_KG.ta).toFixed(2)).toLocaleString('vi-VN')} tạ`;
     }
 
     if (unit === 'thung') {

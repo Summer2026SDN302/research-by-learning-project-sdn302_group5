@@ -32,7 +32,7 @@ export interface IContract extends Document {
   enterpriseName: string;
   productName: string;
   quantity: number;
-  unit: 'tan' | 'kg' | 'thung';
+  unit: 'tan' | 'ta' | 'kg' | 'thung';
   pricePerUnit: number;
   totalValue: number;
   commission: number;
@@ -102,7 +102,7 @@ const ContractSchema = new Schema<IContract>(
     },
     unit: {
       type: String,
-      enum: ['tan', 'kg', 'thung'],
+      enum: ['tan', 'ta', 'kg', 'thung'],
       default: 'tan',
     },
     pricePerUnit: {

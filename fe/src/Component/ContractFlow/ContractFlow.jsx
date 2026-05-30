@@ -20,12 +20,14 @@ const STEPS = [
 
 const UNIT_TO_KG = {
   tan: 1000,
+  ta: 100,
   kg: 1,
   thung: 25,
 };
 
 const UNIT_LABELS = {
   tan: "Tấn",
+  ta: "Tạ",
   kg: "kg",
   thung: "Thùng",
 };
@@ -266,8 +268,8 @@ function ContractFlow() {
                         />
                         <select value={form.unit} onChange={e => handleChange("unit", e.target.value)}>
                           <option value="tan">Tấn</option>
+                          <option value="ta">Tạ</option>
                           <option value="kg">kg</option>
-                          <option value="thung">Thùng</option>
                         </select>
                       </div>
                       {selectedProduct && (

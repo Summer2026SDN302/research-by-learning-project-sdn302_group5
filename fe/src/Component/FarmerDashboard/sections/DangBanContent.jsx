@@ -12,7 +12,7 @@ import productService from "../../../services/product.service";
 export default function DangBanContent() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({ cropType: "", variety: "", area: "", plantDate: "", harvestDate: "", estimatedYield: "", desiredPrice: "", minBuyoutPercent: "" });
+  const [formData, setFormData] = useState({ cropType: "", variety: "", area: "", plantDate: "", harvestDate: "", estimatedYield: "", desiredPrice: "", unit: "kg", minBuyoutPercent: "" });
   const [certFile, setCertFile] = useState(null);
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
@@ -90,7 +90,7 @@ export default function DangBanContent() {
         region: formData.region || "south",
         priceMin: priceNum,
         priceMax: Math.round(priceNum * 1.15) || priceNum + 5000,
-        unit: "kg",
+        unit: formData.unit || "kg",
         totalQuantity: totalQty,
         remaining: totalQty,
         progress: 0,
@@ -101,7 +101,7 @@ export default function DangBanContent() {
       await productService.create(productData);
       toast.success("Đăng bán sản phẩm thành công!");
       setCurrentStep(1);
-      setFormData({ cropType: "", variety: "", area: "", plantDate: "", harvestDate: "", estimatedYield: "", desiredPrice: "", minBuyoutPercent: "", region: "" });
+      setFormData({ cropType: "", variety: "", area: "", plantDate: "", harvestDate: "", estimatedYield: "", desiredPrice: "", unit: "kg", minBuyoutPercent: "", region: "" });
       setPhotoFiles([]);
       setPhotoPreviews([]);
       setCertFile(null);
@@ -262,17 +262,29 @@ export default function DangBanContent() {
                   </div>
                 </div>
                 <div className="db2-grid">
-                  <div className="db2-field span-2">
+                  <div className="db2-field">
+                    <label>Đơn vị tính giá</label>
+                    <div className="db2-region-group">
+                      {[["kg", "kg"], ["ta", "Tạ"], ["tan", "Tấn"]].map(([val, label]) => (
+                        <button key={val} type="button"
+                          className={`db2-region-btn ${formData.unit === val ? "active" : ""}`}
+                          onClick={() => handleInputChange("unit", val)}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="db2-field">
                     <label>Giá mong muốn <span className="db2-req">*</span></label>
                     <div className="db2-input-suffix">
                       <input className="db2-input" type="text" value={formData.desiredPrice}
                         onChange={e => handleInputChange("desiredPrice", e.target.value)} placeholder="50,000" />
-                      <span>VNĐ/kg</span>
+                      <span>VNĐ/{formData.unit === "tan" ? "tấn" : formData.unit === "ta" ? "tạ" : "kg"}</span>
                     </div>
                     {pricePreview > 0 && qtyPreview > 0 && (
                       <div className="db2-computed-box">
                         <FiDollarSign size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />Ước tính tổng giá trị: <strong>{totalValuePreview.toLocaleString("vi-VN")} VNĐ</strong>
-                        {" "}· Giá niêm yết: <strong>{pricePreview.toLocaleString("vi-VN")}đ – {Math.round(pricePreview * 1.15).toLocaleString("vi-VN")}đ/kg</strong>
+                        {" "}· Giá niêm yết: <strong>{pricePreview.toLocaleString("vi-VN")}đ – {Math.round(pricePreview * 1.15).toLocaleString("vi-VN")}đ/{formData.unit === "tan" ? "tấn" : formData.unit === "ta" ? "tạ" : "kg"}</strong>
                       </div>
                     )}
                   </div>
@@ -409,7 +421,7 @@ export default function DangBanContent() {
               {pricePreview > 0 && (
                 <p className="db2-preview-price">
                   {pricePreview.toLocaleString("vi-VN")}đ – {Math.round(pricePreview * 1.15).toLocaleString("vi-VN")}đ
-                  <span>/kg</span>
+                  <span>/{formData.unit === "tan" ? "tấn" : formData.unit === "ta" ? "tạ" : "kg"}</span>
                 </p>
               )}
               <div className="db2-preview-tags">

@@ -186,8 +186,8 @@ export const validateCreateContract = [
   body('unit')
     .notEmpty()
     .withMessage('Vui lòng chọn đơn vị')
-    .isIn(['tan', 'kg', 'thung'])
-    .withMessage('Đơn vị phải là tan, kg, hoặc thùng'),
+    .isIn(['tan', 'ta', 'kg', 'thung'])
+    .withMessage('Đơn vị phải là tấn, tạ, hoặc kg'),
 
   body('pricePerUnit')
     .notEmpty()
