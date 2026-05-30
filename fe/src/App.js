@@ -19,6 +19,7 @@ import Footer from "./Component/Footer/Footer";
 // PAGES
 import Solutions from "./Component/Solutions/Solutions";
 import Contact from "./Component/Contact/Contact";
+import InfoPage from "./Component/InfoPage/InfoPage";
 import Auth from "./Component/Auth/Auth";
 import Register from "./Component/Register/Register";
 
@@ -68,6 +69,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/solutions" element={<Solutions />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/info/:slug" element={<InfoPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />

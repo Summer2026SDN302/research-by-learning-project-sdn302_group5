@@ -122,6 +122,15 @@
   transform: none;
 }
 
+.footer-v3-contact-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-v3-contact-link:hover {
+  color: #16a34a;
+}
+
 .footer-v3-contact-label {
   color: #6b7c70;
   font-size: 13px;

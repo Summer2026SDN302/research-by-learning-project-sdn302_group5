@@ -27,21 +27,21 @@ const Footer = () => {
   };
 
   const aboutLinks = [
-    { label: "Về PreOnic", path: ROUTES.HOME },
+    { label: "Về PreOnic", path: "/info/ve-preonic" },
     { label: "Kênh người bán", path: ROUTES.FARMER },
-    { label: "Điều khoản sử dụng", path: ROUTES.CONTACT },
-    { label: "Chính sách bảo mật", path: ROUTES.CONTACT },
-    { label: "Quy chế hoạt động", path: ROUTES.CONTACT },
-    { label: "Cơ chế giải quyết tranh chấp", path: ROUTES.CONTACT },
+    { label: "Điều khoản sử dụng", path: "/info/dieu-khoan" },
+    { label: "Chính sách bảo mật", path: "/info/bao-mat" },
+    { label: "Quy chế hoạt động", path: "/info/quy-che" },
+    { label: "Cơ chế giải quyết tranh chấp", path: "/info/tranh-chap" },
   ];
 
   const supportLinks = [
-    { label: "Trung tâm trợ giúp", path: ROUTES.CONTACT },
-    { label: "Hướng dẫn mua hàng", path: ROUTES.CONTACT },
-    { label: "Hướng dẫn bán hàng", path: ROUTES.CONTACT },
-    { label: "Giao hàng và nhận hàng", path: ROUTES.CONTACT },
-    { label: "Trả hàng / Hoàn tiền", path: ROUTES.CONTACT },
-    { label: "Cổng tiếp nhận & danh sách phản ánh", path: ROUTES.CONTACT },
+    { label: "Trung tâm trợ giúp", path: "/info/tro-giup" },
+    { label: "Hướng dẫn mua hàng", path: "/info/huong-dan-mua" },
+    { label: "Hướng dẫn bán hàng", path: "/info/huong-dan-ban" },
+    { label: "Giao hàng và nhận hàng", path: "/info/giao-nhan" },
+    { label: "Trả hàng / Hoàn tiền", path: "/info/hoan-tien" },
+    { label: "Cổng tiếp nhận & danh sách phản ánh", path: "/info/phan-anh" },
   ];
 
   return (
@@ -128,11 +128,11 @@ const Footer = () => {
               <ul className="footer-v3-list footer-v3-contact-list">
                 <li>
                   <span className="footer-v3-contact-label">Hotline:</span>{" "}
-                  <strong>{COMPANY.HOTLINE}</strong>
+                  <a href={`tel:${COMPANY.HOTLINE.replace(/\s/g, "")}`} className="footer-v3-contact-link"><strong>{COMPANY.HOTLINE}</strong></a>
                 </li>
                 <li>
                   <span className="footer-v3-contact-label">Email:</span>{" "}
-                  <strong>{COMPANY.EMAIL}</strong>
+                  <a href={`mailto:${COMPANY.EMAIL}`} className="footer-v3-contact-link"><strong>{COMPANY.EMAIL}</strong></a>
                 </li>
                 <li>
                   <span className="footer-v3-contact-label">Địa chỉ:</span>{" "}
