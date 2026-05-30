@@ -39,6 +39,13 @@ export default function FarmerDashboard() {
           <div className="logo-text"><h1>PreOnic</h1><p>Nông dân</p></div>
         </div>
 
+        <button
+          className={`fd-create ${activeTab === "dangban" ? "active" : ""}`}
+          onClick={() => setActiveTab("dangban")}
+        >
+          <span className="fd-create-plus">+</span> Đăng bán nông sản mới
+        </button>
+
         <nav className="fd-nav">
           {FARMER_DASHBOARD_NAV_ITEMS.map(item => (
             <button key={item.key} className={`${item.cls} ${activeTab === item.key ? "active" : ""}`} onClick={() => setActiveTab(item.key)}>
@@ -47,8 +54,6 @@ export default function FarmerDashboard() {
             </button>
           ))}
         </nav>
-
-        <button className="fd-create" onClick={() => setActiveTab("dangban")}>+ Đăng bán nông sản mới</button>
 
         <div className="fd-sidebar-footer">
           <button className="messaging-btn" onClick={() => navigate(ROUTES.MESSAGING)}>

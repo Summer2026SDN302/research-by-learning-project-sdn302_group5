@@ -117,7 +117,10 @@ function Campaigns() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <Button className="campaign-btn">
+                        <Button
+                          className="campaign-btn"
+                          onClick={() => navigate(`${ROUTES.PRODUCTS}/${campaign.id}`)}
+                        >
                           Đăng ký bao tiêu
                         </Button>
                       </motion.div>

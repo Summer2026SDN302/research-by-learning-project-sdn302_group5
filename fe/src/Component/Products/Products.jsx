@@ -158,7 +158,10 @@ function Products() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <Button className="w-100 mt-3 btn-register">
+                        <Button
+                          className="w-100 mt-3 btn-register"
+                          onClick={() => navigate(`${ROUTES.PRODUCTS}/${product.id}`)}
+                        >
                           Đăng ký bao tiêu
                         </Button>
                       </motion.div>
