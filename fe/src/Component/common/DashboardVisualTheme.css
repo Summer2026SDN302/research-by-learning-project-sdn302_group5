@@ -565,6 +565,50 @@ input:focus, textarea:focus, select:focus {
   transform: translateY(-1px);
 }
 
+/* ===== 29h. ENTERPRISE — Chart bars and circular progress ===== */
+
+/* Bar chart in TongQuan */
+.chart-bar {
+  background: linear-gradient(180deg, #16a34a 0%, rgba(22, 163, 74, 0.35) 100%) !important;
+}
+
+/* SVG circular progress ring */
+.progress-ring-fill {
+  stroke: #16a34a !important;
+}
+
+/* ===== 29i. ENTERPRISE — Supplier avatar, verified badge, insight card ===== */
+
+.supplier-avatar {
+  background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+}
+.verified-badge {
+  background: #16a34a !important;
+}
+.insight-card {
+  border-left-color: #16a34a !important;
+}
+
+/* btn-outline hover and btn-primary */
+.btn-outline:hover {
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+}
+
+/* OTC step current dot */
+.otc-step.current .step-dot {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2) !important;
+}
+
 /* ===== 29. PAGE HEADER in both dashboards ===== */
 
 .fd-pg-header {
