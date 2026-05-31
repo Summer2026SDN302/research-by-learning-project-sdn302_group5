@@ -1089,7 +1089,19 @@
   animation: wSpin 0.8s linear infinite !important;
 }
 
-/* ── 12. Responsive ── */
+/* ── 12. Fix: prevent selects from stretching to full width (Farmer) ── */
+.wthr-loc-selects {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  flex: 0 1 auto !important;
+}
+.wthr-loc-select {
+  flex: 0 1 200px !important;
+  max-width: 220px !important;
+}
+
+/* ── 13. Responsive ── */
 @media (max-width: 640px) {
   .wthr-hero { padding: 18px 16px !important; }
   .wthr-temp { font-size: 2.8rem !important; }

@@ -8,7 +8,7 @@ import {
   SEARCH_PLACEHOLDERS,
 } from "../../constants";
 import NotificationBell from "../NotificationBell/NotificationBell";
-import MessageBell from "../MessageBell/MessageBell";
+import MessengerFloat from "../MessengerFloat/MessengerFloat";
 import TongQuanContent from "./sections/TongQuanContent";
 import SanPhamContent from "./sections/SanPhamContent";
 import WeatherInsuranceContent from "./sections/WeatherInsuranceContent";
@@ -68,9 +68,6 @@ export default function EnterpriseDashboard() {
         </nav>
 
         <div className="ed-sidebar-footer">
-          <button className="messaging-btn" onClick={() => { setSidebarOpen(false); navigate(ROUTES.MESSAGING); }}>
-            <span className="nav-icon msg-sidebar-icon" aria-hidden="true" /> Nhắn tin
-          </button>
           <button className="logout-btn" onClick={handleLogout}>
             <span className="nav-icon logout-sidebar-icon" aria-hidden="true" /> Đăng xuất
           </button>
@@ -92,7 +89,6 @@ export default function EnterpriseDashboard() {
             <input type="text" aria-label="Tìm kiếm" placeholder={SEARCH_PLACEHOLDERS.ENTERPRISE_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="header-actions">
-            <MessageBell />
             <NotificationBell onNavigate={go} />
             <div className="divider"></div>
             <div className="user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
@@ -118,6 +114,8 @@ export default function EnterpriseDashboard() {
           {activeNav === "thoitiet" && <WeatherInsuranceContent />}
         </div>
       </main>
+
+      <MessengerFloat />
     </div>
   );
 }

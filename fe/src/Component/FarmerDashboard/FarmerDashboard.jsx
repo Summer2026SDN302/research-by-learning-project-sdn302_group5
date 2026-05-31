@@ -16,7 +16,7 @@ import FarmerFinanceContent from "./sections/FarmerFinanceContent";
 import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
 import NotificationBell from "../NotificationBell/NotificationBell";
-import MessageBell from "../MessageBell/MessageBell";
+import MessengerFloat from "../MessengerFloat/MessengerFloat";
 import "../common/DashboardResponsive.css";
 import "./FarmerDashboard.css";
 import "../common/DashboardVisualTheme.css";
@@ -71,9 +71,6 @@ export default function FarmerDashboard() {
         </nav>
 
         <div className="fd-sidebar-footer">
-          <button className="messaging-btn" onClick={() => { setSidebarOpen(false); navigate(ROUTES.MESSAGING); }}>
-            <span className="nav-icon msg-sidebar-icon" aria-hidden="true" /> Nhắn tin
-          </button>
           <button className="logout-btn" onClick={handleLogout}>
             <span className="nav-icon logout-sidebar-icon" aria-hidden="true" /> Đăng xuất
           </button>
@@ -95,7 +92,6 @@ export default function FarmerDashboard() {
             <input type="text" aria-label="Tìm kiếm" placeholder="Tìm kiếm hợp đồng, đơn hàng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="fd-header-actions">
-            <MessageBell />
             <NotificationBell onNavigate={go} />
             <div className="divider" />
             <div className="fd-user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
@@ -119,6 +115,8 @@ export default function FarmerDashboard() {
           {activeTab === "dangban" && <DangBanContent />}
         </div>
       </main>
+
+      <MessengerFloat />
     </div>
   );
 }

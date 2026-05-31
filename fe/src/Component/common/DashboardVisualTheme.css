@@ -3,10 +3,51 @@
 /* Áp dụng cho: FarmerDashboard, EnterpriseDashboard               */
 /* ================================================================ */
 
-/* ===== 1. BACKGROUNDS ===== */
+/* ===== 1. BACKGROUNDS + LAYOUT FIX ===== */
 
-.fd-wrapper { background: #edf7ee !important; }
-.ed-layout  { background: #edf7ee !important; }
+/* Fix layout height so sidebar footer is always sticky */
+.fd-wrapper {
+  background: #edf7ee !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+.ed-layout {
+  background: #edf7ee !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Sidebar: hide overflow so only nav scrolls */
+.fd-sidebar { overflow: hidden !important; }
+.ed-sidebar { overflow: hidden !important; }
+
+/* Nav: grow to fill space + scroll if many items */
+.fd-nav {
+  flex: 1 1 0 !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+}
+.ed-nav {
+  flex: 1 1 0 !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+}
+
+/* Sidebar footer: never shrink, always at bottom */
+.fd-sidebar-footer { flex-shrink: 0 !important; }
+.ed-sidebar-footer { flex-shrink: 0 !important; }
+
+/* Main content: takes remaining width + scrolls independently */
+.fd-main {
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow-y: auto !important;
+}
+.ed-main {
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow-y: auto !important;
+}
 
 /* ===== 2. SIDEBAR — FARMER ===== */
 
