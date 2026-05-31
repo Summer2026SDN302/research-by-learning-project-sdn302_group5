@@ -59,16 +59,14 @@
 }
 
 .navbar-logo .brand-logo-symbol {
-  width: 38px;
-  height: 38px;
-  object-position: center 24%;
+  width: 44px;
+  height: 44px;
   filter: drop-shadow(0 4px 14px rgba(74, 222, 128, 0.5)) brightness(1.08);
 }
 
 .navbar-logo .brand-logo-wordmark {
-  width: 110px;
-  height: 38px;
-  object-position: center 92%;
+  width: 128px;
+  height: auto;
   filter: brightness(1.5) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
@@ -346,7 +344,7 @@
 
   .navbar-logo .brand-logo-wordmark {
     width: 86px;
-    height: 30px;
+    height: auto;
   }
 }
 
