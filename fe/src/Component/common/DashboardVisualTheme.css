@@ -404,3 +404,80 @@ input:focus, textarea:focus, select:focus {
   background: linear-gradient(90deg, #f0f7f1, #fff) !important;
   border-bottom: 1px solid #e2ece4 !important;
 }
+
+/* ===== 23. ENTERPRISE — Primary button (neon → brand green) ===== */
+
+.primary-btn {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28) !important;
+}
+.primary-btn:hover {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.38) !important;
+}
+
+/* ===== 24. CONTENT SECTION CARDS — Refined borders & shadow ===== */
+
+/* TongQuan overview cards */
+.tq-card {
+  border: 1px solid #e2ece4 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+.tq-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Card headers - subtle gradient */
+.card-header {
+  background: linear-gradient(90deg, #f5fbf6, #fff) !important;
+  border-bottom: 1px solid #e2ece4 !important;
+}
+
+/* Enterprise Farmer network card */
+.farmer-network {
+  border: 1px solid #e2ece4 !important;
+}
+
+/* ===== 25. VIEW TOGGLE BUTTON (active state) ===== */
+
+.view-toggle button.active {
+  background: #fff !important;
+  color: #15803d !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ===== 26. LINK BUTTONS ===== */
+
+.tq-link-btn { color: #16a34a !important; }
+.tq-link-btn:hover { color: #15803d !important; }
+
+/* ===== 27. FARMER — Welcome section accent ===== */
+
+.muavu-welcome {
+  padding-bottom: 0;
+}
+.muavu-welcome p { color: #618968 !important; }
+
+/* ===== 28. ENTERPRISE — stat value ===== */
+
+.stat-value {
+  color: #111812;
+  font-weight: 800 !important;
+}
+
+/* ===== 29. PAGE HEADER in both dashboards ===== */
+
+.fd-pg-header {
+  padding: 24px 28px 16px !important;
+}
+.fd-pg-header h2 {
+  background: linear-gradient(135deg, #111812 25%, #15803d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #111812;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+}
+.fd-pg-subtitle { color: #6b9e77 !important; }
