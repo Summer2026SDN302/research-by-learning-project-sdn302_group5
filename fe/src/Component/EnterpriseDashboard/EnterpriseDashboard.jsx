@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FiMenu } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   ROUTES,
@@ -18,6 +19,7 @@ import EscrowContent from "./sections/EscrowContent";
 import SuppliersContent from "./sections/SuppliersContent";
 import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
+import "../common/DashboardResponsive.css";
 import "./EnterpriseDashboard.css";
 import "./dh-styles.css";
 
@@ -26,6 +28,7 @@ export default function EnterpriseDashboard() {
   const location = useLocation();
   const [activeNav, setActiveNav] = useState(location.state?.activeNav || "tongguan");
   const [headerSearch, setHeaderSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -34,30 +37,41 @@ export default function EnterpriseDashboard() {
     navigate(ROUTES.HOME);
   };
 
+  // Chuyển tab + đóng drawer trên mobile.
+  const go = (nav) => { setActiveNav(nav); setSidebarOpen(false); };
+
   return (
     <div className="ed-layout">
+      {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
+
       {/* SIDEBAR */}
-      <aside className="ed-sidebar">
+      <aside className={`ed-sidebar dash-drawer ${sidebarOpen ? "open" : ""}`}>
         <div className="ed-logo" onClick={() => navigate(ROUTES.HOME)} style={{ cursor: "pointer" }}>
           <div className="logo-icon"><span className="logo-leaf" /></div>
           <div className="logo-text"><h1>PreOnic</h1><p>Cổng Doanh nghiệp</p></div>
         </div>
 
-        <nav className="ed-nav">
+        <nav className="ed-nav" role="tablist" aria-label="Điều hướng doanh nghiệp">
           {ENTERPRISE_DASHBOARD_NAV_ITEMS.map(item => (
-            <button key={item.key} className={`${item.cls} ${activeNav === item.key ? "active" : ""}`} onClick={() => setActiveNav(item.key)}>
-              <span className={`nav-icon ${item.cls}-icon`} />
+            <button
+              key={item.key}
+              role="tab"
+              aria-selected={activeNav === item.key}
+              className={`${item.cls} ${activeNav === item.key ? "active" : ""}`}
+              onClick={() => go(item.key)}
+            >
+              <span className={`nav-icon ${item.cls}-icon`} aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="ed-sidebar-footer">
-          <button className="messaging-btn" onClick={() => navigate(ROUTES.MESSAGING)}>
-            <span className="nav-icon msg-sidebar-icon" /> Nhắn tin
+          <button className="messaging-btn" onClick={() => { setSidebarOpen(false); navigate(ROUTES.MESSAGING); }}>
+            <span className="nav-icon msg-sidebar-icon" aria-hidden="true" /> Nhắn tin
           </button>
           <button className="logout-btn" onClick={handleLogout}>
-            <span className="nav-icon logout-sidebar-icon" /> Đăng xuất
+            <span className="nav-icon logout-sidebar-icon" aria-hidden="true" /> Đăng xuất
           </button>
         </div>
       </aside>
@@ -65,13 +79,20 @@ export default function EnterpriseDashboard() {
       {/* MAIN */}
       <main className="ed-main">
         <header className="ed-header">
+          <button
+            className="dash-hamburger"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Mở menu điều hướng"
+          >
+            <FiMenu size={20} />
+          </button>
           <div className="header-search">
-            <span className="search-input-icon" />
-            <input type="text" placeholder={SEARCH_PLACEHOLDERS.ENTERPRISE_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
+            <span className="search-input-icon" aria-hidden="true" />
+            <input type="text" aria-label="Tìm kiếm" placeholder={SEARCH_PLACEHOLDERS.ENTERPRISE_DASHBOARD} value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="header-actions">
             <MessageBell />
-            <NotificationBell onNavigate={setActiveNav} />
+            <NotificationBell onNavigate={go} />
             <div className="divider"></div>
             <div className="user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
               <div className="user-info">
@@ -84,8 +105,8 @@ export default function EnterpriseDashboard() {
         </header>
 
         <div className="ed-content">
-          {activeNav === "tongguan" && <TongQuanContent onNavigate={setActiveNav} />}
-          {activeNav === "hopdong" && <HopDongContent searchQuery={headerSearch} onNavigate={setActiveNav} />}
+          {activeNav === "tongguan" && <TongQuanContent onNavigate={go} />}
+          {activeNav === "hopdong" && <HopDongContent searchQuery={headerSearch} onNavigate={go} />}
           {activeNav === "sanpham" && <SanPhamContent navigate={navigate} />}
           {activeNav === "donhang" && <DonHangContent searchQuery={headerSearch} />}
           {activeNav === "escrow" && <EscrowContent />}

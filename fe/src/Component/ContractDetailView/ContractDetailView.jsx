@@ -335,7 +335,7 @@ export default function ContractDetailView({
       {/* Modal điều khoản */}
       {showTerms && (
         <div className="cdv-modal-overlay" onClick={() => setShowTerms(false)}>
-          <div className="cdv-modal" onClick={e => e.stopPropagation()}>
+          <div className="cdv-modal" role="dialog" aria-modal="true" aria-label="Điều khoản ký kết hợp đồng" onClick={e => e.stopPropagation()}>
             <div className="cdv-modal-head">
               <h3>Điều khoản Ký kết Hợp đồng</h3>
               <button onClick={() => setShowTerms(false)}>✕</button>
@@ -361,7 +361,7 @@ export default function ContractDetailView({
       {/* Modal hủy/từ chối */}
       {showCancel && (
         <div className="cdv-modal-overlay" onClick={() => !actionLoading && setShowCancel(false)}>
-          <div className="cdv-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+          <div className="cdv-modal" role="dialog" aria-modal="true" aria-label="Hủy hoặc từ chối hợp đồng" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="cdv-modal-head">
               <h3>{isFarmer && c.status === "pending" && !c.signedByFarmer ? "Từ chối hợp đồng" : "Hủy hợp đồng"}</h3>
               <button onClick={() => setShowCancel(false)} disabled={actionLoading}>✕</button>

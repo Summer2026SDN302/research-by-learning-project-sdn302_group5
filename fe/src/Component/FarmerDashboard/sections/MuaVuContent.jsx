@@ -60,10 +60,13 @@ export default function MuaVuContent({ user, onNavigate }) {
     }
   };
 
+  // Kẹp % về [0,100] để thanh tiến độ / vòng tròn không bị vỡ layout khi dữ liệu bất thường.
+  const clampPct = (v) => Math.min(100, Math.max(0, Number(v) || 0));
+
   const displayCrops = crops.map((c) => ({
     title: `${c.name} - ${c.location}`,
     target: c.expectedDate ? `Thu hoạch: ${formatDate(c.expectedDate)}` : "Quanh năm",
-    pct: c.progress || 0,
+    pct: clampPct(c.progress),
     cls: "corn",
   }));
 
@@ -193,7 +196,7 @@ export default function MuaVuContent({ user, onNavigate }) {
                       flexShrink: 0, overflow: 'hidden',
                     }}>
                       {p.image
-                        ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         : <FiPackage size={20} color="#16a34a" />
                       }
                     </div>
@@ -207,11 +210,11 @@ export default function MuaVuContent({ user, onNavigate }) {
                     <div style={{ flexShrink: 0, textAlign: 'center', minWidth: 60 }}>
                       <div style={{
                         width: 44, height: 44, borderRadius: '50%',
-                        background: `conic-gradient(#16a34a ${(p.progress || 0) * 3.6}deg, #e5e7eb 0deg)`,
+                        background: `conic-gradient(#16a34a ${clampPct(p.progress) * 3.6}deg, #e5e7eb 0deg)`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a' }}>{p.progress || 0}%</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a' }}>{clampPct(p.progress)}%</span>
                         </div>
                       </div>
                       <p style={{ margin: '3px 0 0', fontSize: 10, color: '#9ca3af' }}>cam kết</p>

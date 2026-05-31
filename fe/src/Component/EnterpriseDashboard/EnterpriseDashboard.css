@@ -5717,3 +5717,27 @@
   .ed-sup-wrap, .ed-wh-wrap { padding: 16px; }
   .ed-wh-summary { grid-template-columns: 1fr 1fr; }
 }
+
+/* ==================== */
+/* RESPONSIVE (nâng cấp hạng mục i) */
+/* ==================== */
+
+/* Thống kê tự co thay vì cứng 4 cột */
+.ed-stats { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+.ed-header { gap: 12px; }
+
+@media (max-width: 991px) {
+  .ed-sidebar { width: 264px; }
+  .ed-content { padding: 18px 16px; }
+  .ed-header { padding: 12px 16px; }
+  /* Lưới 2 cột về 1 cột trên tablet */
+  .main-grid, .bottom-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 560px) {
+  .header-search { display: none; }
+  .header-actions { gap: 10px; margin-left: auto; }
+  .user-info { display: none; }
+  .ed-stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+}

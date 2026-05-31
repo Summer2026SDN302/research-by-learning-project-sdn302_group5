@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiMenu } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   ROUTES,
@@ -16,12 +17,14 @@ import WalletPayment from "../WalletPayment/WalletPayment";
 import BilateralRating from "../BilateralRating/BilateralRating";
 import NotificationBell from "../NotificationBell/NotificationBell";
 import MessageBell from "../MessageBell/MessageBell";
+import "../common/DashboardResponsive.css";
 import "./FarmerDashboard.css";
 
 // Tệp này điều phối toàn bộ dashboard nông dân: điều hướng tab, dữ liệu tổng quan và các thao tác nghiệp vụ chính.
 export default function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState("muavu");
   const [headerSearch, setHeaderSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -30,10 +33,15 @@ export default function FarmerDashboard() {
     navigate(ROUTES.HOME);
   };
 
+  // Chuyển tab + đóng drawer trên mobile.
+  const go = (tab) => { setActiveTab(tab); setSidebarOpen(false); };
+
   return (
     <div className="fd-wrapper">
+      {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
+
       {/* SIDEBAR */}
-      <aside className="fd-sidebar">
+      <aside className={`fd-sidebar dash-drawer ${sidebarOpen ? "open" : ""}`}>
         <div className="fd-logo" onClick={() => navigate(ROUTES.HOME)} style={{ cursor: "pointer" }}>
           <div className="logo-icon"><span className="logo-leaf" /></div>
           <div className="logo-text"><h1>PreOnic</h1><p>Nông dân</p></div>
@@ -41,26 +49,32 @@ export default function FarmerDashboard() {
 
         <button
           className={`fd-create ${activeTab === "dangban" ? "active" : ""}`}
-          onClick={() => setActiveTab("dangban")}
+          onClick={() => go("dangban")}
         >
           <span className="fd-create-plus">+</span> Đăng bán nông sản mới
         </button>
 
-        <nav className="fd-nav">
+        <nav className="fd-nav" role="tablist" aria-label="Điều hướng nông dân">
           {FARMER_DASHBOARD_NAV_ITEMS.map(item => (
-            <button key={item.key} className={`${item.cls} ${activeTab === item.key ? "active" : ""}`} onClick={() => setActiveTab(item.key)}>
-              <span className={`nav-icon ${item.cls}-icon`} />
+            <button
+              key={item.key}
+              role="tab"
+              aria-selected={activeTab === item.key}
+              className={`${item.cls} ${activeTab === item.key ? "active" : ""}`}
+              onClick={() => go(item.key)}
+            >
+              <span className={`nav-icon ${item.cls}-icon`} aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="fd-sidebar-footer">
-          <button className="messaging-btn" onClick={() => navigate(ROUTES.MESSAGING)}>
-            <span className="nav-icon msg-sidebar-icon" /> Nhắn tin
+          <button className="messaging-btn" onClick={() => { setSidebarOpen(false); navigate(ROUTES.MESSAGING); }}>
+            <span className="nav-icon msg-sidebar-icon" aria-hidden="true" /> Nhắn tin
           </button>
           <button className="logout-btn" onClick={handleLogout}>
-            <span className="nav-icon logout-sidebar-icon" /> Đăng xuất
+            <span className="nav-icon logout-sidebar-icon" aria-hidden="true" /> Đăng xuất
           </button>
         </div>
       </aside>
@@ -68,13 +82,20 @@ export default function FarmerDashboard() {
       {/* MAIN */}
       <main className="fd-main">
         <header className="fd-header">
+          <button
+            className="dash-hamburger"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Mở menu điều hướng"
+          >
+            <FiMenu size={20} />
+          </button>
           <div className="fd-header-search">
-            <span className="search-input-icon" />
-            <input type="text" placeholder="Tìm kiếm hợp đồng, đơn hàng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
+            <span className="search-input-icon" aria-hidden="true" />
+            <input type="text" aria-label="Tìm kiếm" placeholder="Tìm kiếm hợp đồng, đơn hàng..." value={headerSearch} onChange={e => setHeaderSearch(e.target.value)} />
           </div>
           <div className="fd-header-actions">
             <MessageBell />
-            <NotificationBell onNavigate={setActiveTab} />
+            <NotificationBell onNavigate={go} />
             <div className="divider" />
             <div className="fd-user-profile" onClick={() => navigate(ROUTES.PROFILE)} style={{ cursor: "pointer" }}>
               <div className="fd-user-info">
@@ -86,7 +107,7 @@ export default function FarmerDashboard() {
           </div>
         </header>
         <div className="fd-content">
-          {activeTab === "muavu" && <MuaVuContent user={user} onNavigate={setActiveTab} />}
+          {activeTab === "muavu" && <MuaVuContent user={user} onNavigate={go} />}
           {activeTab === "hopdong" && <HopDongContent searchQuery={headerSearch} />}
           {activeTab === "donhang" && <DonHangContent searchQuery={headerSearch} />}
           {activeTab === "escrow" && <FarmerEscrowContent />}

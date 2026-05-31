@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiMenu } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES } from "../../constants";
+import "../common/DashboardResponsive.css";
 import TongQuanContent from "./sections/TongQuanContent";
 import QuanLyNguoiDung from "./sections/QuanLyNguoiDung";
 import QuanLyHopDong from "./sections/QuanLyHopDong";
@@ -21,6 +23,7 @@ const NAV_ITEMS = [
 
 export default function AdminDashboard() {
   const [activeNav, setActiveNav] = useState("tongquan");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -29,10 +32,14 @@ export default function AdminDashboard() {
     navigate(ROUTES.HOME);
   };
 
+  const go = (nav) => { setActiveNav(nav); setSidebarOpen(false); };
+
   return (
     <div className="ad-layout">
+      {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
+
       {/* SIDEBAR */}
-      <aside className="ad-sidebar">
+      <aside className={`ad-sidebar dash-drawer ${sidebarOpen ? "open" : ""}`}>
         <div className="ad-logo" onClick={() => navigate(ROUTES.HOME)} style={{ cursor: "pointer" }}>
           <div className="ad-logo-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
@@ -45,14 +52,16 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <nav className="ad-nav">
+        <nav className="ad-nav" role="tablist" aria-label="Điều hướng quản trị">
           {NAV_ITEMS.map(item => (
             <button
               key={item.key}
+              role="tab"
+              aria-selected={activeNav === item.key}
               className={`ad-nav-btn ${activeNav === item.key ? "active" : ""}`}
-              onClick={() => setActiveNav(item.key)}
+              onClick={() => go(item.key)}
             >
-              <span className="ad-nav-icon">{item.icon}</span>
+              <span className="ad-nav-icon" aria-hidden="true">{item.icon}</span>
               <span className="ad-nav-label">{item.label}</span>
             </button>
           ))}
@@ -69,6 +78,14 @@ export default function AdminDashboard() {
       <main className="ad-main">
         <header className="ad-header">
           <div className="ad-header-left">
+            <button
+              className="dash-hamburger"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Mở menu điều hướng"
+              style={{ marginRight: 4 }}
+            >
+              <FiMenu size={20} />
+            </button>
             <span className="ad-admin-badge">Admin</span>
             <span className="ad-header-title">
               {NAV_ITEMS.find(n => n.key === activeNav)?.label || "Tổng quan"}

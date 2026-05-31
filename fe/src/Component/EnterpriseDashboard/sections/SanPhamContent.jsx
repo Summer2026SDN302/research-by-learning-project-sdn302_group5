@@ -36,7 +36,7 @@ export default function SanPhamContent({ navigate }) {
         rating: p.rating || 0,
         reviewCount: p.reviewCount || p.reviews || 0,
         remaining: p.remaining || p.quantity || 0,
-        progress: p.progress || 0,
+        progress: Math.min(100, Math.max(0, Number(p.progress) || 0)),
       }));
       setApiProducts(items);
     }).catch(() => setApiProducts([]));
@@ -133,7 +133,7 @@ export default function SanPhamContent({ navigate }) {
           filtered.map((product) => (
             <div key={product.id} className="sp-card">
               <div className="sp-card-img">
-                <img src={product.image} alt={product.name} />
+                <img src={product.image} alt={product.name} onError={(e) => { e.currentTarget.src = "/images/products/default.jpg"; }} />
                 {product.badge && <span className="sp-badge">{product.badge}</span>}
                 <div className="sp-progress-tag" style={{ width: `${product.progress}%` }}>
                   <span>{product.progress}%</span>

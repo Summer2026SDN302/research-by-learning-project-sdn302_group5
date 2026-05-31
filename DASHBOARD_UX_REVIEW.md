@@ -15,12 +15,14 @@
 | Tích hợp API thật (không mock) | ✅ Tốt | ✅ Tốt | — |
 | Trạng thái loading | ⚠️ Không nhất quán | ⚠️ Không nhất quán | Trung bình |
 | Trạng thái rỗng (empty) | ⚠️ Rời rạc | ⚠️ Rời rạc | Thấp |
-| **Responsive mobile** | ❌ Thiếu | ❌ Thiếu | **CAO** |
-| Breakpoint tablet | ❌ Thiếu | ❌ Thiếu | Cao |
-| Nhất quán giao diện | ⚠️ Nhiều inline style | ⚠️ Nhiều inline style | Trung bình |
-| **Accessibility (a11y)** | ❌ Tối thiểu | ❌ Tối thiểu | **CAO** |
+| **Responsive mobile** | ✅ Đã làm (drawer) | ✅ Đã làm (drawer) | ~~CAO~~ → xong |
+| Breakpoint tablet | ✅ Đã thêm (≤991/560px) | ✅ Đã thêm | ~~Cao~~ → xong |
+| Nhất quán giao diện | ⚠️ Còn inline (đã có token) | ⚠️ Còn inline (đã có token) | Trung bình |
+| **Accessibility (a11y)** | ✅ Cơ bản (tablist/aria) | ✅ Cơ bản | ~~CAO~~ → xong |
 | Xử lý lỗi & phản hồi | ⚠️ Catch im lặng | ⚠️ Catch im lặng | Cao |
 | Phân cấp thông tin | ⚠️ Dày đặc | ⚠️ Dày đặc | Thấp |
+
+> **Cập nhật thực thi (31/05/2026):** đã code xong Giai đoạn 1–3 + phần lớn Giai đoạn 4 (xem §7).
 
 ---
 
@@ -130,5 +132,42 @@
 ## 6. Ghi chú
 Bản cập nhật lần này đã xử lý: thống nhất hợp đồng (b), bỏ OTP (c), thông báo bấm-điều-hướng +
 chuông tin nhắn (a), rút tiền (d), nút Đăng bán nổi bật (e), nút Đăng ký bao tiêu (f),
-hệ font (g), nội dung Footer (h). Tài liệu (i) này là kế hoạch cho vòng nâng cấp UX tiếp theo —
-chưa bao gồm trong các commit chức năng ở trên.
+hệ font (g), nội dung Footer (h).
+
+---
+
+## 7. Nhật ký thực thi (đã code — 31/05/2026)
+
+Hạng mục (i) đã chuyển từ "kế hoạch" sang **đã triển khai**. Tóm tắt thay đổi:
+
+### Giai đoạn 1 — Nền tảng dùng chung ✅
+- **Design tokens** trong `fe/src/index.css` (`:root`): `--brand/-strong/-soft`, `--ok/warn/danger/info`,
+  `--ink/-soft`, `--muted`, `--line`, `--radius*`, `--shadow*`, `--z-overlay/-drawer`.
+- **Component dùng chung** `fe/src/Component/common/DashboardStates.jsx` (+CSS):
+  `<LoadingState>`, `<ListSkeleton>`, `<EmptyState>` (shimmer skeleton).
+
+### Giai đoạn 2 — Mobile & Responsive ✅
+- **CSS drawer dùng chung** `fe/src/Component/common/DashboardResponsive.css`:
+  `.dash-hamburger`, `.dash-drawer` (trượt từ trái, ≤991px), `.dash-overlay`, `.dash-table-scroll`.
+- **Cả 3 dashboard** (Farmer/Enterprise/Admin): thêm state `sidebarOpen`, nút hamburger ở header,
+  overlay nền mờ, sidebar thành drawer; chọn mục điều hướng tự đóng drawer (`go()`).
+- **Lưới responsive**: `.fd-stats`/`.ed-stats` → `repeat(auto-fit, minmax(...))`; `.main-grid`/`.bottom-grid`
+  về 1 cột ở ≤991px; ≤560px ẩn ô tìm kiếm + tên user để nhường chuông/avatar.
+- Admin: thay icon-rail 56px (cũ) bằng drawer đầy đủ; `.ad-main` margin-left 0 trên mobile.
+
+### Giai đoạn 3 — Accessibility ✅ (cơ bản)
+- Nav sidebar cả 3 dashboard: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Nút icon: `aria-label` (hamburger, input tìm kiếm); icon trang trí `aria-hidden`.
+- Modal trong `ContractDetailView`: `role="dialog"` + `aria-modal="true"` + `aria-label`.
+
+### Giai đoạn 4 — Tin cậy (phần đã làm) ✅
+- **Clamp progress [0,100]**: MuaVuContent (thanh + vòng conic), SanPhamContent — hết vỡ layout khi >100.
+- **Ảnh `onError`**: MuaVuContent (ẩn ảnh hỏng), SanPhamContent (fallback ảnh mặc định).
+
+### Còn lại cho vòng sau (không chặn DoD hạng mục i)
+- Gỡ toàn bộ inline style còn lại → dùng token (đang dùng song song).
+- Áp `<LoadingState>/<EmptyState>` đồng bộ cho **mọi** section (hiện đã tạo + sẵn dùng).
+- Chuẩn hóa catch im lặng → toast + nút "Thử lại" cho mọi section.
+- Focus-trap đầy đủ + bẫy phím Esc cho mọi modal; `aria-label` cho biểu đồ recharts.
+
+**Verify:** `cd fe && CI=false npm run build` → **Compiled successfully**; ESLint các file thay đổi sạch.

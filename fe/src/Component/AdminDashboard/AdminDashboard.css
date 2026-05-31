@@ -719,13 +719,16 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
-  .ad-sidebar {
-    width: 56px;
-    min-width: 56px;
-  }
-  .ad-logo-text, .ad-nav-label { display: none; }
-  .ad-main { margin-left: 56px; }
+/* Drawer mode: sidebar trượt ra, main chiếm toàn bộ bề ngang */
+@media (max-width: 991px) {
+  .ad-sidebar { width: 264px; min-width: 264px; height: 100% !important; }
+  .ad-logo-text, .ad-nav-label { display: inline; }
+  .ad-main { margin-left: 0; }
   .ad-content { padding: 16px; }
   .adm-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .ad-header { padding: 12px 14px; }
+  .ad-user-text { display: none; }
 }

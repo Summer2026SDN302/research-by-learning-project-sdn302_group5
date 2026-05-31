@@ -6392,3 +6392,27 @@
   .fd-finance-stats { grid-template-columns: repeat(2, 1fr); }
   .fd-finance-wrap  { padding: 16px; }
 }
+
+/* ==================== */
+/* RESPONSIVE (nâng cấp hạng mục i) */
+/* ==================== */
+
+/* Lưới thống kê tự co — không vỡ trên tablet/mobile */
+.fd-stats { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+.fd-header { gap: 12px; }
+
+@media (max-width: 991px) {
+  /* Drawer mode: bỏ width cố định cũ ở 768px, dùng .dash-drawer */
+  .fd-sidebar { width: 264px; }
+  .fd-content { padding: 18px 16px; }
+  .fd-header { padding: 12px 16px; }
+}
+
+@media (max-width: 560px) {
+  /* Trên điện thoại nhỏ: thu gọn header, ẩn ô tìm kiếm để nhường chỗ cho chuông + avatar */
+  .fd-header-search { display: none; }
+  .fd-header-actions { gap: 10px; margin-left: auto; }
+  .fd-user-info { display: none; }
+  .fd-stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
