@@ -22,6 +22,7 @@ import BilateralRating from "../BilateralRating/BilateralRating";
 import "../common/DashboardResponsive.css";
 import "./EnterpriseDashboard.css";
 import "./dh-styles.css";
+import "../common/DashboardVisualTheme.css";
 
 // Tệp này điều phối toàn bộ dashboard doanh nghiệp: điều hướng tab, thống kê, đơn hàng và các thao tác tài chính.
 export default function EnterpriseDashboard() {

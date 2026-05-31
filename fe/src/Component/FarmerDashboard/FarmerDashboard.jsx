@@ -19,6 +19,7 @@ import NotificationBell from "../NotificationBell/NotificationBell";
 import MessageBell from "../MessageBell/MessageBell";
 import "../common/DashboardResponsive.css";
 import "./FarmerDashboard.css";
+import "../common/DashboardVisualTheme.css";
 
 // Tệp này điều phối toàn bộ dashboard nông dân: điều hướng tab, dữ liệu tổng quan và các thao tác nghiệp vụ chính.
 export default function FarmerDashboard() {
