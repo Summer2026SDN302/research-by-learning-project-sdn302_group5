@@ -37,20 +37,21 @@ const redirectToLogin = () => {
   }
 };
 
-const refreshAccessToken = async () => {
-  const response = await axios.post(
-    `${API_URL}/auth/refresh-token`,
-    {},
-    { withCredentials: true }
-  );
+// Shared promise to prevent concurrent refresh attempts (token rotation would invalidate the second call)
+let _refreshing = null;
 
-  const { accessToken } = response.data?.data || {};
-  if (!accessToken) {
-    throw new Error('Không nhận được access token mới từ máy chủ');
-  }
-
-  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-  return accessToken;
+const refreshAccessToken = () => {
+  if (_refreshing) return _refreshing;
+  _refreshing = axios
+    .post(`${API_URL}/auth/refresh-token`, {}, { withCredentials: true })
+    .then((response) => {
+      const { accessToken } = response.data?.data || {};
+      if (!accessToken) throw new Error('Không nhận được access token mới từ máy chủ');
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      return accessToken;
+    })
+    .finally(() => { _refreshing = null; });
+  return _refreshing;
 };
 
 // Attach access token to every request

@@ -29,7 +29,10 @@ export const isTruthy = (val: unknown): boolean => {
 /** Parse a full name string into firstName and lastName */
 export const parseFullName = (fullName: string): { firstName: string; lastName: string } => {
   const nameParts = fullName.trim().split(/\s+/);
-  const firstName = nameParts.slice(0, -1).join(' ') || nameParts[0];
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+  if (nameParts.length === 1) {
+    return { firstName: '', lastName: nameParts[0] };
+  }
+  const lastName = nameParts[nameParts.length - 1];
+  const firstName = nameParts.slice(0, -1).join(' ');
   return { firstName, lastName };
 };

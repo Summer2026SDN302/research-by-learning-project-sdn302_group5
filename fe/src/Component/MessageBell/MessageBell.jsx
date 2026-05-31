@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMessageCircle } from "react-icons/fi";
+import { useAuth } from "../../contexts/AuthContext";
 import { ROUTES } from "../../constants";
 import messagingService from "../../services/messaging.service";
 import { formatDate } from "../../hooks/useApiData";
 import "../NotificationBell/NotificationBell.css";
 
 export default function MessageBell() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -26,10 +28,11 @@ export default function MessageBell() {
   };
 
   useEffect(() => {
+    if (!user) return;
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const onClickOutside = (e) => {

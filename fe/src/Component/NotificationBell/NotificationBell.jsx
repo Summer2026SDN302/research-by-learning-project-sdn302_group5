@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { FiFileText, FiDollarSign, FiPackage, FiCloud, FiBell, FiShield } from "react-icons/fi";
+import { useAuth } from "../../contexts/AuthContext";
 import notificationService from "../../services/notification.service";
 import { formatDate } from "../../hooks/useApiData";
 import "./NotificationBell.css";
@@ -27,16 +28,18 @@ function resolveSection(n) {
 
 // onNavigate(sectionKey): do dashboard cha truyền vào để chuyển tab khi bấm thông báo.
 export default function NotificationBell({ onNavigate }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const ref = useRef(null);
 
   useEffect(() => {
+    if (!user) return;
     loadNotifications();
     const interval = setInterval(loadUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
