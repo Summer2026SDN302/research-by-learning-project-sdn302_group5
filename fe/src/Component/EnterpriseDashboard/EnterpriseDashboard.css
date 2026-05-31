@@ -1136,7 +1136,7 @@
   font-weight: 700;
   letter-spacing: 14px;
   text-align: center;
-  font-family: monospace;
+  font-family: var(--font-mono);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
@@ -2535,7 +2535,7 @@
 }
 
 .otc-code {
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: #374151;
 }
@@ -2546,7 +2546,7 @@
 }
 
 .tracking-code {
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   background: #eff6ff;
   color: #2563eb;
@@ -4474,7 +4474,7 @@
 
 /* Cell types */
 .lsgd-desc   { color: #374151; max-width: 240px; }
-.lsgd-code   { font-family: monospace; font-size: .82rem; color: #1d4ed8; font-weight: 600; }
+.lsgd-code   { font-family: var(--font-mono); font-size: .82rem; color: #1d4ed8; font-weight: 600; }
 .lsgd-date   { color: #9ca3af; font-size: .78rem; white-space: nowrap; }
 .lsgd-balance { color: #6b7280; font-size: .82rem; }
 .lsgd-amount { font-weight: 700; white-space: nowrap; }

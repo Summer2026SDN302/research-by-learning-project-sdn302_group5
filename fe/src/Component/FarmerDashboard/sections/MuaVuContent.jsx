@@ -124,7 +124,7 @@ export default function MuaVuContent({ user, onNavigate }) {
         <div className="fd-sec-card">
           <div className="fd-sec-head">
             <h3>Tổng quan mùa vụ</h3>
-            <span style={{ fontSize: 13, color: '#16a34a', cursor: 'pointer', fontWeight: 600 }} onClick={() => onNavigate?.("dangban")}>Xem tất cả</span>
+            <span style={{ fontSize: 13, color: '#16a34a', cursor: 'pointer', fontWeight: 600 }} onClick={() => onNavigate?.("sanpham")}>Xem tất cả</span>
           </div>
           <div className="fd-sec-body">
             {displayCrops.length === 0 ? (

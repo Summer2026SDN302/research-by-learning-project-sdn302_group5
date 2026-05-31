@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "../../../contexts/ToastContext";
 import enterpriseService from "../../../services/enterprise.service";
 import escrowService from "../../../services/escrow.service";
@@ -15,6 +15,8 @@ export default function DonHangContent({ searchQuery = "" }) {
   const [returnLoading, setReturnLoading] = useState(false);
   const [qcChecked, setQcChecked] = useState([false, false, false, false]);
   const [qcVerifiedByOrder, setQcVerifiedByOrder] = useState({});
+  const [qcFocus, setQcFocus] = useState(false);
+  const qcPanelRef = useRef(null);
   const toast = useToast();
 
   const loadOrders = useCallback(async () => {
@@ -58,6 +60,22 @@ export default function DonHangContent({ searchQuery = "" }) {
       setQcChecked([false, false, false, false]);
     }
   }, [selectedOrder, qcVerifiedByOrder]);
+
+  useEffect(() => {
+    if (!qcFocus || !selectedOrder) return;
+    if (selectedOrder.status !== "quality_check" || selectedOrder.escrowStatus === "none") return;
+    const timer = setTimeout(() => {
+      if (qcPanelRef.current) {
+        qcPanelRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [qcFocus, selectedOrder]);
+
+  const closeSelectedOrder = useCallback(() => {
+    setSelectedOrder(null);
+    setQcFocus(false);
+  }, []);
 
   const orders = apiOrders || [];
   const noEscrowCount = orders.filter(o => o.escrowStatus === "none").length;
@@ -123,6 +141,7 @@ export default function DonHangContent({ searchQuery = "" }) {
     }
     if (order.status === "quality_check" && !qcVerifiedByOrder[order.contractId]) {
       toast.warning("Vui lòng hoàn tất checklist kiểm tra chất lượng trước khi xác nhận.");
+      setQcFocus(true);
       setSelectedOrder(order);
       setActionModal(null);
       return;
@@ -368,7 +387,10 @@ export default function DonHangContent({ searchQuery = "" }) {
                 onClick={() => {
                   if (actionModal.type === "create_escrow") { handleCreateEscrow(actionModal.order); return; }
                   if (actionModal.order.status === "quality_check" && !qcVerifiedByOrder[actionModal.order.contractId]) {
-                    setActionModal(null); setSelectedOrder(actionModal.order); return;
+                    setActionModal(null);
+                    setQcFocus(true);
+                    setSelectedOrder(actionModal.order);
+                    return;
                   }
                   handleMilestoneConfirm(actionModal.order);
                 }}
@@ -406,7 +428,7 @@ export default function DonHangContent({ searchQuery = "" }) {
         ];
         const escLbl = escrowStatusLabels[selectedOrder.escrowStatus] || { label: selectedOrder.escrowStatus, cls: "esc-none" };
         return (
-          <div className="dh-overlay" onClick={() => setSelectedOrder(null)}>
+          <div className="dh-overlay" onClick={closeSelectedOrder}>
             <div className={`dh-modal dh-modal-lg dh-detail-${selectedOrder.status}`} onClick={e => e.stopPropagation()}>
 
               {/* Header */}
@@ -420,7 +442,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                   <span className={`dh-status-chip dh-chip-${selectedOrder.status}`}>
                     {(statusLabels[selectedOrder.status] || {}).label || selectedOrder.status}
                   </span>
-                  <button className="dh-close-btn" onClick={() => setSelectedOrder(null)}>
+                  <button className="dh-close-btn" onClick={closeSelectedOrder}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
@@ -465,7 +487,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                       <div className="dh-esc-bar" style={{ width: `${(selectedOrder.completedSteps / (selectedOrder.totalSteps || 1)) * 100}%` }} />
                     </div>
                     {selectedOrder.escrowStatus === "none" && (
-                      <button className="dh-btn-esc-create" onClick={() => { setSelectedOrder(null); setActionModal({ order: selectedOrder, type: "create_escrow" }); }}>
+                      <button className="dh-btn-esc-create" onClick={() => { closeSelectedOrder(); setActionModal({ order: selectedOrder, type: "create_escrow" }); }}>
                         + Tạo ký quỹ ngay
                       </button>
                     )}
@@ -507,7 +529,7 @@ export default function DonHangContent({ searchQuery = "" }) {
 
                 {/* QC Panel */}
                 {selectedOrder.status === "quality_check" && selectedOrder.escrowStatus !== "none" && (
-                  <div className="dh-qc">
+                  <div className="dh-qc" ref={qcPanelRef}>
                     <div className="dh-qc-head">
                       <div className="dh-qc-head-left">
                         <div className="dh-qc-icon">
@@ -526,7 +548,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                     </div>
 
                     <div className="dh-qc-prog">
-                      <div className="dh-qc-prog-fill" style={{ width: `${(checkedCount / QC_ITEMS.length) * 100}%` }} />
+                      <div className={`dh-qc-prog-fill${allChecked ? " complete" : ""}`} style={{ width: `${(checkedCount / QC_ITEMS.length) * 100}%` }} />
                     </div>
 
                     <ul className="dh-qc-list">
@@ -555,7 +577,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                         onClick={() => {
                           if (!allChecked) return;
                           setQcVerifiedByOrder(prev => ({ ...prev, [selectedOrder.contractId]: true }));
-                          setSelectedOrder(null);
+                          closeSelectedOrder();
                           setQcChecked([false, false, false, false]);
                           setActionModal({ order: selectedOrder, type: "confirm_milestone" });
                         }}
@@ -569,7 +591,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                       <button
                         className="dh-qc-reject"
                         onClick={() => {
-                          setSelectedOrder(null);
+                          closeSelectedOrder();
                           setQcChecked([false, false, false, false]);
                           setReturnReason("");
                           setReturnModal(selectedOrder);
@@ -604,7 +626,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                         toast.warning("Đơn hàng đang chờ nông dân xác nhận giao hàng.");
                         return;
                       }
-                      setSelectedOrder(null);
+                      closeSelectedOrder();
                       setActionModal({ order: selectedOrder, type: "confirm_milestone" });
                     }}
                   >
@@ -614,12 +636,12 @@ export default function DonHangContent({ searchQuery = "" }) {
                 {selectedOrder.status === "shipping" && selectedOrder.escrowStatus !== "none" && (
                   <button
                     className="dh-btn-danger-outline"
-                    onClick={() => { setSelectedOrder(null); setReturnReason(""); setReturnModal(selectedOrder); }}
+                    onClick={() => { closeSelectedOrder(); setReturnReason(""); setReturnModal(selectedOrder); }}
                   >
                     Trả hàng / Khiếu nại
                   </button>
                 )}
-                <button className="dh-btn-ghost" onClick={() => setSelectedOrder(null)}>Đóng</button>
+                <button className="dh-btn-ghost" onClick={closeSelectedOrder}>Đóng</button>
               </div>
             </div>
           </div>
@@ -763,7 +785,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                         </div>
                         <span className="dh-cs-label">{label}</span>
                       </div>
-                      {i < STEP_LABELS.length - 1 && <div className={`dh-cs-line ${done ? "done" : ""}`} />}
+                      {i < STEP_LABELS.length - 1 && <div className={`dh-cs-line ${i < curStep - 1 ? "done" : ""}`} />}
                     </div>
                   );
                 })}
@@ -773,7 +795,7 @@ export default function DonHangContent({ searchQuery = "" }) {
               <div className="dh-card-foot">
                 <span className="dh-card-date">Tạo HĐ: {order.orderDate}</span>
                 <div className="dh-card-actions">
-                  <button className="dh-act-detail" onClick={() => setSelectedOrder(order)}>
+                  <button className="dh-act-detail" onClick={() => { setQcFocus(false); setSelectedOrder(order); }}>
                     Xem chi tiết
                   </button>
                   {order.escrowStatus === "none" && (
@@ -782,7 +804,7 @@ export default function DonHangContent({ searchQuery = "" }) {
                     </button>
                   )}
                   {order.status === "quality_check" && order.escrowStatus !== "none" && (
-                    <button className="dh-act-qc" onClick={() => setSelectedOrder(order)}>
+                    <button className="dh-act-qc" onClick={() => { setQcFocus(true); setSelectedOrder(order); }}>
                       Kiểm tra CL
                     </button>
                   )}

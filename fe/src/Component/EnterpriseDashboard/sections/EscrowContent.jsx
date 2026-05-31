@@ -220,8 +220,8 @@ export default function EscrowContent() {
                   </div>
                   <div className="ec-body">
                     <div className="ec-stat"><span>Giá trị hợp đồng</span><strong>{fmtMoney(c.totalValue || 0)}</strong></div>
-                    <div className="ec-stat"><span>Cần ký quỹ</span><strong className="released">{fmtMoney(c.depositAmount || 0)}</strong></div>
-                    <div className="ec-stat"><span>Số dư hiện tại</span><strong style={{ color: balance >= (c.depositAmount || 0) ? '#16a34a' : '#ef4444' }}>{fmtMoney(balance)}</strong></div>
+                    <div className="ec-stat"><span>Cần ký quỹ (100%)</span><strong className="released">{fmtMoney(c.totalValue || 0)}</strong></div>
+                    <div className="ec-stat"><span>Số dư hiện tại</span><strong style={{ color: balance >= (c.totalValue || 0) ? '#16a34a' : '#ef4444' }}>{fmtMoney(balance)}</strong></div>
                   </div>
                   <div className="ec-footer">
                     <span className="ec-date">{formatDate(c.createdAt)}</span>
@@ -230,7 +230,7 @@ export default function EscrowContent() {
                       disabled={fundingLoading}
                       onClick={() => handleFundContract(c)}
                     >
-                      {fundingLoading ? 'Đang xử lý...' : `Nạp ký quỹ — ${fmtMoney(c.depositAmount || 0)}`}
+                      {fundingLoading ? 'Đang xử lý...' : `Nạp ký quỹ — ${fmtMoney(c.totalValue || 0)}`}
                     </button>
                   </div>
                 </div>

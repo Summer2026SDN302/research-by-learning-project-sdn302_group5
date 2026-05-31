@@ -53,14 +53,13 @@ export class EscrowService {
     const existing = await Escrow.findOne({ contractId: contract._id });
     if (existing) return existing; // idempotent — return existing
 
-    const depositAmount = contract.depositAmount;
-    const milestones = buildMilestones(contract.paymentTerms, depositAmount);
+    const milestones = buildMilestones(contract.paymentTerms, contract.totalValue);
 
     const escrow = await Escrow.create({
       contractId: contract._id,
       farmerId: contract.farmerId,
       enterpriseId: contract.enterpriseId,
-      totalAmount: depositAmount,
+      totalAmount: contract.totalValue,
       milestones,
       transactions: [],
     });
@@ -94,14 +93,13 @@ export class EscrowService {
       throw new AppError('Escrow đã tồn tại cho hợp đồng này', 400);
     }
 
-    const depositAmount = contract.depositAmount;
-    const milestones = buildMilestones(contract.paymentTerms, depositAmount);
+    const milestones = buildMilestones(contract.paymentTerms, contract.totalValue);
 
     const escrow = await Escrow.create({
       contractId: contract._id,
       farmerId: contract.farmerId,
       enterpriseId: contract.enterpriseId,
-      totalAmount: depositAmount,
+      totalAmount: contract.totalValue,
       milestones,
       transactions: [],
     });
@@ -151,7 +149,7 @@ export class EscrowService {
     // Validate amount matches expected
     if (amount < escrow.totalAmount) {
       throw new AppError(
-        `Số tiền nạp phải bằng giá trị ký quỹ: ${escrow.totalAmount.toLocaleString('vi-VN')} VND`,
+        `Số tiền nạp phải bằng toàn bộ giá trị hợp đồng: ${escrow.totalAmount.toLocaleString('vi-VN')} VND`,
         400
       );
     }
@@ -195,7 +193,7 @@ export class EscrowService {
       milestone1.enterpriseConfirmedAt = new Date();
       milestone1.completedAt = new Date();
 
-      // For 100_upfront: release full payment to farmer immediately
+      // Giải ngân ngay phần trước theo điều khoản (50_50 → 50%, 30_70 → 30%, 100_upfront → 100%)
       if ((milestone1.releasePercentage ?? 0) > 0) {
         await this.completeMilestone(escrow, milestone1);
       }
@@ -212,11 +210,15 @@ export class EscrowService {
 
     // Notify farmer about deposit
     try {
+      const immediateRelease = milestone1?.releaseAmount ?? 0;
+      const releaseNote = immediateRelease > 0
+        ? ` ${immediateRelease.toLocaleString('vi-VN')} VND đã được giải ngân vào tài khoản của bạn ngay lập tức.`
+        : '';
       await NotificationService.create({
         userId: escrow.farmerId.toString(),
         type: 'escrow',
         title: 'Doanh nghiệp đã ký quỹ',
-        message: `Doanh nghiệp đã đặt cọc ${amount.toLocaleString('vi-VN')} VND vào ký quỹ. Hợp đồng đã được kích hoạt — vui lòng chuẩn bị hàng hóa.`,
+        message: `Doanh nghiệp đã ký quỹ toàn bộ ${amount.toLocaleString('vi-VN')} VND.${releaseNote} Hợp đồng đã được kích hoạt — vui lòng chuẩn bị hàng hóa.`,
         severity: 'info',
         relatedId: String(escrow._id),
         relatedModel: 'Escrow',

@@ -1,6 +1,6 @@
 /* Giao diện chi tiết hợp đồng dùng chung (Farmer + Enterprise). Scope: .cdv- */
 .cdv-root {
-  font-family: 'Inter', 'Work Sans', system-ui, sans-serif;
+  font-family: var(--font-base);
   color: #111827;
 }
 
@@ -30,7 +30,7 @@
 .cdv-back-btn:hover { border-color: #16a34a; color: #16a34a; }
 .cdv-topnav-right { display: flex; align-items: center; gap: 10px; }
 .cdv-code-badge {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   color: #15803d;

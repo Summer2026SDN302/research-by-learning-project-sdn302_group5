@@ -405,7 +405,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Brush Script MT", "Dancing Script", cursive;
+  font-family: var(--font-script);
   font-size: 1.4rem;
   color: #198754;
   background: #f0fdf4;

@@ -2,10 +2,14 @@
   /* Hệ thống font theo vị trí — không khoá cứng một font duy nhất:
      - base: chữ thân/UI (dễ đọc, tối ưu tiếng Việt)
      - heading: tiêu đề mục, card
-     - display: tiêu đề lớn marketing (hero, banner) */
+     - display: tiêu đề lớn marketing (hero, banner)
+     - mono: mã/OTP/code
+     - script: chữ ký/ghi chú nhấn mạnh */
   --font-base: 'Be Vietnam Pro', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-heading: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Segoe UI', sans-serif;
   --font-display: 'Sora', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-script: 'Dancing Script', 'Brush Script MT', cursive;
 
   /* Màu thương hiệu & trạng thái (token dùng chung) */
   --brand: #16a34a;

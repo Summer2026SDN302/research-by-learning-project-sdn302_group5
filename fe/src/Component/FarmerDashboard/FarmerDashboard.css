@@ -1799,7 +1799,7 @@
 .cd-code-badge {
   padding: 5px 12px; background: #f3f4f6; border-radius: 8px;
   font-size: 12px; font-weight: 700; color: #374151;
-  font-family: monospace; letter-spacing: 0.5px;
+  font-family: var(--font-mono); letter-spacing: 0.5px;
 }
 
 /* Preview header status */
@@ -1923,7 +1923,7 @@
 
 .cci-code {
   font-size: 11px; font-weight: 700; color: #9ca3af;
-  letter-spacing: 0.5px; margin-bottom: 4px; font-family: monospace;
+  letter-spacing: 0.5px; margin-bottom: 4px; font-family: var(--font-mono);
 }
 .cci-date { font-size: 11px; color: #9ca3af; margin-top: 4px; }
 
@@ -5033,7 +5033,7 @@
   margin-bottom: 10px;
 }
 .fd-list-title { font-size: 14px; font-weight: 700; color: #111812; margin-bottom: 2px; }
-.fd-list-code  { font-size: 10.5px; color: #9ca3af; font-family: monospace; }
+.fd-list-code  { font-size: 10.5px; color: #9ca3af; font-family: var(--font-mono); }
 .fd-list-fields {
   display: flex;
   gap: 20px;
@@ -5115,7 +5115,7 @@
   border-bottom: 1px solid #e8f0ea;
 }
 .fd-order-partner { font-size: 13px; font-weight: 700; color: #111812; }
-.fd-order-code    { font-size: 10.5px; color: #9ca3af; font-family: monospace; margin-top: 1px; }
+.fd-order-code    { font-size: 10.5px; color: #9ca3af; font-family: var(--font-mono); margin-top: 1px; }
 .fd-order-card-body {
   display: flex;
   justify-content: space-between;

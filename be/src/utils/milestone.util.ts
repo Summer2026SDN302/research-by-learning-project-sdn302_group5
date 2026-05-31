@@ -9,12 +9,15 @@ const MILESTONE_COUNT = 5;
 const PERCENT_TOTAL = 100;
 
 // Phân bổ phần trăm giải ngân theo từng mốc (step 1 → step 5) cho từng loại paymentTerms.
+// Cơ chế mới: doanh nghiệp nạp 100% totalValue vào ký quỹ; hệ thống giải ngân ngay theo điều khoản.
+// Step 1 = Ký quỹ (giải ngân ngay), Step 5 = Hoàn tất (giải ngân phần còn lại).
+// 100_delivery: toàn bộ giải ngân tại Step 4 khi doanh nghiệp xác nhận nhận hàng.
 const RELEASE_PERCENT_BY_TERMS: Record<string, [number, number, number, number, number]> = {
-  '50_50':        [0, 0, 50,  50,  0],
-  '30_70':        [0, 0, 30,  60, 10],
-  '100_delivery': [0, 0, 100,  0,  0],
-  '100_upfront':  [100, 0, 0,  0,  0],
-  'custom':       [0, 0, 40,  50, 10],
+  '50_50':        [ 50, 0, 0,   0, 50],
+  '30_70':        [ 30, 0, 0,   0, 70],
+  '100_delivery': [  0, 0, 0, 100,  0],
+  '100_upfront':  [100, 0, 0,   0,  0],
+  'custom':       [ 25, 0, 0,   0, 75],
 };
 
 const MILESTONE_TEMPLATES = [
@@ -25,7 +28,7 @@ const MILESTONE_TEMPLATES = [
   { step: 5, name: 'Hoàn tất',            description: 'Hai bên xác nhận hoàn thành — giải ngân số dư còn lại',         requiredBy: 'system'     as const },
 ];
 
-export function buildMilestones(paymentTerms: PaymentTerms, depositAmount: number): IMilestone[] {
+export function buildMilestones(paymentTerms: PaymentTerms, totalAmount: number): IMilestone[] {
   const pcts = RELEASE_PERCENT_BY_TERMS[paymentTerms] ?? RELEASE_PERCENT_BY_TERMS['custom'];
 
   return MILESTONE_TEMPLATES.map((template, index) => ({
@@ -34,7 +37,7 @@ export function buildMilestones(paymentTerms: PaymentTerms, depositAmount: numbe
     farmerConfirmed: false,
     enterpriseConfirmed: false,
     releasePercentage: pcts[index],
-    releaseAmount: (depositAmount * pcts[index]) / PERCENT_TOTAL,
+    releaseAmount: (totalAmount * pcts[index]) / PERCENT_TOTAL,
   }));
 }
 
