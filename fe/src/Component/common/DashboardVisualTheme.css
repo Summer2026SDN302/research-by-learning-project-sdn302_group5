@@ -511,6 +511,25 @@ input:focus, textarea:focus, select:focus {
   background: #f0fdf4 !important;
 }
 
+/* ===== 29d. FARMER — Progress fill (season progress bar) ===== */
+
+.progress-fill {
+  background: linear-gradient(90deg, #16a34a, #22c55e) !important;
+}
+
+/* ===== 29e. FARMER — List card left border ===== */
+
+.fd-list-card {
+  border-left-color: #16a34a !important;
+}
+.fd-list-card.lc-active {
+  border-left-color: #16a34a !important;
+}
+
+/* ===== 29f. FARMER — Sec head "Xem tất cả" link ===== */
+
+.fd-sec-head span[style] { color: #16a34a !important; }
+
 /* ===== 29. PAGE HEADER in both dashboards ===== */
 
 .fd-pg-header {
