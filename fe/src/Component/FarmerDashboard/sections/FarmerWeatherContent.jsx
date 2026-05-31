@@ -8,6 +8,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { matchProvince, getDistricts } from "../../../data/vn-locations";
 import weatherService from "../../../services/weather.service";
 import { INSURANCE_PROGRAMS } from "../../../constants";
+import "../../common/WeatherInsurance.css";
 
 const VIETNAM_PROVINCES = [
   { value: "Ha Noi", label: "Hà Nội" }, { value: "Ho Chi Minh", label: "TP. Hồ Chí Minh" },
