@@ -530,6 +530,41 @@ input:focus, textarea:focus, select:focus {
 
 .fd-sec-head span[style] { color: #16a34a !important; }
 
+/* ===== 29g. ENTERPRISE — Misc neon fixes ===== */
+
+/* Pulse dot (online indicator) */
+.pulse-dot { background: #22c55e !important; }
+
+/* View-all button text */
+.view-all-btn { color: #16a34a !important; }
+
+/* Contract row approve button (more specific than .approve-btn) */
+.contract-actions-row .approve-btn {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+}
+.contract-actions-row .approve-btn:hover {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3) !important;
+}
+
+/* "Buyer pending" sign state */
+.buyer-pending {
+  border-top-color: #16a34a !important;
+  color: #15803d !important;
+}
+
+/* SIGN BUTTON — the main CTA in contract detail */
+.sign-btn {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3) !important;
+}
+.sign-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4) !important;
+  transform: translateY(-1px);
+}
+
 /* ===== 29. PAGE HEADER in both dashboards ===== */
 
 .fd-pg-header {
