@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { FiAlertTriangle, FiCheckCircle, FiX } from "react-icons/fi";
 import adminService from "../../../services/admin.service";
 import { formatMoney } from "../../../hooks/useApiData";
 import { useToast } from "../../../contexts/ToastContext";
@@ -16,6 +17,89 @@ const STATUS_OPTIONS = [
   { val: "", label: "Tất cả" },
 ];
 
+// --- Custom confirm modal ---
+function ConfirmModal({ open, title, message, detail, confirmLabel, confirmCls, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="adm-modal-overlay" onClick={onCancel}>
+      <div className="adm-modal adm-modal-sm" onClick={e => e.stopPropagation()}>
+        <div className="adm-modal-hd">
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FiCheckCircle size={18} color="#16a34a" />
+            <h3 style={{ margin: 0 }}>{title}</h3>
+          </span>
+          <button className="adm-modal-close" onClick={onCancel}><FiX size={16} /></button>
+        </div>
+        <div className="adm-modal-body">
+          <p style={{ margin: "0 0 8px", color: "#334155", fontSize: 14 }}>{message}</p>
+          {detail && <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>{detail}</p>}
+        </div>
+        <div className="adm-modal-ft">
+          <button className="adm-btn adm-btn-ghost" onClick={onCancel}>Hủy</button>
+          <button
+            className="adm-btn"
+            style={{ background: confirmCls || "#16a34a", color: "#fff", border: "none" }}
+            onClick={onConfirm}
+          >
+            {confirmLabel || "Xác nhận"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Custom prompt modal (reject with reason) ---
+function RejectModal({ open, request, onConfirm, onCancel }) {
+  const [reason, setReason] = useState("");
+  if (!open) return null;
+  const submit = () => { onConfirm(reason); setReason(""); };
+  const cancel = () => { setReason(""); onCancel(); };
+  return (
+    <div className="adm-modal-overlay" onClick={cancel}>
+      <div className="adm-modal adm-modal-sm" onClick={e => e.stopPropagation()}>
+        <div className="adm-modal-hd adm-modal-hd-danger">
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FiAlertTriangle size={18} color="#dc2626" />
+            <h3 style={{ margin: 0 }}>Từ chối yêu cầu rút tiền</h3>
+          </span>
+          <button className="adm-modal-close" onClick={cancel}><FiX size={16} /></button>
+        </div>
+        <div className="adm-modal-body">
+          {request && (
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#475569" }}>
+              <div><strong>{request.bankAccountHolder}</strong> — {formatMoney(request.amount)}</div>
+              <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{request.bankName} · {request.bankAccountNumber}</div>
+            </div>
+          )}
+          <label style={{ fontSize: 13, fontWeight: 600, color: "#334155", display: "block", marginBottom: 6 }}>
+            Lý do từ chối <span style={{ fontWeight: 400, color: "#94a3b8" }}>(không bắt buộc)</span>
+          </label>
+          <textarea
+            autoFocus
+            rows={3}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, color: "#334155", resize: "vertical", outline: "none", fontFamily: "inherit" }}
+            placeholder="Nhập lý do từ chối để thông báo cho người dùng..."
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && e.ctrlKey && submit()}
+          />
+        </div>
+        <div className="adm-modal-ft">
+          <button className="adm-btn adm-btn-ghost" onClick={cancel}>Hủy</button>
+          <button
+            className="adm-btn"
+            style={{ background: "#dc2626", color: "#fff", border: "none" }}
+            onClick={submit}
+          >
+            Xác nhận từ chối
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function QuanLyRutTien() {
   const toast = useToast();
   const [requests, setRequests] = useState([]);
@@ -23,6 +107,10 @@ export default function QuanLyRutTien() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [actionId, setActionId] = useState(null);
+
+  // modal state
+  const [confirmModal, setConfirmModal] = useState({ open: false, request: null });
+  const [rejectModal, setRejectModal]   = useState({ open: false, request: null });
 
   const load = useCallback(async (page = 1) => {
     setLoading(true);
@@ -44,8 +132,14 @@ export default function QuanLyRutTien() {
 
   const fmtDate = (d) => d ? new Date(d).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
-  const handleComplete = async (r) => {
-    if (!window.confirm(`Xác nhận ĐÃ CHUYỂN KHOẢN ${formatMoney(r.amount)} cho ${r.bankAccountHolder}?\nHệ thống sẽ trừ số tiền này khỏi số dư của người dùng.`)) return;
+  // open modals
+  const handleComplete = (r) => setConfirmModal({ open: true, request: r });
+  const handleReject   = (r) => setRejectModal({ open: true, request: r });
+
+  // confirm complete
+  const doComplete = async () => {
+    const r = confirmModal.request;
+    setConfirmModal({ open: false, request: null });
     setActionId(r._id);
     try {
       await adminService.completeWithdrawal(r._id, "");
@@ -58,9 +152,10 @@ export default function QuanLyRutTien() {
     }
   };
 
-  const handleReject = async (r) => {
-    const reason = window.prompt("Lý do từ chối (không bắt buộc):", "");
-    if (reason === null) return;
+  // confirm reject
+  const doReject = async (reason) => {
+    const r = rejectModal.request;
+    setRejectModal({ open: false, request: null });
     setActionId(r._id);
     try {
       await adminService.rejectWithdrawal(r._id, reason);
@@ -75,6 +170,29 @@ export default function QuanLyRutTien() {
 
   return (
     <>
+      {/* Confirm complete modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="Xác nhận đã chuyển khoản"
+        message={
+          confirmModal.request
+            ? `Xác nhận ĐÃ CHUYỂN KHOẢN ${formatMoney(confirmModal.request.amount)} cho ${confirmModal.request.bankAccountHolder}?`
+            : ""
+        }
+        detail="Hệ thống sẽ trừ số tiền này khỏi số dư của người dùng."
+        confirmLabel="Đã chuyển khoản"
+        onConfirm={doComplete}
+        onCancel={() => setConfirmModal({ open: false, request: null })}
+      />
+
+      {/* Reject modal */}
+      <RejectModal
+        open={rejectModal.open}
+        request={rejectModal.request}
+        onConfirm={doReject}
+        onCancel={() => setRejectModal({ open: false, request: null })}
+      />
+
       <div className="adm-page-header">
         <div>
           <h1 className="adm-page-title">Quản lý Rút tiền</h1>

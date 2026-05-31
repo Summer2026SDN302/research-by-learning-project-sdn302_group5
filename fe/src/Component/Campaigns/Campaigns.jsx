@@ -10,22 +10,29 @@ import "./Campaigns.css";
 function Campaigns() {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     productService.getAll({ limit: 3, sort: '-createdAt' })
       .then(res => {
-        const list = res?.data?.products || res?.data || [];
+        // API trả về { success, data: { products: [...] } } hoặc { success, products: [...] }
+        const raw = res?.data?.products || res?.products || res?.data || [];
+        const list = Array.isArray(raw) ? raw : [];
         setCampaigns(list.slice(0, 3).map(p => ({
           id: p._id || p.id,
           name: p.name,
           location: p.location || "Việt Nam",
           image: resolveImageUrl(p.image) || "/images/products/default.jpg",
-          progress: p.progress || 0,
-          harvest: p.expectedDate ? `Dự kiến thu hoạch: Tháng ${new Date(p.expectedDate).getMonth() + 1}/${new Date(p.expectedDate).getFullYear()}` : "Dự kiến thu hoạch: Quanh năm",
+          progress: typeof p.progress === 'number' ? p.progress : 0,
+          harvest: p.expectedDate
+            ? `Dự kiến thu hoạch: Tháng ${new Date(p.expectedDate).getMonth() + 1}/${new Date(p.expectedDate).getFullYear()}`
+            : "Dự kiến thu hoạch: Quanh năm",
           tag: (p.certifications && p.certifications[0]) || p.badge || "Nông sản",
         })));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const containerVariants = {
@@ -78,14 +85,31 @@ function Campaigns() {
 
           {/* CAMPAIGNS CARDS */}
           <Row>
-            {campaigns.length === 0 && <Col className="text-center py-5" style={{ color: '#888' }}>Đang tải mùa vụ...</Col>}
-            {campaigns.map((campaign, index) => (
+            {loading && (
+              <Col className="text-center py-5">
+                <div className="campaigns-loading">
+                  <div className="campaigns-spinner" />
+                  <p>Đang tải mùa vụ...</p>
+                </div>
+              </Col>
+            )}
+            {!loading && campaigns.length === 0 && (
+              <Col className="text-center py-5">
+                <div className="campaigns-empty">
+                  <p>Hiện chưa có mùa vụ nào đang mở đăng ký.</p>
+                  <button className="campaigns-empty-btn" onClick={() => navigate(ROUTES.PRODUCTS)}>
+                    Xem tất cả sản phẩm
+                  </button>
+                </div>
+              </Col>
+            )}
+            {campaigns.map((campaign) => (
               <Col md={4} key={campaign.id} className="mb-4">
                 <motion.div
                   variants={cardVariants}
-                  whileHover={{ 
+                  whileHover={{
                     y: -8,
-                    boxShadow: "0 20px 40px rgba(19, 236, 55, 0.15)"
+                    boxShadow: "0 20px 40px rgba(21, 128, 61, 0.18)"
                   }}
                   transition={{ duration: 0.3 }}
                 >
@@ -101,7 +125,7 @@ function Campaigns() {
                       <div className="campaign-progress-section">
                         <div className="progress-header">
                           <span className="progress-label">TIẾN ĐỘ BAO TIÊU</span>
-                          <span className="progress-percent">{campaign.progress}%</span>
+                          <span className="progress-percent">{parseFloat(campaign.progress.toFixed(2))}%</span>
                         </div>
                         <div className="progress-bar-custom">
                           <div 

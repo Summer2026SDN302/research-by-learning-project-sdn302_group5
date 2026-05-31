@@ -1,6 +1,6 @@
 .campaigns-section {
-  padding: 36px 0 56px;
-  background: transparent;
+  padding: 48px 0 64px;
+  background: #f8fdf9;
   position: relative;
 }
 
@@ -18,28 +18,28 @@
 .campaigns-header h2 {
   font-size: 2rem;
   font-weight: 700;
-  color: #14eb47;
+  color: #166534;
   margin-bottom: 8px;
-  text-shadow: 0 8px 22px rgba(19, 236, 55, 0.22);
 }
 
 .campaigns-header p {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: #4b7c5c;
   margin: 0;
 }
 
 .campaigns-header .view-all {
-  color: rgba(218, 255, 227, 0.94);
+  color: #15803d;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: color 0.2s, transform 0.2s;
   white-space: nowrap;
   margin-top: 5px;
 }
 
 .campaigns-header .view-all:hover {
+  color: #166534;
   transform: translateX(5px);
 }
 
@@ -73,7 +73,7 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  background: #13ec37;
+  background: #16a34a;
   color: white;
   padding: 6px 14px;
   border-radius: 999px;
@@ -81,6 +81,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
 }
 
 .campaign-card .card-body {
@@ -137,7 +138,7 @@
 
 .progress-fill {
   height: 100%;
-  background-color: #13ec37;
+  background: linear-gradient(90deg, #16a34a, #22c55e);
   border-radius: 10px;
   transition: width 0.6s ease;
 }
@@ -164,6 +165,51 @@
   box-shadow: 0 8px 20px rgba(17, 91, 57, 0.3);
   color: white !important;
 }
+
+/* Loading state */
+.campaigns-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.campaigns-loading p { margin: 0; }
+.campaigns-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #dcfce7;
+  border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: campaigns-spin 0.8s linear infinite;
+}
+@keyframes campaigns-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.campaigns-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+.campaigns-empty p { margin: 0; }
+.campaigns-empty-btn {
+  padding: 10px 24px;
+  background: #15803d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.campaigns-empty-btn:hover { background: #166534; }
 
 @media (max-width: 768px) {
   .campaigns-header {

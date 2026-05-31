@@ -1,9 +1,153 @@
 // Tab "Rút tiền" trong ví: user làm đơn xin rút -> Admin duyệt -> hệ thống trừ số dư.
-import { useState, useEffect, useCallback } from "react";
-import { FiArrowUpRight, FiClock, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { FiArrowUpRight, FiClock, FiCheckCircle, FiXCircle, FiSearch, FiChevronDown, FiX } from "react-icons/fi";
 import { useToast } from "../../contexts/ToastContext";
 import paymentService from "../../services/payment.service";
 import { formatMoney } from "../../hooks/useApiData";
+
+const VN_BANKS = [
+  "Vietcombank (VCB)",
+  "VietinBank (CTG)",
+  "BIDV",
+  "Agribank",
+  "Techcombank",
+  "MB Bank",
+  "ACB",
+  "VPBank",
+  "Sacombank",
+  "HDBank",
+  "TPBank",
+  "OCB",
+  "VIB",
+  "SHB",
+  "SeABank",
+  "Eximbank",
+  "LienVietPostBank",
+  "MSB (Maritime Bank)",
+  "Nam A Bank",
+  "BaoViet Bank",
+  "Bac A Bank",
+  "PVcomBank",
+  "SCB (Saigon Commercial Bank)",
+  "Kiên Long Bank",
+  "VietBank",
+  "NCB (National Citizen Bank)",
+  "ABBank",
+  "Saigon Bank",
+  "VietABank",
+  "PG Bank",
+  "Dong A Bank",
+  "CBBank",
+  "GPBank",
+  "OceanBank",
+  "HSBC Việt Nam",
+  "Standard Chartered Việt Nam",
+  "Shinhan Bank Việt Nam",
+  "UOB Việt Nam",
+  "Woori Bank Việt Nam",
+  "Cake by VPBank",
+  "Timo",
+];
+
+function BankSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const rootRef = useRef(null);
+  const searchRef = useRef(null);
+
+  const filtered = VN_BANKS.filter((b) =>
+    b.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    const onDown = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    };
+    if (open) {
+      document.addEventListener("mousedown", onDown);
+      setTimeout(() => searchRef.current?.focus(), 60);
+    }
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const select = (bank) => {
+    onChange(bank);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const clear = (e) => {
+    e.stopPropagation();
+    onChange("");
+    setSearch("");
+  };
+
+  return (
+    <div className="wd-bank-select" ref={rootRef}>
+      <div
+        className={`wd-bank-trigger ${open ? "open" : ""}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={`wd-bank-trigger-text ${!value ? "placeholder" : ""}`}>
+          {value || "Chọn hoặc nhập tên ngân hàng"}
+        </span>
+        <span className="wd-bank-trigger-icons">
+          {value && (
+            <button type="button" className="wd-bank-clear" onClick={clear} title="Xoá">
+              <FiX size={13} />
+            </button>
+          )}
+          <FiChevronDown size={15} className={`wd-bank-chevron ${open ? "rotated" : ""}`} />
+        </span>
+      </div>
+
+      {open && (
+        <div className="wd-bank-dropdown">
+          <div className="wd-bank-search-wrap">
+            <FiSearch size={14} className="wd-bank-search-icon" />
+            <input
+              ref={searchRef}
+              className="wd-bank-search"
+              placeholder="Tìm ngân hàng..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          <div className="wd-bank-list">
+            {filtered.length === 0 ? (
+              <div className="wd-bank-none">Không tìm thấy ngân hàng</div>
+            ) : (
+              filtered.map((bank) => (
+                <button
+                  key={bank}
+                  type="button"
+                  className={`wd-bank-item ${value === bank ? "selected" : ""}`}
+                  onClick={() => select(bank)}
+                >
+                  {bank}
+                  {value === bank && <FiCheckCircle size={13} className="wd-bank-item-check" />}
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="wd-bank-manual">
+            <span>Không có trong danh sách?</span>
+            <input
+              className="wd-bank-manual-input"
+              placeholder="Nhập tên ngân hàng..."
+              value={VN_BANKS.includes(value) ? "" : value}
+              onChange={(e) => onChange(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_META = {
   pending:   { label: "Chờ duyệt",   cls: "#b45309", bg: "#fef3c7", icon: <FiClock size={13} /> },
@@ -79,7 +223,7 @@ export default function WithdrawTab({ onChanged }) {
             }} />
 
           <label className="wd-label">Ngân hàng <span>*</span></label>
-          <input className="wd-input" placeholder="VD: Vietcombank" value={form.bankName} onChange={(e) => setField("bankName", e.target.value)} />
+          <BankSelect value={form.bankName} onChange={(v) => setField("bankName", v)} />
 
           <label className="wd-label">Số tài khoản <span>*</span></label>
           <input className="wd-input" inputMode="numeric" placeholder="Số tài khoản nhận tiền" value={form.bankAccountNumber} onChange={(e) => setField("bankAccountNumber", e.target.value)} />
