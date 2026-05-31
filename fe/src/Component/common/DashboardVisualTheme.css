@@ -466,6 +466,51 @@ input:focus, textarea:focus, select:focus {
   font-weight: 800 !important;
 }
 
+/* ===== 29a. ENTERPRISE — Orders tab active ===== */
+
+.order-tab.active {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+}
+
+/* ===== 29b. CONTRACT FLOW — Buttons ===== */
+
+.cf-btn.primary {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3) !important;
+}
+.cf-btn.primary:hover {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+}
+.cf-btn.outline:hover {
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+
+/* ===== 29c. CONTRACT DETAIL — Spinner & buttons ===== */
+
+.cd-spinner {
+  border-top-color: #16a34a !important;
+}
+.ssc-btn-primary {
+  background: linear-gradient(135deg, #15803d, #16a34a) !important;
+  color: #fff !important;
+}
+.ssc-btn-primary:hover {
+  background: linear-gradient(135deg, #166534, #15803d) !important;
+}
+.ssc-btn-outline:hover {
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+.cd-back-btn:hover {
+  border-color: #16a34a !important;
+  color: #15803d !important;
+  background: #f0fdf4 !important;
+}
+
 /* ===== 29. PAGE HEADER in both dashboards ===== */
 
 .fd-pg-header {
