@@ -105,7 +105,7 @@ export default function EnterpriseDashboard() {
           {activeNav === "tongguan" && <TongQuanContent onNavigate={go} />}
           {activeNav === "hopdong" && <HopDongContent searchQuery={headerSearch} onNavigate={go} />}
           {activeNav === "sanpham" && <SanPhamContent navigate={navigate} />}
-          {activeNav === "donhang" && <DonHangContent searchQuery={headerSearch} />}
+          {activeNav === "donhang" && <DonHangContent searchQuery={headerSearch} onNavigate={go} />}
           {activeNav === "escrow" && <EscrowContent />}
           {activeNav === "vi" && <WalletPayment role="enterprise" />}
           {activeNav === "nhacc" && <SuppliersContent />}

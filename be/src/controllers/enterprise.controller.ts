@@ -287,7 +287,18 @@ export const getAnalytics = asyncHandler(
 /**
  * Get enterprise orders (derived from contracts + escrow milestones)
  * GET /api/v1/enterprise/orders
+ *
+ * "Đơn hàng" = các hợp đồng đã ký trở đi (approved → active → completed),
+ * kèm cả disputed/cancelled để doanh nghiệp vẫn theo dõi được sau khiếu nại.
+ * Trạng thái đơn được suy ra từ tiến độ milestone của escrow (nguồn sự thật).
  */
+const UNIT_LABELS: Record<string, string> = {
+  tan: 'tấn',
+  ta: 'tạ',
+  kg: 'kg',
+  thung: 'thùng',
+};
+
 export const getOrders = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const userId = req.user!.id;
@@ -295,71 +306,133 @@ export const getOrders = asyncHandler(
 
     const contracts = await Contract.find({
       enterpriseId: userId,
-      status: { $in: ['active', 'completed'] },
+      status: { $in: ['approved', 'active', 'completed', 'disputed', 'cancelled'] },
     }).sort({ createdAt: -1 });
 
     const orders = await Promise.all(
       contracts.map(async (c) => {
         const escrow = await Escrow.findOne({ contractId: c._id });
-        const currentMilestone = escrow?.milestones.find(
-          m => m.status === 'in_progress'
-        );
-        const pendingMilestone = escrow?.milestones.find(
-          m => m.status === 'pending'
-        );
-        const completedSteps = escrow?.milestones.filter(
-          m => m.status === 'completed'
-        ).length || 0;
+        const escrowStatus = escrow?.status || 'none';
 
-        const activeMilestone = currentMilestone || pendingMilestone || null;
+        // Snapshot milestone — FE dựng timeline trực tiếp từ đây, không suy đoán.
+        const milestones = (escrow?.milestones || [])
+          .slice()
+          .sort((a, b) => a.step - b.step)
+          .map((m) => ({
+            step: m.step,
+            name: m.name,
+            description: m.description,
+            status: m.status,
+            requiredBy: m.requiredBy,
+            releaseAmount: m.releaseAmount,
+            releasePercentage: m.releasePercentage,
+            farmerConfirmed: m.farmerConfirmed,
+            enterpriseConfirmed: m.enterpriseConfirmed,
+            farmerConfirmedAt: m.farmerConfirmedAt || null,
+            enterpriseConfirmedAt: m.enterpriseConfirmedAt || null,
+            completedAt: m.completedAt || null,
+          }));
+
+        const completedSteps = milestones.filter((m) => m.status === 'completed').length;
+
+        // Mốc đang hoạt động: ưu tiên in_progress, sau đó là pending có step nhỏ nhất.
+        const activeMilestone =
+          milestones.find((m) => m.status === 'in_progress') ||
+          milestones.find((m) => m.status === 'pending') ||
+          null;
+
+        const isDisputed = escrowStatus === 'disputed' || c.status === 'disputed';
+        const isCancelled = c.status === 'cancelled';
+        const isFullyDone =
+          escrowStatus === 'fully_released' || c.status === 'completed' || completedSteps >= 4;
+
+        // Trạng thái đơn (pipeline) — đồng bộ với 5 bước hiển thị trên FE.
+        let orderStatus: string;
+        if (isCancelled) orderStatus = 'cancelled';
+        else if (isDisputed) orderStatus = 'disputed';
+        else if (escrowStatus === 'none' || escrowStatus === 'awaiting_deposit')
+          orderStatus = 'awaiting_deposit';
+        else if (isFullyDone) orderStatus = 'delivered';
+        else if (completedSteps >= 3) orderStatus = 'quality_check';
+        else if (completedSteps >= 2) orderStatus = 'shipping';
+        else orderStatus = 'processing';
+
+        // Doanh nghiệp chỉ được "xác nhận" mốc khi: mốc của DN, KHÔNG phải step 1
+        // (step 1 = Ký quỹ chỉ hoàn tất qua nạp tiền), và escrow đã được nạp tiền.
+        // Tránh việc confirm step 1 giải ngân khoản tiền chưa hề được ký quỹ.
         const enterpriseCanConfirm =
           !!activeMilestone &&
           activeMilestone.requiredBy === 'enterprise' &&
+          activeMilestone.step !== 1 &&
           activeMilestone.status !== 'completed' &&
-          escrow?.status !== 'disputed';
+          ['funded', 'partially_released'].includes(escrowStatus) &&
+          !isDisputed &&
+          !isCancelled;
 
-        const waitingFor = activeMilestone
-          ? activeMilestone.requiredBy === 'enterprise'
-            ? 'enterprise'
-            : activeMilestone.requiredBy === 'farmer'
-              ? 'farmer'
-              : 'system'
-          : null;
+        const waitingFor = isDisputed
+          ? 'admin'
+          : isCancelled || isFullyDone
+            ? null
+            : activeMilestone?.requiredBy || null;
 
-        const disputeStep = activeMilestone?.step || 4;
+        // Escrow tự tạo khi ký HĐ → none gần như không xảy ra; vẫn để fallback "tạo ký quỹ".
+        const canCreateEscrow = escrowStatus === 'none';
+        const canDeposit = escrowStatus === 'awaiting_deposit';
+        const canDispute =
+          !!escrow &&
+          !isDisputed &&
+          !isCancelled &&
+          ['funded', 'partially_released'].includes(escrowStatus) &&
+          !isFullyDone;
 
-        let orderStatus = 'confirmed';
-        if (completedSteps >= 4) orderStatus = 'delivered';
-        else if (completedSteps >= 3) orderStatus = 'quality_check';
-        else if (completedSteps >= 2) orderStatus = 'shipping';
-        else if (completedSteps >= 1) orderStatus = 'processing';
+        const unitLabel = UNIT_LABELS[c.unit] || c.unit;
 
         return {
           id: c._id,
           contractCode: c.contractCode,
           farmerName: c.farmerName,
           productName: c.productName,
-          quantity: `${c.quantity} ${c.unit}`,
+          quantity: `${c.quantity} ${unitLabel}`,
+          rawQuantity: c.quantity,
+          unit: c.unit,
+          unitLabel,
+          pricePerUnit: c.pricePerUnit,
           value: c.totalValue,
+          paymentTerms: c.paymentTerms,
           status: orderStatus,
+          contractStatus: c.status,
           deliveryDate: c.deliveryDate,
           createdAt: c.createdAt,
-          escrowStatus: escrow?.status || 'none',
-          currentMilestone: currentMilestone?.name || null,
+          completedAt: c.completedAt || null,
+          cancelReason: c.cancelReason || null,
+
+          // Escrow — FE gọi confirm/dispute trực tiếp bằng escrowId (không cần round-trip phụ).
+          escrowId: escrow?._id || null,
+          escrowStatus,
+          totalAmount: escrow?.totalAmount ?? c.totalValue,
+          depositedAmount: escrow?.depositedAmount || 0,
+          releasedAmount: escrow?.releasedAmount || 0,
+
+          milestones,
+          currentMilestone: activeMilestone?.name || null,
           currentMilestoneStep: activeMilestone?.step || null,
           currentMilestoneRequiredBy: activeMilestone?.requiredBy || null,
           completedSteps,
           totalSteps: 5,
+
           enterpriseCanConfirm,
-          enterpriseConfirmStep: enterpriseCanConfirm ? activeMilestone?.step || null : null,
-          disputeStep,
+          enterpriseConfirmStep: enterpriseCanConfirm ? activeMilestone?.step ?? null : null,
+          disputeStep: activeMilestone?.step || 4,
+          canCreateEscrow,
+          canDeposit,
+          canDispute,
           waitingFor,
         };
       })
     );
 
     const filteredOrders = status
-      ? orders.filter(o => o.status === status)
+      ? orders.filter((o) => o.status === status)
       : orders;
 
     res.status(200).json({
