@@ -7,6 +7,7 @@ import enterpriseService from "../../../services/enterprise.service";
 import contractService from "../../../services/contract.service";
 import { formatMoney, formatDate } from "../../../hooks/useApiData";
 import ContractDetailView from "../../ContractDetailView/ContractDetailView";
+import { LoadingState, EmptyState } from "../../common/DashboardStates";
 
 const CONTRACT_STATUS_VI_ENT = {
   pending:   'Chờ ký',
@@ -111,11 +112,12 @@ export default function HopDongContent({ searchQuery = "", onNavigate }) {
       </div>
 
       <div className="contracts-list">
-        {apiContracts === null && <p style={{ textAlign: "center", color: "#888", padding: "40px" }}>Đang tải hợp đồng...</p>}
+        {apiContracts === null && <LoadingState label="Đang tải hợp đồng..." />}
         {apiContracts !== null && filteredContracts.length === 0 && (
-          <p style={{ textAlign: "center", color: "#888", padding: "40px" }}>
-            {activeContractTab === "pending" ? "Chưa có hợp đồng nào đang chờ phê duyệt." : "Không có hợp đồng nào trong mục này."}
-          </p>
+          <EmptyState
+            title="Chưa có hợp đồng"
+            message={activeContractTab === "pending" ? "Chưa có hợp đồng nào đang chờ phê duyệt." : "Không có hợp đồng nào trong mục này."}
+          />
         )}
         {filteredContracts.map(contract => {
           const cci = contract.status === 'active' ? 'cci-active' : contract.status === 'completed' ? 'cci-completed' : contract.status === 'cancelled' ? 'cci-cancelled' : 'cci-pending';

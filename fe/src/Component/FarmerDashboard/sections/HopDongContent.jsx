@@ -9,6 +9,7 @@ import farmerService from "../../../services/farmer.service";
 import contractService from "../../../services/contract.service";
 import { formatDate } from "../../../hooks/useApiData";
 import ContractDetailView from "../../ContractDetailView/ContractDetailView";
+import { LoadingState, EmptyState } from "../../common/DashboardStates";
 
 export default function HopDongContent({ searchQuery = "" }) {
   const { showToast } = useToast();
@@ -132,17 +133,13 @@ export default function HopDongContent({ searchQuery = "" }) {
       </div>
 
       <div className="fd-list-area">
-        {contracts === null && (
-          <div className="fd-pg-loading">
-            <div className="fd-pg-spinner" /><p>Đang tải hợp đồng...</p>
-          </div>
-        )}
+        {contracts === null && <LoadingState label="Đang tải hợp đồng..." />}
         {contracts !== null && filtered.length === 0 && (
-          <div className="fd-empty">
-            <FiFileText size={40} color="#d1d5db" />
-            <h4>Chưa có hợp đồng nào</h4>
-            <p>Doanh nghiệp sẽ gửi hợp đồng đến đây khi muốn bao tiêu nông sản của bạn.</p>
-          </div>
+          <EmptyState
+            icon={<FiFileText size={40} />}
+            title="Chưa có hợp đồng nào"
+            message="Doanh nghiệp sẽ gửi hợp đồng đến đây khi muốn bao tiêu nông sản của bạn."
+          />
         )}
         {filtered.map(c => {
           const enterpriseName = c.enterpriseId?.fullName || "Doanh nghiệp";
