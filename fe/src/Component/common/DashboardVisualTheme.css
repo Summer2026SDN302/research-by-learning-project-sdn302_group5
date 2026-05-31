@@ -609,6 +609,27 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2) !important;
 }
 
+/* ===== 29j. FARMER — Link text, season hover, sign states ===== */
+
+/* Generic .link class */
+.link { color: #16a34a !important; }
+
+/* Season item hover */
+.fd-season .season-item:hover {
+  border-color: #16a34a !important;
+}
+
+/* Seller-pending contract sign state */
+.seller-pending {
+  border-top-color: #16a34a !important;
+  color: #15803d !important;
+}
+
+/* Signature mode tab active text */
+.signature-modes button.active {
+  color: #16a34a !important;
+}
+
 /* ===== 29. PAGE HEADER in both dashboards ===== */
 
 .fd-pg-header {
