@@ -134,6 +134,7 @@ export default function DangBanContent() {
     <>
       <div className="fd-pg-header">
         <div>
+          <div className="fd-breadcrumb"><span>Trang chủ</span><span className="fd-bc-arrow">›</span><span>Đăng bán nông sản</span></div>
           <h2>Đăng ký Bán Nông sản Mới</h2>
           <p className="fd-pg-subtitle">Điền thông tin để kết nối với nhà bao tiêu uy tín trên toàn quốc.</p>
         </div>

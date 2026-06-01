@@ -157,6 +157,7 @@ export default function DonHangContent({ searchQuery = "" }) {
     <>
       <div className="fd-pg-header">
         <div>
+          <div className="fd-breadcrumb"><span>Trang chủ</span><span className="fd-bc-arrow">›</span><span>Đơn hàng của tôi</span></div>
           <h2>Đơn hàng của tôi</h2>
           <p className="fd-pg-subtitle">Quản lý và theo dõi tiến độ các đơn hàng bao tiêu</p>
         </div>

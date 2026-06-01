@@ -4784,6 +4784,21 @@
    ======================================================= */
 
 /* ── Page sub-header (all pages except MuaVu home) ── */
+/* Breadcrumb đồng bộ với Enterprise (Trang chủ › [Tên trang]) */
+.fd-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #618968;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.fd-breadcrumb .fd-bc-arrow {
+  font-size: 14px;
+}
+
 .fd-pg-header {
   display: flex;
   align-items: flex-start;

@@ -288,6 +288,7 @@ export default function FarmerWeatherContent() {
     <>
       <div className="fd-pg-header">
         <div>
+          <div className="fd-breadcrumb"><span>Trang chủ</span><span className="fd-bc-arrow">›</span><span>Thời tiết &amp; Bảo hiểm</span></div>
           <h2>Thời tiết &amp; Bảo hiểm</h2>
           <p className="fd-pg-subtitle">Theo dõi thời tiết và quản lý thông tin bảo hiểm cho vùng canh tác.</p>
         </div>

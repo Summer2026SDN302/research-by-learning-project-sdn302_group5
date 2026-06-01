@@ -119,6 +119,7 @@ export default function HopDongContent({ searchQuery = "" }) {
     <>
       <div className="fd-pg-header">
         <div>
+          <div className="fd-breadcrumb"><span>Trang chủ</span><span className="fd-bc-arrow">›</span><span>Hợp đồng của tôi</span></div>
           <h2>Hợp đồng của tôi</h2>
           <p className="fd-pg-subtitle">Xem, ký và theo dõi các hợp đồng bao tiêu nông sản</p>
         </div>

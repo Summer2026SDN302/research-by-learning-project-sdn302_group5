@@ -98,6 +98,7 @@ export default function FarmerEscrowContent() {
     <>
       <div className="fd-pg-header">
         <div>
+          <div className="fd-breadcrumb"><span>Trang chủ</span><span className="fd-bc-arrow">›</span><span>Thanh toán trung gian</span></div>
           <h2>Thanh toán trung gian</h2>
           <p className="fd-pg-subtitle">Theo dõi toàn bộ giao dịch ký quỹ và các mốc giải ngân</p>
         </div>
