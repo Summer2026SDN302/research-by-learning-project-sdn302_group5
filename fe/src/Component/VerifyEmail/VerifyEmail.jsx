@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useToast } from "../../contexts/ToastContext";
@@ -21,8 +21,19 @@ export default function VerifyEmail() {
   const token = searchParams.get("token") || "";
   const [status, setStatus] = useState(STATUS.LOADING);
   const [errorMessage, setErrorMessage] = useState("");
+  // Đếm ngược tự chuyển về trang đăng nhập sau khi xác minh thành công.
+  const REDIRECT_SECONDS = 10;
+  const [countdown, setCountdown] = useState(REDIRECT_SECONDS);
+  // Token xác minh chỉ dùng được MỘT lần (BE xóa token sau khi xác minh).
+  // Guard này đảm bảo gọi API đúng một lần, tránh effect chạy lại (do StrictMode
+  // hoặc do `toast` đổi identity mỗi khi danh sách toast thay đổi) khiến lần gọi
+  // thứ hai thất bại và đè lên kết quả thành công.
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
+    if (verifiedRef.current) return;
+    verifiedRef.current = true;
+
     if (!token) {
       setStatus(STATUS.ERROR);
       setErrorMessage("Link xác minh không hợp lệ. Vui lòng thử lại.");
@@ -41,7 +52,28 @@ export default function VerifyEmail() {
     };
 
     verify();
-  }, [token, toast]);
+    // Chỉ phụ thuộc `token`: KHÔNG đưa `toast` vào deps vì object toast đổi
+    // identity mỗi lần thêm/bớt toast, sẽ làm effect chạy lại và verify trùng.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // Sau khi xác minh thành công: đếm ngược và tự chuyển về trang đăng nhập sau 10s.
+  useEffect(() => {
+    if (status !== STATUS.SUCCESS) return;
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    const timeout = setTimeout(() => {
+      navigate(ROUTES.AUTH);
+    }, REDIRECT_SECONDS * 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [status, navigate]);
 
   return (
     <div className="verify-page">
@@ -71,6 +103,9 @@ export default function VerifyEmail() {
             <button className="btn-verify-action" onClick={() => navigate(ROUTES.AUTH)}>
               Đăng nhập ngay
             </button>
+            <p className="verify-redirect-hint">
+              Tự động chuyển về trang đăng nhập sau {countdown}s...
+            </p>
           </div>
         )}
 

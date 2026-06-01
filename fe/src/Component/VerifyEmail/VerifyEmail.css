@@ -141,3 +141,9 @@
 }
 
 .btn-verify-secondary:hover { background: #f0f0f0; }
+
+.verify-redirect-hint {
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: #888;
+}
