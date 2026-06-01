@@ -42,24 +42,47 @@ export function getSmtpConfig(includeLegacyEnv: boolean = false): SmtpConfig | n
   };
 }
 
-export async function sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
+// Các lỗi kết nối/timeout SMTP thường gặp khi host (vd Render) chặn cổng 587.
+const SMTP_CONNECTION_ERRORS = ['ETIMEDOUT', 'ECONNECTION', 'ESOCKET', 'ECONNREFUSED', 'EDNS', 'EAI_AGAIN'];
+
+async function sendVia(
+  config: SmtpConfig,
+  port: number,
+  secure: boolean,
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> {
   const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
     host: config.host,
-    port: config.port,
-    secure: config.secure,
+    port,
+    secure,
     auth: { user: config.user, pass: config.pass },
     connectionTimeout: 8000,
     greetingTimeout: 5000,
     socketTimeout: 10000,
   });
 
-  await transporter.sendMail({
-    from: config.from,
-    to,
-    subject,
-    html,
-  });
+  await transporter.sendMail({ from: config.from, to, subject, html });
+}
+
+export async function sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
+  try {
+    await sendVia(config, config.port, config.secure, to, subject, html);
+  } catch (err: any) {
+    const code = err?.code as string | undefined;
+    const isConnIssue = !!code && SMTP_CONNECTION_ERRORS.includes(code);
+    // Một số host (Render…) chặn/giới hạn cổng 587 STARTTLS. Thử lại qua 465 SSL.
+    const alreadyTried465 = config.port === 465 && config.secure;
+
+    if (isConnIssue && !alreadyTried465) {
+      log.warn(`SMTP gửi qua cổng ${config.port} lỗi (${code}). Thử lại qua cổng 465 (SSL)...`);
+      await sendVia(config, 465, true, to, subject, html);
+      return;
+    }
+    throw err;
+  }
 }
 
 function buildVerificationEmailHtml(fullName: string, verifyUrl: string): string {
