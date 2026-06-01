@@ -69,7 +69,9 @@ async function sendVia(
 
 export async function sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
   try {
+    log.info(`SMTP: gửi mail tới ${to} qua cổng ${config.port} (secure=${config.secure})...`);
     await sendVia(config, config.port, config.secure, to, subject, html);
+    log.info(`SMTP: gửi mail tới ${to} THÀNH CÔNG qua cổng ${config.port}.`);
   } catch (err: any) {
     const code = err?.code as string | undefined;
     const isConnIssue = !!code && SMTP_CONNECTION_ERRORS.includes(code);
@@ -77,10 +79,21 @@ export async function sendEmail(config: SmtpConfig, to: string, subject: string,
     const alreadyTried465 = config.port === 465 && config.secure;
 
     if (isConnIssue && !alreadyTried465) {
-      log.warn(`SMTP gửi qua cổng ${config.port} lỗi (${code}). Thử lại qua cổng 465 (SSL)...`);
-      await sendVia(config, 465, true, to, subject, html);
-      return;
+      log.warn(`SMTP cổng ${config.port} lỗi (${code}: ${err?.message}). Thử lại qua cổng 465 (SSL)...`);
+      try {
+        await sendVia(config, 465, true, to, subject, html);
+        log.info(`SMTP: gửi mail tới ${to} THÀNH CÔNG qua cổng 465 (fallback).`);
+        return;
+      } catch (err2: any) {
+        log.error(
+          `SMTP cổng 465 cũng lỗi (${err2?.code}: ${err2?.message}). ` +
+          `Nhiều khả năng host (Render Free) đang CHẶN toàn bộ cổng SMTP — cần chuyển sang gửi mail qua HTTP API.`,
+          err2
+        );
+        throw err2;
+      }
     }
+    log.error(`SMTP gửi mail tới ${to} thất bại (${code}: ${err?.message}).`, err);
     throw err;
   }
 }
