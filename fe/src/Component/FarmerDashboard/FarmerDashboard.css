@@ -4784,6 +4784,14 @@
    ======================================================= */
 
 /* ── Page sub-header (all pages except MuaVu home) ── */
+/* Wrapper trang Thời tiết — khớp y .ed-content của Enterprise (padding + max-width + căn giữa) */
+.fd-weather-wrap {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
 /* Breadcrumb đồng bộ với Enterprise (Trang chủ › [Tên trang]) */
 .fd-breadcrumb {
   display: flex;
@@ -6421,6 +6429,7 @@
   /* Drawer mode: bỏ width cố định cũ ở 768px, dùng .dash-drawer */
   .fd-sidebar { width: 264px; }
   .fd-content { padding: 18px 16px; }
+  .fd-weather-wrap { padding: 18px 16px; }
   .fd-header { padding: 12px 16px; }
 }
 
