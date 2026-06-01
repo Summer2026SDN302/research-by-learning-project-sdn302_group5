@@ -26,6 +26,10 @@ import { errorHandler } from './middlewares/error.middleware';
 
 const app: Application = express();
 
+// Render (và đa số PaaS) đặt app sau reverse proxy → tin tưởng 1 lớp proxy để
+// express-rate-limit đọc đúng IP client từ X-Forwarded-For, tránh ValidationError.
+app.set('trust proxy', 1);
+
 const normalizeOrigin = (value?: string | null): string | null => {
   if (!value) return null;
   return value.trim().replace(/\/$/, '');

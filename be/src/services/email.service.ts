@@ -67,7 +67,59 @@ async function sendVia(
   await transporter.sendMail({ from: config.from, to, subject, html });
 }
 
+// Tách "Tên <email>" thành { name, email }. Dùng để dựng sender cho Brevo.
+function parseFrom(from: string, fallbackEmail: string): { name: string; email: string } {
+  const match = from.match(/^\s*"?([^"<]*?)"?\s*<\s*([^>]+)\s*>\s*$/);
+  if (match) {
+    return { name: match[1].trim() || 'PreOnic', email: match[2].trim() };
+  }
+  // from chỉ là 1 địa chỉ email trần
+  const bare = from.trim();
+  return { name: 'PreOnic', email: bare.includes('@') ? bare : fallbackEmail };
+}
+
+// Gửi mail qua Brevo HTTP API (port 443) — KHÔNG bị host (Render Free) chặn như SMTP.
+// Yêu cầu env BREVO_API_KEY và sender (SMTP_FROM/SMTP_USER) đã được verify trên Brevo.
+async function sendViaBrevo(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
+  const apiKey = process.env.BREVO_API_KEY as string;
+  const sender = parseFrom(config.from, config.user);
+
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Brevo API ${res.status}: ${detail}`);
+  }
+}
+
 export async function sendEmail(config: SmtpConfig, to: string, subject: string, html: string): Promise<void> {
+  // Ưu tiên Brevo HTTP API nếu được cấu hình (bắt buộc trên Render Free vì SMTP bị chặn).
+  if (process.env.BREVO_API_KEY) {
+    try {
+      log.info(`Brevo: gửi mail tới ${to} qua HTTP API...`);
+      await sendViaBrevo(config, to, subject, html);
+      log.info(`Brevo: gửi mail tới ${to} THÀNH CÔNG.`);
+      return;
+    } catch (err: any) {
+      log.error(`Brevo gửi mail tới ${to} thất bại: ${err?.message}`, err);
+      throw err;
+    }
+  }
+
+  // Không có Brevo → dùng SMTP (phù hợp local dev; trên Render Free sẽ bị chặn).
   try {
     log.info(`SMTP: gửi mail tới ${to} qua cổng ${config.port} (secure=${config.secure})...`);
     await sendVia(config, config.port, config.secure, to, subject, html);
