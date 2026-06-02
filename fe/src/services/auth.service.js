@@ -45,10 +45,8 @@ const authService = {
   register: async (data) => {
     try {
       const response = await api.post('/auth/register', data);
-      // Enterprise cần xác minh email trước → BE không trả accessToken; chỉ persist khi có.
-      if (response.data.success && !response.data.requiresVerification) {
-        persistAuth(response.data.data);
-      }
+      // Không tự đăng nhập sau khi đăng ký: user phải tự đăng nhập lại.
+      // (Trước đây persist token ở đây khiến farmer bị nhảy thẳng vào dashboard.)
       return response.data;
     } catch (error) {
       throw extractErrorMessage(error, 'Đăng ký thất bại');

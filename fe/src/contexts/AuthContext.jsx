@@ -38,14 +38,10 @@ export const AuthProvider = ({ children }) => {
     return response;
   }, []);
 
-  // Register: calls API, persists tokens, updates context state.
-  // Tài khoản doanh nghiệp trả về requiresVerification → chưa cấp token, không setUser.
+  // Register: chỉ tạo tài khoản, KHÔNG tự đăng nhập.
+  // User sau khi đăng ký phải tự đăng nhập lại → không setUser ở đây.
   const register = useCallback(async (data) => {
-    const response = await authService.register(data);
-    if (response.success && !response.requiresVerification && response.data?.user) {
-      setUser(response.data.user);
-    }
-    return response;
+    return authService.register(data);
   }, []);
 
   // Logout: calls API, clears tokens, clears context state

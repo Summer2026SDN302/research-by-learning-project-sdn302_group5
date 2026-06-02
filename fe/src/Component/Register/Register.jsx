@@ -155,13 +155,11 @@ const Register = () => {
           return;
         }
         toast.success(
-          `Chào mừng ${formData.fullName}! Tài khoản đã được tạo thành công.`,
+          "Tạo tài khoản thành công! Vui lòng đăng nhập để tiếp tục.",
           TOAST_DURATION.LONG
         );
         setTimeout(() => {
-          navigate(
-            selectedRole === "farmer" ? ROUTES.FARMER : ROUTES.ENTERPRISE
-          );
+          navigate(ROUTES.AUTH);
         }, 1000);
       }
     } catch (err) {
