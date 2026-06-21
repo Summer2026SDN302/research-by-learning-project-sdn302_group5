@@ -317,3 +317,8 @@ export class ProductService {
     return review;
   }
 }
+if (data.priceMin > data.priceMax) {
+  throw new Error(
+    'priceMin cannot be greater than priceMax'
+  );
+}

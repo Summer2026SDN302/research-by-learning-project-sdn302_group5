@@ -12,6 +12,7 @@ import {
   getProductReviews,
   addProductReview,
 } from '../controllers/product.controller';
+import { getDashboard } from '@controllers/admin.controller';
 
 const router = Router();
 
@@ -35,7 +36,24 @@ router.get('/my', protect, getMyProducts);
  * @access  Public
  */
 router.get('/region/:region', getProductsByRegion);
-
+router.put(
+  '/:id',
+  protect,
+  restrictTo('farmer'),
+  updateProduct
+);
+router.delete(
+  '/:id',
+  protect,
+  restrictTo('farmer'),
+  deleteProduct
+);
+router.get(
+  '/dashboard',
+  protect,
+  restrictTo('farmer'),
+  getDashboard
+);
 /**
  * @route   GET /api/v1/products/:id
  * @desc    Get single product by ID

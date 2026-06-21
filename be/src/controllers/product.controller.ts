@@ -7,6 +7,8 @@ import { ProductService } from '../services/product.service';
  * Get all products (public)
  * GET /api/v1/products
  */
+PATCH /products/:id/image
+updateProductImage()
 export const getProducts = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const { category, region, type, search, page, limit, sort } = req.query;

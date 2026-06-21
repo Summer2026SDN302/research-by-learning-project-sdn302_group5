@@ -182,10 +182,18 @@ const ProductSchema = new Schema<IProduct>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+
+    status: {
+  type: String,
+  enum: [
+    'draft',
+    'available',
+    'harvesting',
+    'sold_out',
+    'expired'
+  ],
+  default: 'available'
+}
   },
   {
     timestamps: true,
