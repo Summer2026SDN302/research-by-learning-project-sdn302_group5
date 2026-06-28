@@ -1,27 +1,17 @@
-import { Router } from 'express';
-import { protect, requireCompleteProfile } from '../middlewares/auth.middleware';
-import {
-  createContract,
-  getContract,
-  listContracts,
-  requestSignOtp,
-  signContract,
-  cancelContract,
-  rejectContract,
-} from '../controllers/contract.controller';
+import { Router } from "express";
+import ContractController from "./Contract.controller";
+import auth from "../middleware/auth";
 
 const router = Router();
 
-// All contract routes require authentication
-router.use(protect);
+router.post("/", auth, ContractController.create);
+router.get("/", auth, ContractController.getAll);
+router.get("/:id", auth, ContractController.getById);
 
-// ===== CONTRACT CRUD =====
-router.post('/', requireCompleteProfile, createContract);
-router.get('/', listContracts);
-router.get('/:id', getContract);
-router.post('/:id/request-sign-otp', requireCompleteProfile, requestSignOtp);
-router.post('/:id/sign', requireCompleteProfile, signContract);
-router.post('/:id/cancel', cancelContract);
-router.post('/:id/reject', rejectContract);
+router.patch("/:id/status", auth, ContractController.updateStatus);
+router.patch("/:id/milestone", auth, ContractController.milestone);
+router.patch("/:id/payment", auth, ContractController.payment);
+
+router.delete("/:id", auth, ContractController.delete);
 
 export default router;

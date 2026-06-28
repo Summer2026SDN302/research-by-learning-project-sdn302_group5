@@ -1,108 +1,84 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../types';
-import { PaymentService } from '../services/payment.service';
-import { asyncHandler } from '../middlewares/error.middleware';
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from '../constants';
-import { successResponse } from '../utils/response.util';
+import ContractService from "./Contract.service";
 
-// Chuẩn hóa tham số phân trang để controller không phải lặp lại logic parse ở nhiều nơi.
-const parsePositiveInteger = (value: unknown, fallback: number): number => {
-  const parsedValue = Number(value);
-  return Number.isInteger(parsedValue) && parsedValue > 0
-    ? parsedValue
-    : fallback;
-};
-
-/**
- * POST /payment/topup — Create a top-up request for the active payment gateway
- */
-export const createTopup = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const { amount, description } = req.body;
-    const result = await PaymentService.createTopup(
-      req.user!.id,
-      Number(amount),
-      description
-    );
-    res.status(200).json(successResponse(result, 'Tạo liên kết thanh toán thành công'));
+export default class ContractController {
+  static async create(req: any, res: any) {
+    try {
+      const data = await ContractService.createContract(
+        req.body,
+        req.user
+      );
+      res.json(data);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   }
-);
 
-/**
- * POST /payment/topup/verify — Verify payment after return from gateway
- */
-export const verifyTopup = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const { orderCode } = req.body;
-    const result = await PaymentService.verifyAndProcess(Number(orderCode));
-    res.status(200).json(successResponse(result, result.success ? 'Nạp tiền thành công' : 'Giao dịch chưa hoàn tất'));
+  static async getAll(req: any, res: any) {
+    try {
+      const data = await ContractService.getAll(req.query);
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   }
-);
 
-/**
- * POST /payment/webhook — Payment gateway webhook handler
- */
-export const handleWebhook = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    await PaymentService.handleWebhook(
-      req.body,
-      typeof req.headers.authorization === 'string'
-        ? req.headers.authorization
-        : undefined
-    );
-    res.status(200).json({ success: true });
+  static async getById(req: any, res: any) {
+    try {
+      const data = await ContractService.getById(req.params.id);
+      res.json(data);
+    } catch (e: any) {
+      res.status(404).json({ message: e.message });
+    }
   }
-);
 
-/**
- * POST /payment/demo-topup — Demo instant top-up (no real payment)
- */
-export const demoTopup = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const { amount } = req.body;
-    const result = await PaymentService.demoTopup(req.user!.id, Number(amount));
-    res.status(200).json(successResponse(result, 'Nạp tiền demo thành công'));
+  static async status(req: any, res: any) {
+    try {
+      const data = await ContractService.updateStatus(
+        req.params.id,
+        req.body.status,
+        req.user
+      );
+      res.json(data);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   }
-);
 
-/**
- * GET /payment/wallet — Get wallet info + stats
- */
-export const getWalletInfo = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const result = await PaymentService.getWalletInfo(req.user!.id);
-    res.status(200).json(successResponse(result));
+  static async milestone(req: any, res: any) {
+    try {
+      const data = await ContractService.doneMilestone(
+        req.params.id,
+        req.body.index,
+        req.user
+      );
+      res.json(data);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   }
-);
 
-/**
- * GET /payment/transactions — Get transaction history
- */
-export const getTransactions = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const page = parsePositiveInteger(req.query.page, DEFAULT_PAGE);
-    const limit = parsePositiveInteger(req.query.limit, DEFAULT_PAGE_SIZE);
-    const type = req.query.type as string | undefined;
-    const result = await PaymentService.getTransactions(
-      req.user!.id,
-      page,
-      limit,
-      type
-    );
-    res.status(200).json(successResponse(result));
+  static async payment(req: any, res: any) {
+    try {
+      const data = await ContractService.addPayment(
+        req.params.id,
+        req.body,
+        req.user
+      );
+      res.json(data);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   }
-);
 
-/**
- * POST /payment/cancel — Cancel a pending topup
- */
-export const cancelTopup = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const { orderCode } = req.body;
-    const result = await PaymentService.cancelTopup(
-      Number(orderCode),
-      req.user!.id
-    );
-    res.status(200).json(successResponse(result, 'Đã hủy giao dịch'));
+  static async delete(req: any, res: any) {
+    try {
+      const data = await ContractService.delete(
+        req.params.id,
+        req.user
+      );
+      res.json(data);
+    } catch (e: any) {
+      res.status(403).json({ message: e.message });
+    }
   }
-);
+}

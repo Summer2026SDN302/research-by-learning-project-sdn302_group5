@@ -1,247 +1,143 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { InsuranceCoveredEvent } from '../types';
-import { UNIT_TO_KG } from '../constants';
-
-// ===== INTERFACES =====
-
-export interface IInsuranceInfo {
-  insuranceCompany?: string;
-  policyNumber?: string;
-  insuredValue?: number;
-  coveredEvents?: InsuranceCoveredEvent;
-  validFrom?: Date;
-  validTo?: Date;
-  attachmentUrl?: string;
-}
-
-export interface IContractLocation {
-  province?: string;
-  district?: string;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
-}
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IContract extends Document {
-  contractCode: string;
-  productId?: mongoose.Types.ObjectId;
-  farmerId: mongoose.Types.ObjectId;
-  enterpriseId: mongoose.Types.ObjectId;
-  farmerName: string;
-  enterpriseName: string;
-  productName: string;
-  quantity: number;
-  unit: 'tan' | 'ta' | 'kg' | 'thung';
-  pricePerUnit: number;
-  totalValue: number;
-  commission: number;
-  commissionRate: number;
-  depositAmount: number;
-  depositPercentage: number;
-  paymentTerms: '50_50' | '30_70' | '100_delivery' | '100_upfront';
-  deliveryDate: Date;
-  notes?: string;
-  status: 'draft' | 'pending' | 'approved' | 'active' | 'completed' | 'cancelled' | 'disputed';
-  signedByFarmer: boolean;
-  signedByEnterprise: boolean;
-  signedAt?: Date;
-  signOtpHash?: string;
-  signOtpExpiry?: Date;
-  completedAt?: Date;
-  cancelledAt?: Date;
-  cancelReason?: string;
-  farmLocation?: IContractLocation;
-  insuranceFarmer?: IInsuranceInfo;
-  insuranceEnterprise?: IInsuranceInfo;
-  riskSharingTerms?: string;
+  title: string;
+  description: string;
+
+  price: number;
+  deposit: number;
+
+  status: string;
+
+  farmerId: Types.ObjectId;
+  businessId: Types.ObjectId;
+  createdBy: Types.ObjectId;
+
+  startDate: Date;
+  endDate: Date;
+
+  location: string;
+
+  products: any[];
+  milestones: any[];
+  payments: any[];
+
+  rating: number;
+  feedback: string;
+
+  isDeleted: boolean;
+  version: number;
+
+  auditLogs: any[];
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-// ===== SCHEMA =====
+/* ======================
+   SUB SCHEMAS
+====================== */
 
-const ContractSchema = new Schema<IContract>(
+const ProductSchema = new Schema({
+  name: String,
+  quantity: Number,
+  unit: String,
+  price: Number,
+});
+
+const MilestoneSchema = new Schema({
+  title: String,
+  description: String,
+  dueDate: Date,
+  isDone: Boolean,
+});
+
+const PaymentSchema = new Schema({
+  amount: Number,
+  method: String,
+  status: String,
+  paidAt: Date,
+});
+
+const AuditSchema = new Schema({
+  action: String,
+  by: Schema.Types.ObjectId,
+  oldValue: Schema.Types.Mixed,
+  newValue: Schema.Types.Mixed,
+  createdAt: Date,
+});
+
+/* ======================
+   MAIN SCHEMA
+====================== */
+
+const ContractSchema = new Schema(
   {
-    contractCode: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    productId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Product',
-      required: false,
-    },
-    farmerId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    enterpriseId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    farmerName: {
-      type: String,
-      required: true,
-    },
-    enterpriseName: {
-      type: String,
-      required: true,
-    },
-    productName: {
-      type: String,
-      required: [true, 'Product name is required'],
-    },
-    quantity: {
-      type: Number,
-      required: [true, 'Quantity is required'],
-      min: [0.01, 'Quantity must be positive'],
-    },
-    unit: {
-      type: String,
-      enum: ['tan', 'ta', 'kg', 'thung'],
-      default: 'tan',
-    },
-    pricePerUnit: {
-      type: Number,
-      required: [true, 'Price per unit is required'],
-      min: [0, 'Price must be non-negative'],
-    },
-    totalValue: {
-      type: Number,
-      required: true,
-    },
-    commission: {
-      type: Number,
-      required: true,
-    },
-    commissionRate: {
-      type: Number,
-      default: 3,
-    },
-    depositAmount: {
-      type: Number,
-      required: true,
-      min: [0, 'Deposit amount must be non-negative'],
-    },
-    depositPercentage: {
-      type: Number,
-      required: true,
-      min: [0, 'Deposit percentage must be non-negative'],
-      max: [100, 'Deposit percentage cannot exceed 100'],
-    },
-    paymentTerms: {
-      type: String,
-      enum: ['50_50', '30_70', '100_delivery', '100_upfront'],
-      default: '50_50',
-    },
-    deliveryDate: {
-      type: Date,
-      required: [true, 'Delivery date is required'],
-    },
-    notes: {
-      type: String,
-    },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+
+    price: { type: Number, required: true },
+    deposit: { type: Number, default: 0 },
+
     status: {
       type: String,
-      enum: ['draft', 'pending', 'approved', 'active', 'completed', 'cancelled', 'disputed'],
-      default: 'draft',
+      default: "pending",
+      enum: [
+        "pending",
+        "accepted",
+        "rejected",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "disputed",
+      ],
     },
-    signedByFarmer: {
-      type: Boolean,
-      default: false,
-    },
-    signedByEnterprise: {
-      type: Boolean,
-      default: false,
-    },
-    signedAt: {
-      type: Date,
-    },
-    signOtpHash: {
-      type: String,
-      select: false,
-    },
-    signOtpExpiry: {
-      type: Date,
-      select: false,
-    },
-    completedAt: {
-      type: Date,
-    },
-    cancelledAt: {
-      type: Date,
-    },
-    cancelReason: {
-      type: String,
-    },
-    farmLocation: {
-      province: { type: String },
-      district: { type: String },
-      coordinates: {
-        lat: { type: Number },
-        lng: { type: Number },
-      },
-    },
-    insuranceFarmer: {
-      insuranceCompany: { type: String },
-      policyNumber: { type: String },
-      insuredValue: { type: Number, min: 0 },
-      coveredEvents: { type: String, enum: ['natural_disaster', 'disease', 'both'] },
-      validFrom: { type: Date },
-      validTo: { type: Date },
-      attachmentUrl: { type: String },
-    },
-    insuranceEnterprise: {
-      insuranceCompany: { type: String },
-      policyNumber: { type: String },
-      insuredValue: { type: Number, min: 0 },
-      coveredEvents: { type: String, enum: ['natural_disaster', 'disease', 'both'] },
-      validFrom: { type: Date },
-      validTo: { type: Date },
-      attachmentUrl: { type: String },
-    },
-    riskSharingTerms: {
-      type: String,
-    },
+
+    farmerId: { type: Schema.Types.ObjectId, ref: "User" },
+    businessId: { type: Schema.Types.ObjectId, ref: "User" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+
+    startDate: Date,
+    endDate: Date,
+
+    location: String,
+
+    products: [ProductSchema],
+    milestones: [MilestoneSchema],
+    payments: [PaymentSchema],
+
+    rating: Number,
+    feedback: String,
+
+    isDeleted: { type: Boolean, default: false },
+    version: { type: Number, default: 1 },
+
+    auditLogs: [AuditSchema],
   },
-  {
-    timestamps: true,
-    toJSON: {
-      transform: function (_doc: any, ret: any) {
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  { timestamps: true }
 );
 
-// Auto-generate contract code before saving
-ContractSchema.pre('save', async function (next) {
-  if (this.isNew && !this.contractCode) {
-    const year = new Date().getFullYear();
-    const count = await mongoose.model('Contract').countDocuments();
-    this.contractCode = `PRE-${year}-${String(count + 1).padStart(4, '0')}`;
-  }
-  next();
-});
-
-// Auto-calculate totalValue and commission
-ContractSchema.pre('save', function (next) {
-  if (this.isModified('quantity') || this.isModified('pricePerUnit')) {
-    const unitFactor = UNIT_TO_KG[this.unit as keyof typeof UNIT_TO_KG] ?? 1;
-    this.totalValue = Math.round(this.quantity * this.pricePerUnit * unitFactor);
-    this.commission = Math.round(this.totalValue * this.commissionRate / 100);
-  }
-  next();
-});
-
-// Indexes
-ContractSchema.index({ farmerId: 1, status: 1 });
-ContractSchema.index({ enterpriseId: 1, status: 1 });
+/* ======================
+   INDEXES
+====================== */
 ContractSchema.index({ status: 1 });
+ContractSchema.index({ farmerId: 1 });
+ContractSchema.index({ businessId: 1 });
+ContractSchema.index({ createdAt: -1 });
 
-export default mongoose.model<IContract>('Contract', ContractSchema);
+/* ======================
+   VIRTUALS
+====================== */
+ContractSchema.virtual("isActive").get(function () {
+  return this.status === "in_progress";
+});
+
+/* ======================
+   HOOKS (heavy style)
+====================== */
+ContractSchema.pre("save", function (next) {
+  this.version += 1;
+  next();
+});
+
+export default mongoose.model<IContract>("Contract", ContractSchema);
