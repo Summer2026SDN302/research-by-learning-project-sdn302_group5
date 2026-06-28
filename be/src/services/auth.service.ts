@@ -1,5 +1,5 @@
-import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
-import crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 import User, { IUser } from '../models/User.model';
 import { AppError } from '../middlewares/error.middleware';
 import {

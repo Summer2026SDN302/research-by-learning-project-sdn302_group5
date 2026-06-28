@@ -1,5 +1,7 @@
 import { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import PDFDocument = require('pdfkit');
+import ExcelJS = require('exceljs');
 import { AuthRequest } from '../types';
 import { asyncHandler, AppError } from '../middlewares/error.middleware';
 import { successResponse, paginatedResponse } from '../utils/response.util';
@@ -346,6 +348,214 @@ export const resolveDisputeAdmin = asyncHandler(
  * GET /api/v1/admin/transactions
  * Danh sách tất cả giao dịch
  */
+export const exportContracts = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const format = (req.query.format as string || 'csv').toLowerCase();
+    const search = (req.query.search as string || '').trim();
+    const status = req.query.status as string;
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { contractCode: { $regex: search, $options: 'i' } },
+        { farmerName: { $regex: search, $options: 'i' } },
+        { enterpriseName: { $regex: search, $options: 'i' } },
+        { productName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const contracts = await Contract.find(filter)
+      .sort({ createdAt: -1 })
+      .select(
+        'contractCode farmerName enterpriseName productName quantity unit pricePerUnit totalValue commission depositAmount depositPercentage paymentTerms status signedAt createdAt deliveryDate'
+      );
+
+    const rows = contracts.map((contract) => ({
+      contractCode: contract.contractCode,
+      farmerName: contract.farmerName,
+      enterpriseName: contract.enterpriseName,
+      productName: contract.productName,
+      quantity: contract.quantity,
+      unit: contract.unit,
+      pricePerUnit: contract.pricePerUnit,
+      totalValue: contract.totalValue,
+      commission: contract.commission,
+      depositAmount: contract.depositAmount,
+      depositPercentage: contract.depositPercentage,
+      paymentTerms: contract.paymentTerms,
+      status: contract.status,
+      signedAt: contract.signedAt?.toISOString() ?? '',
+      deliveryDate: contract.deliveryDate?.toISOString() ?? '',
+      createdAt: contract.createdAt.toISOString(),
+    }));
+
+    if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Contracts');
+
+      worksheet.columns = [
+        { header: 'Mã hợp đồng', key: 'contractCode', width: 20 },
+        { header: 'Nông dân', key: 'farmerName', width: 30 },
+        { header: 'Doanh nghiệp', key: 'enterpriseName', width: 30 },
+        { header: 'Sản phẩm', key: 'productName', width: 30 },
+        { header: 'Số lượng', key: 'quantity', width: 12 },
+        { header: 'Đơn vị', key: 'unit', width: 12 },
+        { header: 'Giá đơn vị', key: 'pricePerUnit', width: 16 },
+        { header: 'Tổng giá trị', key: 'totalValue', width: 16 },
+        { header: 'Hoa hồng', key: 'commission', width: 14 },
+        { header: 'Tiền đặt cọc', key: 'depositAmount', width: 16 },
+        { header: 'Phần trăm đặt cọc', key: 'depositPercentage', width: 18 },
+        { header: 'Điều khoản thanh toán', key: 'paymentTerms', width: 18 },
+        { header: 'Trạng thái', key: 'status', width: 14 },
+        { header: 'Ngày ký', key: 'signedAt', width: 24 },
+        { header: 'Ngày giao hàng', key: 'deliveryDate', width: 24 },
+        { header: 'Ngày tạo', key: 'createdAt', width: 24 },
+      ];
+
+      worksheet.addRows(rows);
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) {
+          row.eachCell((cell) => {
+            cell.font = { bold: true };
+          });
+        }
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="contracts-report.xlsx"'
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+
+    if (format === 'pdf') {
+      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="contracts-report.pdf"');
+      doc.pipe(res);
+
+      doc.fontSize(16).text('Báo cáo hợp đồng', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(10);
+
+      const tableHeader = [
+        'Mã hợp đồng',
+        'Nông dân',
+        'Doanh nghiệp',
+        'Sản phẩm',
+        'SL',
+        'ĐVT',
+        'Đơn giá',
+        'Tổng giá trị',
+        'Trạng thái',
+      ];
+
+      const tableRows = rows.map((row) => [
+        row.contractCode,
+        row.farmerName,
+        row.enterpriseName,
+        row.productName,
+        row.quantity.toString(),
+        row.unit,
+        row.pricePerUnit.toString(),
+        row.totalValue.toString(),
+        row.status,
+      ]);
+
+      const columnWidths = [80, 90, 90, 90, 30, 40, 50, 60, 60];
+      const startX = doc.x;
+      const startY = doc.y;
+      let y = startY;
+
+      doc.font('Helvetica-Bold');
+      tableHeader.forEach((header, index) => {
+        doc.text(header, startX + columnWidths.slice(0, index).reduce((a, b) => a + b, 0), y, {
+          width: columnWidths[index],
+          continued: index !== tableHeader.length - 1,
+        });
+      });
+      doc.moveDown(0.8);
+      y = doc.y;
+      doc.font('Helvetica');
+
+      tableRows.forEach((row) => {
+        const rowText = row.map((cell, index) => ({ text: cell, width: columnWidths[index] }));
+        rowText.forEach((cell, index) => {
+          doc.text(cell.text, startX + columnWidths.slice(0, index).reduce((a, b) => a + b, 0), y, {
+            width: cell.width,
+            continued: index !== rowText.length - 1,
+          });
+        });
+        doc.moveDown(0.6);
+        y = doc.y;
+        if (y > doc.page.height - 80) {
+          doc.addPage();
+          y = doc.y;
+        }
+      });
+
+      doc.end();
+      return;
+    }
+
+    // Default to CSV
+    const csvHeader = [
+      'Mã hợp đồng',
+      'Nông dân',
+      'Doanh nghiệp',
+      'Sản phẩm',
+      'Số lượng',
+      'Đơn vị',
+      'Giá đơn vị',
+      'Tổng giá trị',
+      'Hoa hồng',
+      'Tiền đặt cọc',
+      'Phần trăm đặt cọc',
+      'Điều khoản thanh toán',
+      'Trạng thái',
+      'Ngày ký',
+      'Ngày giao hàng',
+      'Ngày tạo',
+    ];
+
+    const csvRows = rows.map((row) =>
+      [
+        row.contractCode,
+        row.farmerName,
+        row.enterpriseName,
+        row.productName,
+        row.quantity,
+        row.unit,
+        row.pricePerUnit,
+        row.totalValue,
+        row.commission,
+        row.depositAmount,
+        row.depositPercentage,
+        row.paymentTerms,
+        row.status,
+        row.signedAt,
+        row.deliveryDate,
+        row.createdAt,
+      ]
+        .map(String)
+        .map((value) => `"${value.replace(/"/g, '""')}"`)
+        .join(',')
+    );
+
+    const csv = [csvHeader.map((v) => `"${v}"`).join(','), ...csvRows].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="contracts-report.csv"');
+    res.send(csv);
+  }
+);
+
 export const getAllTransactions = asyncHandler(
   async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);

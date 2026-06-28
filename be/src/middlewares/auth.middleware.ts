@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import User from '../models/User.model';
 import { AuthRequest, JwtUserPayload } from '../types';
 import { AppError } from './error.middleware';

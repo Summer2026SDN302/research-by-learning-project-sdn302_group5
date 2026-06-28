@@ -8,6 +8,7 @@ import {
   deleteUser,
   getAllContracts,
   getContractDetail,
+  exportContracts,
   getAllDisputes,
   getDisputeDetail,
   resolveDisputeAdmin,
@@ -35,6 +36,7 @@ router.patch('/users/:id/toggle-status', toggleUserStatus);
 router.delete('/users/:id', deleteUser);
 
 // Contract management
+router.get('/contracts/export', exportContracts);
 router.get('/contracts', getAllContracts);
 router.get('/contracts/:id', getContractDetail);
 
