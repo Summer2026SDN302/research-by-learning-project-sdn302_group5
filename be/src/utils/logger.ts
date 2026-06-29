@@ -3,7 +3,8 @@
 // Development: pretty single-line (dễ đọc trên console).
 // API: createLogger(scope).{debug|info|warn|error}(message, meta?).
 
-import pino, { Logger as PinoLogger } from 'pino';
+import pino = require('pino');
+import { Logger as PinoLogger } from 'pino';
 
 const isProd = process.env.NODE_ENV === 'production';
 const minLevel = (process.env.LOG_LEVEL || 'info').toLowerCase();
