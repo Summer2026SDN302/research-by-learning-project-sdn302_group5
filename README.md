@@ -6,7 +6,7 @@ https://docs.google.com/document/d/1c0uZFdrtcxO9fPHQT59KTG7GFGzE6JNoccEWUOPi7ps/
 Link overleaf
 https://www.overleaf.com/read/fvnvydnjrshf#a3728e
 
-Link SRS: https://docs.google.com/document/d/1q7BeMDMRYSj21u33zEVtMyvFIYzPbQsEWHXq1KD9B20/edit?usp=sharing
+Link SRS: https://docs.google.com/document/d/1NQnUvsrzb7PZUpfi8WqzlpjyedZHUGGnOoYHLSuI9Wk/edit?usp=sharing
 
 Link Jira : 
 
